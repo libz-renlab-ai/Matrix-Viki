@@ -14,7 +14,6 @@ import {
   backupFile,
   checkClaudeCode,
   checkHookSpawn,
-  checkTeamSharingStatus,
   pathContainsNodeModulesBin,
   checkSettingsJsonScope,
   checkPluginSync,
@@ -88,16 +87,6 @@ describe("renderDoctorResult", () => {
   });
 });
 
-describe("checkTeamSharingStatus", () => {
-  it("reports M5 viral-sync as pass after end-to-end verification (B-150 fix)", () => {
-    const result = checkTeamSharingStatus();
-    expect(result.status).toBe("pass");
-    expect(result.detail).toContain("M5 viral-sync");
-    expect(result.detail).toContain("gate-1");
-    expect(result.detail).toContain("LWW");
-  });
-});
-
 describe("parseDoctorArgs", () => {
   it("defaults all false", () => {
     const opts = parseDoctorArgs([]);
@@ -151,7 +140,7 @@ describe("doctor CLAUDE.md checks", () => {
   });
 });
 
-describe("executeDoctor team-sharing boundary", () => {
+describe("executeDoctor boundary cases", () => {
   const passingClaudeProbe: ClaudeProbe = () => ({
     ok: true,
     stdout: "2.1.126 (Claude Code)\n",
@@ -177,49 +166,6 @@ describe("executeDoctor team-sharing boundary", () => {
     const db = openDb(dbPath);
     db.close();
   }
-
-  it("reports team-sharing pass even when knowledge.db is missing (M5 viral-sync is independent of L1 knowledge.db)", async () => {
-    const workspace = makeTempWorkspace();
-    try {
-      const result = await executeDoctor({
-        cwd: workspace.cwd,
-        homeDir: workspace.homeDir,
-        claudeProbe: passingClaudeProbe,
-      });
-      const names = result.checks.map((check) => check.name);
-      expect(names).toContain("knowledge-db");
-      expect(names).toContain("team-sharing");
-      expect(result.checks.find((check) => check.name === "knowledge-db")?.status).toBe("fail");
-      expect(result.checks.find((check) => check.name === "team-sharing")).toMatchObject({
-        status: "pass",
-        detail: expect.stringContaining("M5 viral-sync"),
-      });
-    } finally {
-      workspace.cleanup();
-    }
-  });
-
-  it("reports team-sharing pass when hook registration is missing (team sync layer is decoupled from per-clone hook install)", async () => {
-    const workspace = makeTempWorkspace();
-    try {
-      createKnowledgeDb(workspace.cwd);
-      const result = await executeDoctor({
-        cwd: workspace.cwd,
-        homeDir: workspace.homeDir,
-        claudeProbe: passingClaudeProbe,
-      });
-      const names = result.checks.map((check) => check.name);
-      expect(names).toContain("hook-registered");
-      expect(names).toContain("team-sharing");
-      expect(result.checks.find((check) => check.name === "hook-registered")?.status).toBe("fail");
-      expect(result.checks.find((check) => check.name === "team-sharing")).toMatchObject({
-        status: "pass",
-        detail: expect.stringContaining("M5 viral-sync"),
-      });
-    } finally {
-      workspace.cleanup();
-    }
-  });
 
   // From #74: user-level settings.json should satisfy hook-registered
   it("passes hook-registered when only user-level settings.json has a viki hook", async () => {

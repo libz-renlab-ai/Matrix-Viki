@@ -461,12 +461,6 @@ function finalize(
   opts: DoctorOptions = {},
   fixOutcomes: FixOutcome[] = [],
 ): DoctorResult {
-  // Always report the team-sharing product boundary, including early-return
-  // paths such as missing knowledge.db or unregistered hooks. It is independent
-  // of local environment health and must stay visible in --json output.
-  if (!checks.some((check) => check.name === "team-sharing")) {
-    checks.push(checkTeamSharingStatus());
-  }
   const passed = checks.filter((c) => c.status === "pass").length;
   const failed = checks.filter((c) => c.status === "fail").length;
   const skipped = checks.filter((c) => c.status === "skip").length;
@@ -1175,14 +1169,6 @@ export function checkClaudeMd(claudeMdPath: string): DoctorCheckResult {
     name: "claude-md",
     status: "pass",
     detail: "无生成规则块（OK）",
-  };
-}
-
-export function checkTeamSharingStatus(): DoctorCheckResult {
-  return {
-    name: "team-sharing",
-    status: "pass",
-    detail: "M5 viral-sync ready: gate-1 secret scan, gate-2 scope classifier, LWW+tombstone merge, m5-publish auto-commit, post-merge auto-pull",
   };
 }
 
