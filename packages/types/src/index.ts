@@ -82,15 +82,3 @@ export type {
 } from "./hook-protocol.js";
 
 export type { PersistedEvent } from "./persisted-event.js";
-
-export type {
-  HookKind,
-  Manifest,
-  LocalState,
-  InfectionPlan,
-  BootstrapDiff,
-  TeamRuleFile,
-  TeamRuleState,
-  TeamRuleAlive,
-  TeamRuleTombstone,
-} from "./m5.js";
