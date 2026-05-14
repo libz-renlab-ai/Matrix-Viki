@@ -10,8 +10,8 @@ dist/
 coverage/
 .install-log
 *.tsbuildinfo
-packages/*/.teamagent/
-.teamagent/
+packages/*/.viki/
+.viki/
 .worktrees/
 .claude/worktrees/
 .codex/worktrees/
