@@ -24,7 +24,6 @@ import {
 } from "@viki/core";
 import type { LLMClient } from "@viki/ports";
 import type { KnowledgeEntry, ParsedSession } from "@viki/types";
-import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 type AnalyzeEmbedder = {
   embed(texts: string[]): Promise<number[][]>;
@@ -72,8 +71,6 @@ export interface AnalyzeOptions {
   onMeta?: (meta: AnalyzeMeta) => void;
   /** 向量 embedder（测试用）；缺省用 XenovaRuleEmbedder */
   embedder?: AnalyzeEmbedder;
-  /** 测试可注入；生产默认后台调度 docs-propagate。 */
-  docsPropagationScheduler?: (ruleIds: string[]) => void | Promise<void>;
 }
 
 export interface AnalyzeMeta {
@@ -332,16 +329,6 @@ async function runCommit(
     try {
       await vectorizeExtractedEntries(result.extracted, projectDbPath, opts.embedder);
     } catch { /* 向量同步失败不阻断 */ }
-    try {
-      const ids = result.extracted.map((e) => e.id);
-      if (opts.docsPropagationScheduler) {
-        await opts.docsPropagationScheduler(ids);
-      } else {
-        scheduleDocsPropagation(ids, { cwd });
-      }
-    } catch {
-      // docs propagation is best-effort
-    }
   }
 
   const lines: string[] = [];
@@ -350,7 +337,7 @@ async function runCommit(
   lines.push(`  识别纠正: ${result.correctionsFound}`);
   lines.push(`  成功提取: ${result.extracted.length}  (跳过 ${result.skipped}, 失败 ${result.failed})`);
   lines.push(`  知识库: ${before} → ${after}`);
-  lines.push(`  Skills 已更新；docs propagation 已调度`);
+  lines.push(`  Skills 已更新`);
   if (result.extracted.length > 0) {
     lines.push("");
     lines.push("  新增条目:");

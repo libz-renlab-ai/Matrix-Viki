@@ -122,11 +122,10 @@ describe("executePitfall", () => {
     expect(out).toContain("传播到:");
     expect(out).toContain("SKILL.md");
     expect(out).not.toContain("CLAUDE.md");
-    expect(out).toContain("docs propagation 已调度");
     expect(out).toContain("dayjs");
   });
 
-  it("avoidance pitfall: attribution points at SKILL.md and scheduled docs propagation", async () => {
+  it("avoidance pitfall: attribution points at SKILL.md", async () => {
     const out = await executePitfall(
       {
         trigger: "moment 用法",
@@ -138,7 +137,6 @@ describe("executePitfall", () => {
     );
     expect(out).toMatch(/传播到:.*SKILL\.md/);
     expect(out).not.toContain("CLAUDE.md");
-    expect(out).toContain("docs propagation 已调度");
   });
 
   // B-065: practice pitfall (无 wrong_pattern) 不进 CLAUDE.md，只
@@ -157,28 +155,6 @@ describe("executePitfall", () => {
     expect(out).toContain("传播到:");
     // practice 类规则总是写入 skill 路径
     expect(out).toMatch(/SKILL\.md/);
-    expect(out).toContain("docs propagation 已调度");
-  });
-
-  it("schedules docs propagation once with all newly created rule ids", async () => {
-    const scheduled: string[][] = [];
-    await executePitfall(
-      { trigger: "t", wrong: "w", correct: "c", reason: "r" },
-      {
-        cwd: tmp.cwd,
-        homeDir: tmp.home,
-        now: () => fixedNow,
-        env: {},
-        embedder: stubEmbedder,
-        docsPropagationScheduler: (ids) => {
-          scheduled.push(ids);
-        },
-      },
-    );
-
-    expect(scheduled).toHaveLength(1);
-    expect(scheduled[0]).toHaveLength(1);
-    expect(scheduled[0]![0]).toMatch(/^pers-/);
   });
 
   it("silent mode returns empty output", async () => {

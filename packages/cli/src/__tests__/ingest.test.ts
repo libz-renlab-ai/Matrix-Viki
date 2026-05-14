@@ -53,7 +53,7 @@ describe("parseIngestArgs", () => {
 });
 
 describe("executeIngest", () => {
-  it("schedules docs propagation once with accepted rule ids without writing CLAUDE.md", async () => {
+  it("ingests accepted rule ids into the store without writing CLAUDE.md", async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ingest-"));
     try {
       const candidatesPath = path.join(tmp, "candidates.md");
@@ -95,7 +95,6 @@ describe("executeIngest", () => {
       const llmClient: LLMClient = {
         complete: async () => `\`\`\`json\n${JSON.stringify(responses.shift())}\n\`\`\``,
       };
-      const scheduled: string[][] = [];
       let id = 0;
       const projectDbPath = path.join(tmp, "knowledge.db");
       const userGlobalDbPath = path.join(tmp, "global.db");
@@ -110,13 +109,9 @@ describe("executeIngest", () => {
         llmClient,
         idGen: () => `ing-test-${++id}`,
         now: () => new Date("2026-04-16T12:00:00Z"),
-        docsPropagationScheduler: (ids) => {
-          scheduled.push(ids);
-        },
       });
 
       expect(out).toContain("入库: 2");
-      expect(scheduled).toEqual([["ing-test-1", "ing-test-2"]]);
       expect(fs.existsSync(path.join(tmp, "CLAUDE.md"))).toBe(false);
 
       const store = new DualLayerStore({ projectDbPath, userGlobalDbPath });

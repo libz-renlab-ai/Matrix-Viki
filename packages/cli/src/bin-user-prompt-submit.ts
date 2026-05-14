@@ -52,7 +52,6 @@ import {
   retrieveRulesForPrompt,
   buildTerminalSummary,
 } from "./user-prompt-rule-retriever.js";
-import { retrieveRecordingMemoriesForPrompt } from "./commands/recording.js";
 import {
   isFirstPrompt,
   appendSessionInjected,
@@ -61,7 +60,6 @@ import {
 } from "./session-rule-injected.js";
 import { runHook } from "./hook-shell/index.js";
 import { DaemonFirstEmbedder } from "./daemon-first-embedder.js";
-import { emitCcStatus } from "./realtime-emit.js";
 
 const HOOK_TIMEOUT_MS = 5_000;
 
@@ -123,31 +121,6 @@ async function main(): Promise<void> {
       const prompt = input.prompt;
       const sessionId = input.session_id ?? "";
 
-      // Feature #2 v3: fire-and-forget cc-status push so the boss kanban
-      // gets one snapshot per teammate prompt. The 2-channel scope in
-      // docs/BUSINESS-FEATURES.md is exactly SessionStart + UserPromptSubmit —
-      // this is the second channel. We fire BEFORE the (slow) rule retrieval
-      // path so the kanban reflects "what prompt just landed" as early as
-      // possible, even when the rest of the hook is still running.
-      //
-      // Issue #308 grill §3: when the leader has explicitly opted into raw
-      // prompt evidence via VIKI_REALTIME_RAW_PROMPT=1, thread the
-      // user's prompt text to the snapshot so the receiver can persist it to
-      // raw_events for evidence / replay. Default OFF — the hook is the
-      // policy boundary; realtime-emit is the transport. emitCcStatus also
-      // enforces loopback-only-by-default + VIKI_REALTIME_ALLOW_REMOTE,
-      // so even with the env opt-in a misconfigured remote URL still fails
-      // closed.
-      try {
-        const includeRawPrompt =
-          ctx.env.VIKI_REALTIME_RAW_PROMPT === "1" && prompt.length > 0;
-        emitCcStatus({
-          event: "user_prompt_submit",
-          ...(sessionId ? { sessionId } : {}),
-          cwd,
-          ...(includeRawPrompt ? { rawPrompt: prompt } : {}),
-        });
-      } catch { /* never propagate */ }
       const sessionsDir = path.join(home, ".viki", "sessions");
       const eventLog = ctx.eventLog as unknown as SqliteEventLog;
       const store = ctx.store as unknown as DualLayerStore;
@@ -301,36 +274,6 @@ async function main(): Promise<void> {
           }
         } catch {
           // Rule retrieval is best-effort — never block user input.
-        }
-      }
-
-      // Recording Memory retrieval: source-cited, small-by-default context.
-      if (sessionId && prompt) {
-        try {
-          const seenIds = readSessionInjected(sessionsDir, sessionId);
-          const recordingResult = await Promise.race([
-            retrieveRecordingMemoriesForPrompt({
-              userMessage: prompt,
-              cwd,
-              homeDir: home,
-              sessionSeenIds: seenIds,
-            }),
-            new Promise<null>((resolve) =>
-              setTimeout(() => resolve(null), HOOK_TIMEOUT_MS),
-            ),
-          ]);
-          if (recordingResult?.injectionText) {
-            blocks.push(recordingResult.injectionText);
-          }
-          if (recordingResult && recordingResult.injectedIds.length > 0) {
-            appendSessionInjected(
-              sessionsDir,
-              sessionId,
-              recordingResult.injectedIds,
-            );
-          }
-        } catch {
-          // Recording memory retrieval is best-effort — never block user input.
         }
       }
 

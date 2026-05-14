@@ -44,7 +44,6 @@ import {
 } from "@viki/core";
 import type { LLMClient, ExtractionInput, Validator } from "@viki/ports";
 import type { KnowledgeEntry } from "@viki/types";
-import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 export type IngestSource =
   | "insights"
@@ -80,7 +79,6 @@ export interface IngestOptions {
   cmdRunner?: (cmd: string, opts: { cwd?: string }) => Promise<string>;
   now?: () => Date;
   idGen?: () => string;
-  docsPropagationScheduler?: (ruleIds: string[]) => void | Promise<void>;
 }
 
 function resolvePaths(opts: IngestOptions) {
@@ -255,14 +253,8 @@ export async function executeIngest(opts: IngestOptions): Promise<string> {
         store: dualStore,
         skillCompiler: makeSkillCompiler({ skillsDir: paths.skillsDir }),
       });
-      const ids = result.accepted.map((e) => e.id);
-      if (opts.docsPropagationScheduler) {
-        await opts.docsPropagationScheduler(ids);
-      } else {
-        scheduleDocsPropagation(ids, { cwd: paths.cwd });
-      }
     } catch {
-      // Skill/docs propagation 失败不算 fatal
+      // Skill 导出失败不算 fatal
     }
   }
 

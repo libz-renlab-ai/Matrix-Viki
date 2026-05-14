@@ -15,10 +15,7 @@ import { parseInitArgs } from "../commands/init.js";
 import { parseCompileArgs } from "../commands/compile.js";
 import { parseCalibrateArgs } from "../commands/calibrate.js";
 import { parseVerifyArgs } from "../commands/verify.js";
-import { parseE2EEvaluateArgs, executeE2EEvaluate } from "../commands/e2e-evaluate.js";
 import { parseBugReportArgs } from "../commands/bug-report.js";
-import { parseDogfoodReportArgs } from "../commands/dogfood-report.js";
-import { parseDashboardArgs } from "../commands/dashboard.js";
 import { parseIngestArgs } from "../commands/ingest.js";
 import { parseDoctorArgs } from "../commands/doctor.js";
 import { parseInstallPluginsArgs } from "../commands/install-plugins.js";
@@ -26,9 +23,7 @@ import { executeConfig } from "../commands/config.js";
 import { executeDemoHook, parseDemoHookArgs } from "../commands/demo-hook.js";
 import { runSkeletonDemo } from "../commands/skeleton-demo.js";
 import { parseUninstallArgs } from "../commands/uninstall.js";
-import { parsePrCycleArgs } from "../commands/pr-cycle.js";
 import { parseReviewCandidatesArgs } from "../commands/review-candidates.js";
-import { deterministicRuleEmbedder } from "./deterministic-rule-embedder.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -375,24 +370,6 @@ describe("Feature: verify arg parsing", () => {
   });
 });
 
-// ─── Feature: e2e-evaluate arg parsing ──────────────────────────────────────
-
-describe("Feature: e2e-evaluate arg parsing", () => {
-  it("defaults json/keepTemp undefined (executeE2EEvaluate applies defaults)", () => {
-    const args = parseE2EEvaluateArgs([]);
-    expect(args.json).toBeUndefined();
-    expect(args.keepTemp).toBeUndefined();
-  });
-
-  it("parses --json", () => {
-    expect(parseE2EEvaluateArgs(["--json"]).json).toBe(true);
-  });
-
-  it("parses --keep-temp", () => {
-    expect(parseE2EEvaluateArgs(["--keep-temp"]).keepTemp).toBe(true);
-  });
-});
-
 // ─── Feature: doctor arg parsing ─────────────────────────────────────────────
 
 describe("Feature: doctor arg parsing", () => {
@@ -456,47 +433,6 @@ describe("Feature: bug-report arg parsing", () => {
   });
 });
 
-// ─── Feature: dogfood-report arg parsing ────────────────────────────────────
-
-describe("Feature: dogfood-report arg parsing", () => {
-  it("defaults outputPath=undefined", () => {
-    expect(parseDogfoodReportArgs([]).outputPath).toBeUndefined();
-  });
-
-  it("parses --output=<path> into outputPath", () => {
-    expect(parseDogfoodReportArgs(["--output=/tmp/df.md"]).outputPath).toBe("/tmp/df.md");
-  });
-});
-
-// ─── Feature: dashboard arg parsing ─────────────────────────────────────────
-
-describe("Feature: dashboard arg parsing", () => {
-  it("parses --once mode", () => {
-    const args = parseDashboardArgs(["--once"]);
-    expect(args.once).toBe(true);
-    expect(args.watch).toBeUndefined();
-  });
-
-  it("parses --watch mode", () => {
-    const args = parseDashboardArgs(["--watch"]);
-    expect(args.watch).toBe(true);
-  });
-
-  it("parses --port=9000", () => {
-    const args = parseDashboardArgs(["--watch", "--port=9000"]);
-    expect(args.port).toBe(9000);
-  });
-
-  it("defaults port=8787", () => {
-    const args = parseDashboardArgs(["--watch"]);
-    expect(args.port).toBe(8787);
-  });
-
-  it("throws when --watch and --once combined", () => {
-    expect(() => parseDashboardArgs(["--watch", "--once"])).toThrow();
-  });
-});
-
 // ─── Feature: ingest arg parsing ────────────────────────────────────────────
 
 describe("Feature: ingest arg parsing", () => {
@@ -536,24 +472,6 @@ describe("Feature: uninstall arg parsing", () => {
 
   it("parses --dry-run", () => {
     expect(parseUninstallArgs(["--dry-run"]).dryRun).toBe(true);
-  });
-});
-
-// ─── Feature: pr-cycle arg parsing ──────────────────────────────────────────
-
-describe("Feature: pr-cycle arg parsing", () => {
-  it("parses --pr=16", () => {
-    expect(parsePrCycleArgs(["--pr=16"]).pr).toBe(16);
-  });
-
-  it("parses --dry-run", () => {
-    expect(parsePrCycleArgs(["--dry-run"]).dryRun).toBe(true);
-  });
-
-  it("defaults pr=undefined dryRun=false", () => {
-    const args = parsePrCycleArgs([]);
-    expect(args.pr).toBeUndefined();
-    expect(args.dryRun).toBe(false);
   });
 });
 
@@ -621,21 +539,4 @@ describe("Feature: skeleton-demo", () => {
   it("runSkeletonDemo completes without error", async () => {
     await expect(runSkeletonDemo()).resolves.not.toThrow();
   });
-});
-
-// ─── Feature: e2e-evaluate full integration run ──────────────────────────────
-
-describe("Feature: e2e-evaluate full run", () => {
-  it("runs end-to-end and reports results with passed/failed counts", async () => {
-    const result = await executeE2EEvaluate({
-      json: true,
-      keepTemp: false,
-      embedder: deterministicRuleEmbedder,
-    });
-    expect(result).toBeDefined();
-    expect(typeof result.passed).toBe("number");
-    expect(typeof result.failed).toBe("number");
-    expect(Array.isArray(result.results)).toBe(true);
-    expect(result.failures).toBeDefined();
-  }, 120000);
 });

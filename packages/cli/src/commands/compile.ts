@@ -331,7 +331,5 @@ export function renderCompileResult(
   }
 
   lines.push("");
-  lines.push("  Docs propagation is handled by `viki docs-propagate` when new rules are added.");
-  lines.push("");
   return lines.join("\n");
 }

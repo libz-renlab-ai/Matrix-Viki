@@ -131,7 +131,6 @@ describe("executeReviewCandidates", () => {
       input: Readable.from(["a\n"]),
       output,
       now: () => new Date("2026-05-04T00:00:00Z"),
-      docsPropagationScheduler: () => undefined,
     });
 
     expect(text()).toContain("scope: team");
@@ -185,7 +184,6 @@ describe("executeReviewCandidates", () => {
       input: Readable.from(["a\n"]),
       output,
       now: () => new Date("2026-05-04T00:00:00Z"),
-      docsPropagationScheduler: () => undefined,
     });
 
     expect(text()).toContain("隐私守门拦截");

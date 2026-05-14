@@ -59,13 +59,11 @@ import {
 } from "./session-start-logic.js";
 import { cleanupWikiResidue } from "./wiki-residue-cleanup.js";
 import { cleanupDbBackups } from "./db-backup-cleanup.js";
-import { runM5Session, renderM5SessionBanner } from "./m5-session-hook.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
 import { findVikiRoot } from "./lib/walk-up.js";
 import { tryDetachedSpawn } from "./daemon-first-embedder.js";
 import { defaultEmbedderStatePath } from "./embedder-state.js";
 import { postRegister } from "./embedder-client.js";
-import { emitCcStatus } from "./realtime-emit.js";
 
 /**
  * SessionStart accepts a Claude Code SessionStart payload (or empty stdin
@@ -123,20 +121,6 @@ async function main(): Promise<void> {
       if (ctx.env.VIKI_DISABLED === "1") {
         return undefined;
       }
-
-      // Feature #2 v3: fire-and-forget cc-status push to the team receiver.
-      // No-op when VIKI_REALTIME_URL is unset, so this is silent until a
-      // teammate opts in by exporting the env var (see docs/features/team-realtime.md).
-      // Wrapped in try/catch even though emitCcStatus already swallows everything
-      // — the SessionStart path must never propagate a failure here.
-      try {
-        const sessionId = (ctx.input as { session_id?: unknown }).session_id;
-        emitCcStatus({
-          event: "session_start",
-          ...(typeof sessionId === "string" ? { sessionId } : {}),
-          cwd: ctx.cwd,
-        });
-      } catch { /* never propagate */ }
 
       // Issue #164: kick off the embedder daemon if it's not already running.
       // Fire-and-forget detached spawn so SessionStart returns immediately;
@@ -227,25 +211,6 @@ async function main(): Promise<void> {
         if (shouldSpawnUpdater()) spawnUpdater();
       } catch (e) {
         logError("updater-spawn-failed", e);
-      }
-
-      // M5 自动管线：infect + bootstrap apply + sync apply + auto-publish
-      // （全部降级，不阻塞）。默认开启（spec §7"激进模式"），VIKI_M5_AUTOSESSION=0
-      // 显式关闭；auto-push 也默认开启，VIKI_M5_AUTOPUSH=0 显式关闭。
-      // 闸门 1（secret scanner）+ 闸门 2（scope classifier）兜底，规则离开本机前
-      // 都已过两道闸。
-      if (ctx.env["VIKI_M5_AUTOSESSION"] !== "0") {
-        try {
-          const r = await runM5Session({
-            projectRoot: ctx.cwd,
-            homeDir: os.homedir(),
-            autoPush: ctx.env["VIKI_M5_AUTOPUSH"] !== "0",
-          });
-          const banner = renderM5SessionBanner(r);
-          if (banner) ctx.mirrorSystemMessage(banner);
-        } catch (e) {
-          logError("m5-session-failed", e);
-        }
       }
 
       return undefined;

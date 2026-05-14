@@ -69,7 +69,6 @@ import { rotateIfTooLarge } from "./log-rotate.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
 import type { AdvancedHookOptions } from "./hook-shell/index.js";
 import { findVikiRoot } from "./lib/walk-up.js";
-import { emitCcStatus } from "./realtime-emit.js";
 
 /**
  * 用户可见进度事件的注入入口。
@@ -955,22 +954,6 @@ async function main(): Promise<void> {
       // than three near-duplicate guards.
       if (ctx.env.VIKI_DISABLED === "1") {
         return;
-      }
-
-      // Issue #308 grill §11: Stop event drives green light → offline.
-      // Emit BEFORE the foreground/detached/async fork below so the kanban
-      // sees the offline transition even if the heavy stop pipeline is
-      // deferred to a detached child. We only emit on the foreground entry;
-      // skip when this process is itself the detached pipeline child
-      // (otherwise one Stop hook → two POSTs from the same fork).
-      if (!isDetachedPipelineInvocation(process.env, process.argv)) {
-        try {
-          emitCcStatus({
-            event: "stop",
-            sessionId: ctx.input.session_id,
-            cwd: ctx.cwd,
-          });
-        } catch { /* never propagate */ }
       }
 
       const emit: EmitFn = (event) => ctx.bus.emit(event);

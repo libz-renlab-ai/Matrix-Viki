@@ -18,8 +18,6 @@ import {
   type KnowledgeEntry,
 } from "@viki/types";
 import { buildFallbackDescriptions } from "./migrate-v6.js";
-import { scheduleDocsPropagation } from "./docs-propagate.js";
-import { runM5Share, type M5ShareResult } from "./m5-share.js";
 
 /** pitfall 的非 IO 参数——便于测试 */
 export interface PitfallInput {
@@ -53,8 +51,6 @@ export interface PitfallOptions {
   env?: Record<string, string | undefined>;
   /** 向量 embedder，可注入 stub（生产时默认 XenovaRuleEmbedder） */
   embedder?: { embed(texts: string[]): Promise<number[][]> };
-  /** 测试可注入；生产默认后台调度 docs-propagate。 */
-  docsPropagationScheduler?: (ruleIds: string[]) => void | Promise<void>;
 }
 
 function resolvePaths(opts: PitfallOptions) {
@@ -146,25 +142,6 @@ export async function executePitfall(
   const entry = buildEntry(input, now);
   store.add(entry);
 
-  // M5 自动管线（best-effort，不阻塞）：每条新规则跑闸门 1+2，
-  // 如判定 shareable 则自动 promote 到 .viki/team/<author>/
-  // 关闭：env VIKI_M5_AUTOSHARE=0
-  let m5Share: M5ShareResult | undefined;
-  if (env.VIKI_M5_AUTOSHARE !== "0") {
-    try {
-      const cwd = opts.cwd ?? process.cwd();
-      const summary = entry.reasoning || entry.correct_pattern || entry.trigger;
-      m5Share = await runM5Share({
-        projectRoot: cwd,
-        text: summary,
-        ruleId: entry.id,
-        now,
-      });
-    } catch {
-      /* M5 失败不影响 pitfall 写入 */
-    }
-  }
-
   // 重新编译 skills —— 合并所有 scope 的活跃条目。CLAUDE.md 规则块输出已禁用。
   await runCompile({
     store,
@@ -200,16 +177,6 @@ export async function executePitfall(
     generateToolContextAsync(entry, paths.projectDbPath).catch(() => {/* best-effort */});
   }
 
-  try {
-    if (opts.docsPropagationScheduler) {
-      await opts.docsPropagationScheduler([entry.id]);
-    } else {
-      scheduleDocsPropagation([entry.id], { cwd: opts.cwd, env });
-    }
-  } catch {
-    // docs propagation is best-effort; DB/vector/Skill writes remain the source of truth.
-  }
-
   const skillMdPath = path.join(paths.skillsDir, entry.id, "SKILL.md");
 
   const bus = new InMemoryAttributionBus();
@@ -227,8 +194,8 @@ export async function executePitfall(
     timestamp: now,
     userFacingValue:
       entry.type === "avoidance"
-        ? `AI 遇到 "${entry.wrong_pattern}" 时会改用 "${entry.correct_pattern}"；docs propagation 已调度`
-        : `AI 下次在 "${entry.trigger}" 场景会参考: ${entry.correct_pattern}；docs propagation 已调度`,
+        ? `AI 遇到 "${entry.wrong_pattern}" 时会改用 "${entry.correct_pattern}"`
+        : `AI 下次在 "${entry.trigger}" 场景会参考: ${entry.correct_pattern}`,
     counterfactual: "你会看到 AI 第二次再踩同一个坑",
   });
 
@@ -252,7 +219,7 @@ export async function runPitfallInteractive(
   };
 
   try {
-    stdout.write("\n记录一条踩坑经验——问答完成后会写入知识库 + 导出 Skill + 调度 docs propagation\n\n");
+    stdout.write("\n记录一条踩坑经验——问答完成后会写入知识库 + 导出 Skill\n\n");
     const trigger = await ask("触发场景（什么情况下会踩到这个坑？）: ");
     const wrong = await ask("错误做法（留空表示 practice 型）: ");
     const correct = await ask("正确做法: ");

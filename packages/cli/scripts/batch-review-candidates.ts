@@ -16,7 +16,6 @@ import {
   makeSkillCompiler,
 } from "@viki/adapters";
 import { runCalibrationPipeline, defaultCalibrator, runCompile } from "@viki/core";
-import { scheduleDocsPropagation } from "../src/commands/docs-propagate.js";
 
 function parseCsv(arg: string | undefined): Set<string> {
   if (!arg) return new Set();
@@ -58,7 +57,6 @@ async function main(): Promise<void> {
   let approved = 0;
   let rejected = 0;
   let unknown = 0;
-  const approvedRuleIds: string[] = [];
 
   for (const candidate of pending) {
     const suffix = candidate.id.slice(-6);
@@ -67,7 +65,6 @@ async function main(): Promise<void> {
         projectStore.add(candidate.entry);
         queue.updateStatus(candidate.id, "approved");
         approved++;
-        approvedRuleIds.push(candidate.entry.id);
         process.stdout.write(`✓ approved ${suffix} — ${candidate.entry.trigger}\n`);
       } catch (err) {
         process.stdout.write(`⚠ failed approve ${suffix}: ${String(err).slice(0, 120)}\n`);
@@ -82,7 +79,7 @@ async function main(): Promise<void> {
   }
 
   if (approved > 0) {
-    process.stdout.write("\nRecalibrate + update Skills + schedule docs propagation…\n");
+    process.stdout.write("\nRecalibrate + update Skills…\n");
     try {
       const now = () => new Date();
       await runCalibrationPipeline({
@@ -95,8 +92,7 @@ async function main(): Promise<void> {
         store,
         skillCompiler: makeSkillCompiler({ skillsDir }),
       });
-      scheduleDocsPropagation(approvedRuleIds, { cwd });
-      process.stdout.write("✓ Skills refreshed; docs propagation scheduled\n");
+      process.stdout.write("✓ Skills refreshed\n");
     } catch (err) {
       process.stdout.write(`⚠ calibrate/export failed: ${String(err).slice(0, 200)}\n`);
     }

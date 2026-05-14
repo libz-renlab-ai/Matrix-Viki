@@ -16,7 +16,6 @@ import {
   runCompile,
 } from "@viki/core";
 import type { PersistedEvent } from "@viki/types";
-import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 export interface ReviewCandidatesOptions {
   limit?: number;
@@ -31,7 +30,6 @@ export interface ReviewCandidatesOptions {
   /** @deprecated 新规则路径不再写 CLAUDE.md；保留字段仅为兼容旧调用方。 */
   claudeMdPath?: string;
   now?: () => Date;
-  docsPropagationScheduler?: (ruleIds: string[]) => void | Promise<void>;
   input?: NodeJS.ReadableStream;
   output?: NodeJS.WritableStream;
 }
@@ -102,7 +100,6 @@ export async function executeReviewCandidates(
   let approved = 0;
   let rejected = 0;
   let skipped = 0;
-  const approvedRuleIds: string[] = [];
 
   for (let i = 0; i < pending.length; i++) {
     const candidate = pending[i]!;
@@ -146,7 +143,6 @@ export async function executeReviewCandidates(
         store.add(approvedEntry);
         queue.updateStatus(candidate.id, "approved");
         approved++;
-        approvedRuleIds.push(approvedEntry.id);
         output.write(`✓ 已写入知识库 (id: ${approvedEntry.id}, scope: ${approvedEntry.scope.level})\n`);
         emitEvent({
           id: `ev-cand-approved-${now().getTime()}-${candidate.id.slice(-6)}`,
@@ -176,7 +172,7 @@ export async function executeReviewCandidates(
   rl.close();
 
   if (approved > 0) {
-    output.write("\n重新校准 + 更新 Skills + 调度 docs propagation…\n");
+    output.write("\n重新校准 + 更新 Skills…\n");
     try {
       await runCalibrationPipeline({
         calibrator: defaultCalibrator,
@@ -188,12 +184,7 @@ export async function executeReviewCandidates(
         store,
         skillCompiler: makeSkillCompiler({ skillsDir }),
       });
-      if (opts.docsPropagationScheduler) {
-        await opts.docsPropagationScheduler(approvedRuleIds);
-      } else {
-        scheduleDocsPropagation(approvedRuleIds, { cwd });
-      }
-      output.write("✓ Skills 已更新；docs propagation 已调度\n");
+      output.write("✓ Skills 已更新\n");
     } catch (err) {
       output.write(`⚠ 校准/导出失败: ${String(err).slice(0, 100)}\n`);
     }
