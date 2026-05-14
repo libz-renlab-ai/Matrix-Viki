@@ -10,7 +10,16 @@ function mkTmp() {
   const dir = nodeFs.mkdtempSync(path.join(os.tmpdir(), "analyze-"));
   return {
     dir,
-    cleanup: () => nodeFs.rmSync(dir, { recursive: true, force: true }),
+    // maxRetries/retryDelay: on Windows the SQLite knowledge.db file handle can
+    // linger briefly after close under parallel-suite load, so a bare rmSync
+    // hits EBUSY. This is the documented Node idiom for that race.
+    cleanup: () =>
+      nodeFs.rmSync(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100,
+      }),
   };
 }
 
