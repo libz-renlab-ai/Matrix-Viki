@@ -101,11 +101,11 @@ describe("executeBugReport", () => {
     expect(result.outputPath).toBeUndefined();
     const md = result.markdown;
     expect(md).not.toContain("## Summary");
-    expect(md).toContain("https://github.com/libz-renlab-ai/TeamBrain/issues/new");
+    expect(md).toContain("https://github.com/libz-renlab-ai/Matrix-Viki/issues/new");
     // Last non-blank lines should contain the issue-new URL.
     const nonBlankLines = md.split("\n").filter((l) => l.trim().length > 0);
     const tail = nonBlankLines.slice(-5).join("\n");
-    expect(tail).toContain("https://github.com/libz-renlab-ai/TeamBrain/issues/new");
+    expect(tail).toContain("https://github.com/libz-renlab-ai/Matrix-Viki/issues/new");
   });
 
   it("--out=path mode keeps ## Summary template and omits issue-new URL footer", async () => {
@@ -128,6 +128,6 @@ describe("executeBugReport", () => {
     expect(result.outputPath).toBe(outputPath);
     const md = fs.readFileSync(outputPath, "utf-8");
     expect(md).toContain("## Summary");
-    expect(md).not.toContain("https://github.com/libz-renlab-ai/TeamBrain/issues/new");
+    expect(md).not.toContain("https://github.com/libz-renlab-ai/Matrix-Viki/issues/new");
   });
 });

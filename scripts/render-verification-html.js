@@ -116,7 +116,7 @@ code { background: #f1f3f5; padding: 1px 5px; border-radius: 3px; font-size: 0.8
 <body>
 
 <h1>Issue #427 — CLAUDE.md anchor card 4-cluster merge verification</h1>
-<p class="muted">Mechanical <code>grep -F</code> probe over <code>CLAUDE.md</code> at each merge step. Zero LLM-as-judge in the loop. Source of truth: <a href="https://github.com/libz-renlab-ai/TeamBrain/issues/427">github.com/libz-renlab-ai/TeamBrain/issues/427</a>. Generated: ${new Date().toISOString()}.</p>
+<p class="muted">Mechanical <code>grep -F</code> probe over <code>CLAUDE.md</code> at each merge step. Zero LLM-as-judge in the loop. Source of truth: <a href="https://github.com/libz-renlab-ai/Matrix-Viki/issues/427">github.com/libz-renlab-ai/Matrix-Viki/issues/427</a>. Generated: ${new Date().toISOString()}.</p>
 
 <div class="banner">
 <div class="small">Final probe summary</div>

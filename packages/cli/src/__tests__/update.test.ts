@@ -149,7 +149,7 @@ describe.skip("checkCmd — per-reason error messages (pre-#313, behaviour remov
   });
 
   it("not_found: surfaces the exact error message", async () => {
-    const msg = "branch not found: libz-renlab-ai/TeamBrain@release";
+    const msg = "branch not found: libz-renlab-ai/Matrix-Viki@release";
     mockFetchRemoteSha.mockResolvedValue(failResult("not_found", msg, 404));
     const r = await runUpdateCommand("check");
     expect(r.ok).toBe(false);

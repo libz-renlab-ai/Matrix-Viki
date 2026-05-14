@@ -87,7 +87,7 @@ describe("executeWhatsNew", () => {
     const r = executeWhatsNew({ loadChangelog: () => "" });
     expect(r.ok).toBe(true);
     expect(r.output).toContain("CHANGELOG");
-    expect(r.output).toContain("github.com/libz-renlab-ai/TeamBrain");
+    expect(r.output).toContain("github.com/libz-renlab-ai/Matrix-Viki");
   });
 
   it("prints message when range has no bullets", () => {

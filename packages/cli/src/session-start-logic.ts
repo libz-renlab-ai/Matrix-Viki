@@ -251,7 +251,7 @@ export function maybeShowPendingBanner(
  */
 export const REINSTALL_BANNER_THROTTLE_MS = 24 * 60 * 60 * 1000;
 const RELEASE_TARBALL_URL =
-  "https://github.com/libz-renlab-ai/TeamBrain/archive/refs/heads/release.tar.gz";
+  "https://github.com/libz-renlab-ai/Matrix-Viki/archive/refs/heads/release.tar.gz";
 
 export function maybeShowReinstallBanner(
   stderr: (s: string) => void = (s) => process.stderr.write(s),

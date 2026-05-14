@@ -136,7 +136,7 @@ function renderBugReport(args: {
   if (args.stdout) {
     lines.push("─────────────────────────────────────────────────");
     lines.push("📤 Paste this into a new issue at:");
-    lines.push("   https://github.com/libz-renlab-ai/TeamBrain/issues/new");
+    lines.push("   https://github.com/libz-renlab-ai/Matrix-Viki/issues/new");
     lines.push("");
     lines.push("   Tip: 在 Summary 段填上你卡住的具体动作。");
     lines.push("");

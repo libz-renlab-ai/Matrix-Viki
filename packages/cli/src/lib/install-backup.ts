@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 /**
  * Issue #158 — install-time safety net.
  *
- * Background: `npm i -g github:libz-renlab-ai/TeamBrain#release` fails on
+ * Background: `npm i -g github:libz-renlab-ai/Matrix-Viki#release` fails on
  * Windows because npm reify removes the user's existing global viki dir
  * BEFORE the new tree-sitter native deps fail to compile, leaving the user
  * with no working install. The MAIN fix removes those tree-sitter deps from

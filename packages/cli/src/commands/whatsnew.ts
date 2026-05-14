@@ -52,7 +52,7 @@ export function executeWhatsNew(opts: WhatsNewOptions = {}): WhatsNewResult {
       ok: true,
       output:
         "本机未找到 CHANGELOG.md (开发安装或 tarball 缺失)。\n" +
-        "在线版本: https://github.com/libz-renlab-ai/TeamBrain/blob/main/CHANGELOG.md\n",
+        "在线版本: https://github.com/libz-renlab-ai/Matrix-Viki/blob/main/CHANGELOG.md\n",
     };
   }
   const versions = extractVersions(content);

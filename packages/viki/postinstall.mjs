@@ -586,7 +586,7 @@ async function main() {
       "   2. viki stats           — 看自己 brain 学了多少经验",
       "   3. viki --help          — 看完整命令列表",
       "",
-      "   📖 文档 & 反馈: https://github.com/libz-renlab-ai/TeamBrain",
+      "   📖 文档 & 反馈: https://github.com/libz-renlab-ai/Matrix-Viki",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "",
     ].join("\n")),

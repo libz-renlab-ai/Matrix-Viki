@@ -1,6 +1,6 @@
 #!/bin/sh
 # TeamAgent installer — POSIX sh, no bashisms.
-# Run: curl -fsSL https://raw.githubusercontent.com/libz-renlab-ai/TeamBrain/release/install-legacy.sh | sh
+# Run: curl -fsSL https://raw.githubusercontent.com/libz-renlab-ai/Matrix-Viki/release/install-legacy.sh | sh
 # Then: teamagent init
 #
 # Exit codes:
@@ -19,7 +19,7 @@
 
 set -eu
 
-TARBALL_URL="https://github.com/libz-renlab-ai/TeamBrain/archive/refs/heads/release.tar.gz"
+TARBALL_URL="https://github.com/libz-renlab-ai/Matrix-Viki/archive/refs/heads/release.tar.gz"
 MIN_NODE_MAJOR=22
 
 err() { printf 'teamagent install: error: %s\n' "$1" >&2; }

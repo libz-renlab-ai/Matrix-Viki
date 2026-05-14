@@ -5,11 +5,11 @@ set -euo pipefail
 # Security constraints: URL-pinned, SHA-256 verified, explicit TLS, two-step, redirect-checked, fallback URL
 
 TEAMAGENT_VERSION="${TEAMAGENT_VERSION:-v0.9.4}"
-PRIMARY_BASE="https://raw.githubusercontent.com/libz-renlab-ai/TeamBrain/release"
-FALLBACK_BASE="https://github.com/libz-renlab-ai/TeamBrain/releases/download/${TEAMAGENT_VERSION}"
-TARBALL_BASE="https://github.com/libz-renlab-ai/TeamBrain/releases/download/${TEAMAGENT_VERSION}"
+PRIMARY_BASE="https://raw.githubusercontent.com/libz-renlab-ai/Matrix-Viki/release"
+FALLBACK_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${TEAMAGENT_VERSION}"
+TARBALL_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${TEAMAGENT_VERSION}"
 TARBALL_NAME="teamagent-${TEAMAGENT_VERSION}.tgz"
-ARCHIVE_FALLBACK_URL="https://github.com/libz-renlab-ai/TeamBrain/archive/refs/heads/release.tar.gz"
+ARCHIVE_FALLBACK_URL="https://github.com/libz-renlab-ai/Matrix-Viki/archive/refs/heads/release.tar.gz"
 
 SAFE_MODE=1
 DRY_RUN=0
