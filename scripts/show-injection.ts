@@ -14,9 +14,9 @@ import { retrieveRulesForPrompt, buildTechStackText } from "../packages/cli/src/
 import { isFirstPrompt, readSessionInjected } from "../packages/cli/src/session-rule-injected.js";
 
 const CWD = process.cwd();
-const PROJECT_DB = path.join(CWD, ".teamagent", "knowledge.db");
-const GLOBAL_DB = path.join(os.homedir(), ".teamagent", "global.db");
-const SESSIONS_DIR = path.join(os.homedir(), ".teamagent", "sessions");
+const PROJECT_DB = path.join(CWD, ".viki", "knowledge.db");
+const GLOBAL_DB = path.join(os.homedir(), ".viki", "global.db");
+const SESSIONS_DIR = path.join(os.homedir(), ".viki", "sessions");
 const SESSION_ID = `debug-${Date.now()}`;
 
 const args = process.argv.slice(2);
@@ -166,7 +166,7 @@ async function checkBM25(prompt: string): Promise<void> {
 
 (async () => {
   console.log("═══════════════════════════════════════════");
-  console.log("TeamAgent 注入诊断");
+  console.log("Viki 注入诊断");
   console.log("═══════════════════════════════════════════");
 
   if (doSync) await syncMissingVectors(PROJECT_DB);

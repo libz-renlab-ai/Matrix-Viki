@@ -10,7 +10,7 @@ import {
   makeUpdateSnoozedEvent,
   makeUpdateNeverSetEvent,
   type UpdateState,
-} from "@teamagent/core";
+} from "@viki/core";
 import type { FetchLatestFailure } from "../update/fetch-latest.js";
 import { withUpdateStateLock } from "../lib/update-state-lock.js";
 import {
@@ -20,18 +20,18 @@ import {
 
 /**
  * Resolve a GitHub token for authenticated API calls.
- * Strict priority: TEAMAGENT_GITHUB_TOKEN > GITHUB_TOKEN > GH_TOKEN > undefined.
+ * Strict priority: VIKI_GITHUB_TOKEN > GITHUB_TOKEN > GH_TOKEN > undefined.
  * Empty string counts as unset.
  */
 export function resolveGithubToken(): string | undefined {
-  return process.env["TEAMAGENT_GITHUB_TOKEN"]
+  return process.env["VIKI_GITHUB_TOKEN"]
       || process.env["GITHUB_TOKEN"]
       || process.env["GH_TOKEN"]
       || undefined;
 }
 
 function home(): string {
-  return process.env["TEAMAGENT_HOME"] ?? path.join(os.homedir(), ".teamagent");
+  return process.env["VIKI_HOME"] ?? path.join(os.homedir(), ".viki");
 }
 function statePath(): string { return path.join(home(), "update-state.json"); }
 function disabledPath(): string { return path.join(home(), "auto-update.disabled"); }
@@ -102,11 +102,11 @@ export async function runUpdateCommand(sub: UpdateSubcommand, args: string[] = [
   }
 }
 
-// Issue #245 review iter-1 P2 fix: short-lived CLI processes (`teamagent
+// Issue #245 review iter-1 P2 fix: short-lived CLI processes (`viki
 // update --snooze` / `--never`) call `emitUpgradeEventSync` and immediately
 // return; the inner `void emitUpgradeEvent(event).catch(...)` fire-and-forget
 // would lose the events.db row when the process exits before the dynamic
-// `@teamagent/adapters` import + sqlite open finishes. We instead resolve
+// `@viki/adapters` import + sqlite open finishes. We instead resolve
 // the persisted-row write upfront via `emitUpgradeEvent` (async), so the
 // surrounding `await runUpdateCommand("snooze")` blocks the CLI exit until
 // the row lands. Keeps the existing eventLog-injection path for tests.
@@ -155,14 +155,14 @@ async function snoozeCmd(emitOpts: EmitUpgradeOptions = {}): Promise<UpdateRunRe
     output:
       `升级提示已 snooze 到 ${new Date(result.snooze_until_ts).toLocaleString()}` +
       ` (静音约 ${human}, 当前 snooze 级别 ${result.snooze_level})\n` +
-      `撤销: teamagent update --enable\n`,
+      `撤销: viki update --enable\n`,
   };
 }
 
 /**
  * Issue #225 — set never_prompt=true (permanent opt-out for the upgrade
  * banner). Does NOT touch the auto-update.disabled marker — auto-update
- * itself stays enabled (user can still run `teamagent update --now`),
+ * itself stays enabled (user can still run `viki update --now`),
  * only the SessionStart prompt is silenced.
  *
  * Issue #245: emit `update-never-set` so the permanent-opt-out conversion
@@ -191,8 +191,8 @@ async function neverCmd(emitOpts: EmitUpgradeOptions = {}): Promise<UpdateRunRes
     ok: true,
     output:
       `升级提示已永久关闭 (never_prompt=true)。\n` +
-      `auto-update 仍开启 — 升级请手动跑 teamagent update --now。\n` +
-      `撤销: teamagent update --enable\n`,
+      `auto-update 仍开启 — 升级请手动跑 viki update --now。\n` +
+      `撤销: viki update --enable\n`,
   };
 }
 
@@ -201,8 +201,8 @@ function statusCmd(): UpdateRunResult {
   const disabled = fs.existsSync(disabledPath());
   const updaterBin = findUpdaterBinary();
   const lines = [
-    `auto-update: ${disabled ? "DISABLED (~/.teamagent/auto-update.disabled)" : "enabled"}`,
-    `updater_binary: ${updaterBin ?? "missing (build with: pnpm --filter @teamagent/cli build:hook)"}`,
+    `auto-update: ${disabled ? "DISABLED (~/.viki/auto-update.disabled)" : "enabled"}`,
+    `updater_binary: ${updaterBin ?? "missing (build with: pnpm --filter @viki/cli build:hook)"}`,
     `interval_hours: ${s.interval_hours}`,
     `last_check: ${s.last_check_ts ? new Date(s.last_check_ts).toISOString() : "never"}`,
     `last_installed_sha: ${s.last_installed_sha || "(unknown)"}`,
@@ -275,13 +275,13 @@ function logsCmd(): UpdateRunResult {
  */
 export function formatTier3Message(failure: FetchLatestFailure): string {
   return [
-    "⚠️  TeamAgent: 暂时查不到新版本",
+    "⚠️  Viki: 暂时查不到新版本",
     `    Pages: ${failure.pagesReason} — ${failure.pagesMessage}`,
     `    npm: ${failure.npmReason} — ${failure.npmMessage}`,
     "    建议:",
-    "      • 手动: npm i -g teamagent@latest",
+    "      • 手动: npm i -g viki@latest",
     "      • 或等下次启动 (我们会重试)",
-    "      • 高级用户: 设 TEAMAGENT_GITHUB_TOKEN 走认证通道",
+    "      • 高级用户: 设 VIKI_GITHUB_TOKEN 走认证通道",
   ].join("\n");
 }
 
@@ -347,14 +347,14 @@ async function nowCmd(): Promise<UpdateRunResult> {
   return new Promise((resolve) => {
     const updaterBin = findUpdaterBinary();
     if (!updaterBin) {
-      resolve({ ok: false, output: "bin-updater.cjs not found; run pnpm --filter @teamagent/cli build:hook first\n" });
+      resolve({ ok: false, output: "bin-updater.cjs not found; run pnpm --filter @viki/cli build:hook first\n" });
       return;
     }
     const child = spawn(process.execPath, [updaterBin], { stdio: "inherit" });
     child.on("exit", (code) => resolve({
       ok: code === 0,
       output: code === 0
-        ? "update run finished. teamagent update --status to inspect.\n"
+        ? "update run finished. viki update --status to inspect.\n"
         : `updater exit ${code}\n`,
     }));
   });
@@ -367,13 +367,13 @@ function rollbackCmd(target?: string): UpdateRunResult {
   if (!target) {
     return {
       ok: true,
-      output: "available backups:\n" + entries.map((e) => "  " + e).join("\n") + "\n用 teamagent update --rollback <sha> 恢复\n",
+      output: "available backups:\n" + entries.map((e) => "  " + e).join("\n") + "\n用 viki update --rollback <sha> 恢复\n",
     };
   }
   if (!entries.includes(target)) return { ok: false, output: `backup not found: ${target}\n` };
   const src = path.join(rollbackDir(), target);
   const dist = findGlobalDist();
-  if (!dist) return { ok: false, output: "cannot locate global teamagent dist\n" };
+  if (!dist) return { ok: false, output: "cannot locate global viki dist\n" };
   fs.rmSync(dist, { recursive: true, force: true });
   copyDir(src, dist);
   const s = readState();
@@ -386,7 +386,7 @@ function rollbackCmd(target?: string): UpdateRunResult {
 function findGlobalDist(): string | null {
   try {
     const root = String(execSync("npm root -g", { stdio: ["ignore", "pipe", "ignore"] })).trim();
-    const dist = path.join(root, "teamagent", "dist");
+    const dist = path.join(root, "viki", "dist");
     if (fs.existsSync(path.join(dist, "bin.js"))) return dist;
   } catch { /* ignore */ }
   return null;

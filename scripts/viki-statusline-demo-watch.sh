@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Inner per-scenario live watch — invoked by tmux windows that the
-# `teamagent-statusline-demo.sh` orchestrator creates.
+# `viki-statusline-demo.sh` orchestrator creates.
 #
 # Each invocation watches ONE scenario by re-running the production
-# `scripts/teamagent-statusline.cjs` script every 2s with controlled
+# `scripts/viki-statusline.cjs` script every 2s with controlled
 # HOME/cwd, then drawing a header + the resulting status line.
 #
-# Usage: teamagent-statusline-demo-watch.sh <scenario>
+# Usage: viki-statusline-demo-watch.sh <scenario>
 #   <scenario> = full-state | missing-project-db | global-only | no-db
 set -u
 
-SANDBOX="${TEAMAGENT_DEMO_SANDBOX:?TEAMAGENT_DEMO_SANDBOX must be set}"
-STATUSLINE="${TEAMAGENT_DEMO_STATUSLINE:?TEAMAGENT_DEMO_STATUSLINE must be set}"
+SANDBOX="${VIKI_DEMO_SANDBOX:?VIKI_DEMO_SANDBOX must be set}"
+STATUSLINE="${VIKI_DEMO_STATUSLINE:?VIKI_DEMO_STATUSLINE must be set}"
 SCENARIO="${1:-full-state}"
 
 case "$SCENARIO" in
@@ -27,7 +27,7 @@ CYAN='\033[1;36m'; YEL='\033[1;33m'; GRN='\033[1;32m'; DIM='\033[2m'; RST='\033[
 while true; do
   clear
   printf "${CYAN}╔═══════════════════════════════════════════════════════════════╗${RST}\n"
-  printf "${CYAN}║  TeamAgent statusline — live watch                            ║${RST}\n"
+  printf "${CYAN}║  Viki statusline — live watch                            ║${RST}\n"
   printf "${CYAN}║  scenario: ${YEL}%-50s${CYAN}    ║${RST}\n" "$SCENARIO"
   printf "${CYAN}║  cwd:      ${DIM}%-50s${CYAN}    ║${RST}\n" "$CWD"
   printf "${CYAN}║  HOME:     ${DIM}%-50s${CYAN}    ║${RST}\n" "$HOMED"

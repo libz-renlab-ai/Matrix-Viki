@@ -7,8 +7,8 @@ import {
   parseCalibrateArgs,
   renderCalibrateResult,
 } from "../commands/calibrate.js";
-import { DualLayerStore, SqliteKnowledgeStore, SqliteEventLog, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import { DualLayerStore, SqliteKnowledgeStore, SqliteEventLog, openDb } from "@viki/adapters";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 function mkTmp() {
   const root = nodeFs.mkdtempSync(path.join(os.tmpdir(), "cal-cli-"));
@@ -16,9 +16,9 @@ function mkTmp() {
   const cwd = path.join(root, "cwd");
   nodeFs.mkdirSync(home, { recursive: true });
   nodeFs.mkdirSync(cwd, { recursive: true });
-  const projectDbPath = path.join(cwd, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(home, ".teamagent", "global.db");
-  const eventsDbPath = path.join(home, ".teamagent", "events.db");
+  const projectDbPath = path.join(cwd, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(home, ".viki", "global.db");
+  const eventsDbPath = path.join(home, ".viki", "events.db");
   const claudeMdPath = path.join(cwd, "CLAUDE.md");
   return {
     home,
@@ -221,7 +221,7 @@ describe("executeCalibrate", () => {
       now: () => new Date("2026-04-15T02:00:00Z"),
     });
     expect(nodeFs.existsSync(tmp.claudeMdPath)).toBe(false);
-    const skillMd = path.join(tmp.home, ".claude", "skills", "teamagent", "rule-a", "SKILL.md");
+    const skillMd = path.join(tmp.home, ".claude", "skills", "viki", "rule-a", "SKILL.md");
     expect(nodeFs.readFileSync(skillMd, "utf-8")).toContain("rule-a");
   });
 
@@ -384,7 +384,7 @@ describe("renderCalibrateResult", () => {
         },
       ],
     });
-    expect(out).toContain("TeamAgent Calibrate");
+    expect(out).toContain("Viki Calibrate");
     expect(out).toContain("rule-1: 0.70 → 0.75");
     expect(out).toContain("总计: 2 条调整");
   });
@@ -429,7 +429,7 @@ describe("renderCalibrateResult", () => {
         },
       ],
     });
-    expect(out).toContain("TeamAgent Calibrate");
+    expect(out).toContain("Viki Calibrate");
     expect(out).toContain("rule-v2");
     expect(out).toContain("demerit 0 → 10");
     expect(out).toContain("总计: 1 条调整");

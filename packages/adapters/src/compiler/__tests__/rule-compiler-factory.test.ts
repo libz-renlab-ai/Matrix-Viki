@@ -5,7 +5,7 @@ import fs from "node:fs";
 import { createRuleCompiler } from "../rule-compiler-factory.js";
 
 describe("createRuleCompiler", () => {
-  const prev = process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
+  const prev = process.env["VIKI_LEGACY_CLAUDE_MD"];
   let dir: string;
 
   beforeEach(() => {
@@ -14,12 +14,12 @@ describe("createRuleCompiler", () => {
 
   afterEach(() => {
     fs.rmSync(dir, { recursive: true, force: true });
-    if (prev === undefined) delete process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
-    else process.env["TEAMAGENT_LEGACY_CLAUDE_MD"] = prev;
+    if (prev === undefined) delete process.env["VIKI_LEGACY_CLAUDE_MD"];
+    else process.env["VIKI_LEGACY_CLAUDE_MD"] = prev;
   });
 
   it("default returns nested compiler", () => {
-    delete process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
+    delete process.env["VIKI_LEGACY_CLAUDE_MD"];
     const compiler = createRuleCompiler({ rulesDir: dir });
     compiler.writeToFile([]);
     expect(fs.existsSync(path.join(dir, "INDEX.md"))).toBe(true);
@@ -33,7 +33,7 @@ describe("createRuleCompiler", () => {
   });
 
   it("explicit legacy: false beats env=1", () => {
-    process.env["TEAMAGENT_LEGACY_CLAUDE_MD"] = "1";
+    process.env["VIKI_LEGACY_CLAUDE_MD"] = "1";
     const compiler = createRuleCompiler({ legacy: false, rulesDir: dir });
     compiler.writeToFile([]);
     expect(fs.existsSync(path.join(dir, "INDEX.md"))).toBe(true);
@@ -41,8 +41,8 @@ describe("createRuleCompiler", () => {
     expect(fs.existsSync(path.join(dir, "CLAUDE.md"))).toBe(false);
   });
 
-  it("env TEAMAGENT_LEGACY_CLAUDE_MD=1 routes to legacy", () => {
-    process.env["TEAMAGENT_LEGACY_CLAUDE_MD"] = "1";
+  it("env VIKI_LEGACY_CLAUDE_MD=1 routes to legacy", () => {
+    process.env["VIKI_LEGACY_CLAUDE_MD"] = "1";
     const claudeMd = path.join(dir, "CLAUDE.md");
     const compiler = createRuleCompiler({ claudeMdPath: claudeMd });
     compiler.writeToFile([]);

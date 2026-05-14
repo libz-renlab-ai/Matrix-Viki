@@ -10,17 +10,17 @@
  *      必须把 `null` 也转成一个非空 sentinel（这里用 `{}`），否则 shell 会
  *      在调用 handler 之前 fast-exit、永远跑不到 updater 逻辑。
  *
- *   2. **完全静默对外** —— 永不 stderr / stdout，全部细节进 `~/.teamagent/update.log`。
+ *   2. **完全静默对外** —— 永不 stderr / stdout，全部细节进 `~/.viki/update.log`。
  *      因此 handler 不调用 `ctx.bus.emit` —— `AttributionEvent` 当前没有
  *      `Updater` 相关 kind（commit 4 已冻结），而且 updater 的设计就是不要
- *      打扰用户；要给用户看的 banner（`✨ TeamAgent: 已自动更新 …`）由
+ *      打扰用户；要给用户看的 banner（`✨ Viki: 已自动更新 …`）由
  *      `session-start-logic.ts` 的 `maybeShowPendingBanner` 在下一次 SessionStart
  *      读取 `pending_banner` 时打印，这条路径不在本 bin 内。
  *
  *   3. **store / eventLog 完全不开** —— Codex review on PR #152 (P1) 指出：
  *      默认的 `runHook` layer 会无条件 open `DualLayerStore` 和
  *      `SqliteEventLog`，而 `DualLayerStore` 的 ctor 会**创建**
- *      `<cwd>/.teamagent/knowledge.db`（即使无写入）。后果：updater 在后台跑
+ *      `<cwd>/.viki/knowledge.db`（即使无写入）。后果：updater 在后台跑
  *      时会副作用地为当前 cwd 建出 `knowledge.db`，下一次 SessionStart 的
  *      `decideAction` 检测到该文件，直接 `skip-already-initialized`，
  *      把"应该 auto-init 的新项目"误判成"已初始化"。
@@ -48,7 +48,7 @@ import {
   parseUpdateState,
   defaultUpdateState,
   type UpdateState,
-} from "@teamagent/core";
+} from "@viki/core";
 import { runUpdater, isDevModeTsExtensionError } from "./updater-logic.js";
 import { fetchLatestVersion } from "./update/fetch-latest.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
@@ -56,13 +56,13 @@ import { withUpdateStateLock } from "./lib/update-state-lock.js";
 import { emitUpgradeEvent } from "./lib/upgrade-event-emitter.js";
 import { gatherLocalIdentity } from "./lib/local-identity.js";
 
-function teamagentHome(): string {
-  return process.env["TEAMAGENT_HOME"] ?? path.join(os.homedir(), ".teamagent");
+function vikiHome(): string {
+  return process.env["VIKI_HOME"] ?? path.join(os.homedir(), ".viki");
 }
-function statePath(): string { return path.join(teamagentHome(), "update-state.json"); }
-function lockPath(): string { return path.join(teamagentHome(), "update.lock"); }
-function logPath(): string { return path.join(teamagentHome(), "update.log"); }
-function rollbackDir(): string { return path.join(teamagentHome(), "rollback"); }
+function statePath(): string { return path.join(vikiHome(), "update-state.json"); }
+function lockPath(): string { return path.join(vikiHome(), "update.lock"); }
+function logPath(): string { return path.join(vikiHome(), "update.log"); }
+function rollbackDir(): string { return path.join(vikiHome(), "rollback"); }
 
 const REPO_OWNER = "libz-renlab-ai";
 const REPO_NAME = "TeamBrain";
@@ -79,7 +79,7 @@ function ensureDir(p: string): void {
 }
 
 function log(msg: string): void {
-  ensureDir(teamagentHome());
+  ensureDir(vikiHome());
   const line = `[${new Date().toISOString()}] ${msg}\n`;
   try { fs.appendFileSync(logPath(), line, "utf-8"); } catch { /* silent */ }
 }
@@ -99,7 +99,7 @@ function readState(): UpdateState {
  * Why a merge and not a passthrough: bin-updater reads `state` once at the
  * top of `runUpdater` and then runs an HTTP fetch + npm install + migrate
  * sequence that can take many seconds. While that's happening, a foreground
- * `teamagent update --snooze` can persist a new `snooze_level` /
+ * `viki update --snooze` can persist a new `snooze_level` /
  * `snooze_until_ts` / `never_prompt`. If bin-updater later writes a
  * `{ ...staleState, last_branch_etag, last_branch_sha }`, the foreground
  * snooze gets silently overwritten — the original lost-update bug from a
@@ -130,7 +130,7 @@ function readState(): UpdateState {
  * withUpdateStateLock now, so we drop the inline duplicate.
  */
 function writeState(s: UpdateState): void {
-  withUpdateStateLock(teamagentHome(), (live) => ({
+  withUpdateStateLock(vikiHome(), (live) => ({
     ...live, // start from disk → preserves foreground-owned fields
     // updater-owned fields overlay the live read:
     last_check_ts: s.last_check_ts,
@@ -148,7 +148,7 @@ function writeState(s: UpdateState): void {
 }
 
 function acquireLock(): boolean {
-  ensureDir(teamagentHome());
+  ensureDir(vikiHome());
   try {
     const fd = fs.openSync(lockPath(), "wx");
     fs.writeSync(fd, String(process.pid));
@@ -241,7 +241,7 @@ function runNpmInstall(): Promise<{ ok: boolean; error?: string }> {
     const npm = process.platform === "win32" ? "npm.cmd" : "npm";
     const child = spawn(npm, ["install", "-g", PACKAGE_SPEC], {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, TEAMAGENT_SKIP_WARMUP: "1" },
+      env: { ...process.env, VIKI_SKIP_WARMUP: "1" },
       shell: process.platform === "win32",
     });
     let err = "";
@@ -288,7 +288,7 @@ async function main(): Promise<void> {
   // `escape.manualResources: true` (Codex P1 fix on PR #152): updater is
   // stdout/stderr-silent and does not write sqlite. The default `runHook`
   // layer eagerly opens `DualLayerStore` + `SqliteEventLog` which has the
-  // side effect of creating `<cwd>/.teamagent/knowledge.db`, which would
+  // side effect of creating `<cwd>/.viki/knowledge.db`, which would
   // flip later `SessionStart.decideAction` to `skip-already-initialized`
   // (because that decision keys off `knowledge.db` existence). With
   // manualResources the shell never opens sqlite handles unless the
@@ -330,7 +330,7 @@ async function main(): Promise<void> {
         // failure can't propagate out and break the updater.
         emitInstalled: async (event) => {
           await emitUpgradeEvent(event, {
-            eventsDbPath: path.join(teamagentHome(), "events.db"),
+            eventsDbPath: path.join(vikiHome(), "events.db"),
           });
         },
         // Post-merge PR-creator force-update feature: collect local identity

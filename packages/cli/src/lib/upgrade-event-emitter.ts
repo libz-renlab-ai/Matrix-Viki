@@ -1,9 +1,9 @@
 /**
  * Issue #245 — imperative shell for the 4 upgrade AttributionEvents.
  *
- * Pure factories live in `@teamagent/core/update/upgrade-events.ts`. This
+ * Pure factories live in `@viki/core/update/upgrade-events.ts`. This
  * module is the IO bridge: it opens (or accepts) the SqliteEventLog at
- * `<home>/.teamagent/events.db` and writes the matching `update-*` row.
+ * `<home>/.viki/events.db` and writes the matching `update-*` row.
  *
  * Why a dedicated emitter rather than just calling `bus.emit`:
  *   - upgrade emit points run in heterogeneous shells. The SessionStart
@@ -16,7 +16,7 @@
  *     a real `InMemoryAttributionBus`; CLI commands often print to stderr
  *     directly). Centralising the persisted-row write here gives all 4
  *     emit points one consistent path that lands in events.db, which is
- *     the durable telemetry source `teamagent stats` aggregates from.
+ *     the durable telemetry source `viki stats` aggregates from.
  *
  *   - Swallowing IO failures: telemetry must NEVER break the user-facing
  *     flow. A locked / missing / read-only events.db should not propagate
@@ -30,14 +30,14 @@ import fs from "node:fs";
 import {
   attributionToPersistedRow,
   type UpgradePersistedRow,
-} from "@teamagent/core";
-import type { AttributionBus } from "@teamagent/ports";
+} from "@viki/core";
+import type { AttributionBus } from "@viki/ports";
 import type {
   UpdatePromptShownEvent,
   UpdateSnoozedEvent,
   UpdateNeverSetEvent,
   UpdateInstalledEvent,
-} from "@teamagent/types";
+} from "@viki/types";
 
 type UpgradeAttributionEvent =
   | UpdatePromptShownEvent
@@ -55,7 +55,7 @@ export interface UpgradeEventLog {
 }
 
 export interface EmitUpgradeOptions {
-  /** Override events.db path (test uses a tmp dir). Defaults to ~/.teamagent/events.db. */
+  /** Override events.db path (test uses a tmp dir). Defaults to ~/.viki/events.db. */
   eventsDbPath?: string;
   /** Inject pre-opened bus (hook-shell already has one). Optional — emit-only. */
   bus?: AttributionBus;
@@ -70,7 +70,7 @@ export interface EmitUpgradeOptions {
 }
 
 function defaultEventsDbPath(homeDir: string): string {
-  return path.join(homeDir, ".teamagent", "events.db");
+  return path.join(homeDir, ".viki", "events.db");
 }
 
 function defaultRandSuffix(): string {
@@ -78,7 +78,7 @@ function defaultRandSuffix(): string {
 }
 
 /**
- * Lazily resolves a real SqliteEventLog by importing @teamagent/adapters.
+ * Lazily resolves a real SqliteEventLog by importing @viki/adapters.
  * Imported dynamically so this module stays import-cheap when callers only
  * need the bus emit (e.g. inside the SessionStart hook-shell where opening
  * events.db would defeat manualResources).
@@ -91,7 +91,7 @@ async function openRealEventLog(
 ): Promise<{ log: UpgradeEventLog; close: () => void } | null> {
   try {
     fs.mkdirSync(path.dirname(eventsDbPath), { recursive: true });
-    const { SqliteEventLog, openDb } = await import("@teamagent/adapters");
+    const { SqliteEventLog, openDb } = await import("@viki/adapters");
     const db = openDb(eventsDbPath);
     const log = new SqliteEventLog(db);
     // SqliteEventLog.append takes a PersistedEvent shape; UpgradePersistedRow
@@ -141,7 +141,7 @@ export async function emitUpgradeEvent(
     try {
       opts.bus.emit(event);
     } catch (err) {
-      stderr(`[teamagent upgrade-emit] bus.emit failed: ${(err as Error).message}\n`);
+      stderr(`[viki upgrade-emit] bus.emit failed: ${(err as Error).message}\n`);
     }
   }
 
@@ -157,7 +157,7 @@ export async function emitUpgradeEvent(
       const eventsDbPath = opts.eventsDbPath ?? defaultEventsDbPath(homeDir);
       const opened = await openRealEventLog(eventsDbPath);
       if (!opened) {
-        stderr(`[teamagent upgrade-emit] events.db unavailable; skip persist\n`);
+        stderr(`[viki upgrade-emit] events.db unavailable; skip persist\n`);
         return;
       }
       log = opened.log;
@@ -165,7 +165,7 @@ export async function emitUpgradeEvent(
     }
     log.append(row);
   } catch (err) {
-    stderr(`[teamagent upgrade-emit] eventLog.append failed: ${(err as Error).message}\n`);
+    stderr(`[viki upgrade-emit] eventLog.append failed: ${(err as Error).message}\n`);
   } finally {
     if (owned && log?.close) {
       try {

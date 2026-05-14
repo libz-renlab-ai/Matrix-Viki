@@ -6,7 +6,7 @@ import path from "node:path";
 const CAVEAT_MARKER = "<local-command-" + "caveat>";
 
 const s = new SqliteKnowledgeStore(
-  openDb(path.join(os.homedir(), ".teamagent", "global.db")),
+  openDb(path.join(os.homedir(), ".viki", "global.db")),
 );
 const all = s.getAll();
 let seedDropped = 0;

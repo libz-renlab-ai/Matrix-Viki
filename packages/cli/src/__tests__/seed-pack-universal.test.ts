@@ -1,16 +1,16 @@
 /**
- * Contract + integration tests for `packages/teamagent/seed/packs/universal.jsonl`.
+ * Contract + integration tests for `packages/viki/seed/packs/universal.jsonl`.
  *
  * Issue #88: 12–18 cross-language avoidance rules with literal substring
  * `wrong_pattern`, designed to hit the legacy keyword matcher within 30s of
- * `teamagent init` finishing (before the vector model is downloaded).
+ * `viki init` finishing (before the vector model is downloaded).
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { KnowledgeEntrySchema, type KnowledgeEntry } from "@teamagent/types";
-import { matchRules } from "@teamagent/core";
+import { KnowledgeEntrySchema, type KnowledgeEntry } from "@viki/types";
+import { matchRules } from "@viki/core";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACK_PATH = path.resolve(
@@ -18,7 +18,7 @@ const PACK_PATH = path.resolve(
   "..",
   "..",
   "..",
-  "teamagent",
+  "viki",
   "seed",
   "packs",
   "universal.jsonl",
@@ -33,7 +33,7 @@ function loadPack(): KnowledgeEntry[] {
 }
 
 describe("universal pack — static contract", () => {
-  it("file exists at packages/teamagent/seed/packs/universal.jsonl", () => {
+  it("file exists at packages/viki/seed/packs/universal.jsonl", () => {
     expect(fs.existsSync(PACK_PATH)).toBe(true);
   });
 

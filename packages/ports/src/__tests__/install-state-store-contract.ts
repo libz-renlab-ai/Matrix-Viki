@@ -181,7 +181,7 @@ function makeState(
  * In-memory fake used to lock the contract before any real impl ships.
  *
  * Re-exported for use by other tests that want a noop store in scope
- * (e.g., the convenience-fn tests in `@teamagent/core/install-state/checkpoint`).
+ * (e.g., the convenience-fn tests in `@viki/core/install-state/checkpoint`).
  */
 export class InMemoryInstallStateStore implements InstallStateStore {
   private readonly map = new Map<string, InstallState>();

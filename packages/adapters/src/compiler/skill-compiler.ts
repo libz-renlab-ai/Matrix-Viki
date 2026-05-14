@@ -2,19 +2,19 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { formatAsAgentSkill } from "@teamagent/core";
-import type { SkillCompiler, SkillArtifact } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { formatAsAgentSkill } from "@viki/core";
+import type { SkillCompiler, SkillArtifact } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
-const DEFAULT_DIR = path.join(os.homedir(), ".claude", "skills", "teamagent");
+const DEFAULT_DIR = path.join(os.homedir(), ".claude", "skills", "viki");
 const STABLE_PLUS = new Set(["stable", "canonical", "enforced"]);
 
 export interface SkillCompilerOptions {
-  skillsDir?: string; // 默认读 TEAMAGENT_SKILLS_DIR env，再 fallback DEFAULT_DIR
+  skillsDir?: string; // 默认读 VIKI_SKILLS_DIR env，再 fallback DEFAULT_DIR
 }
 
 export function makeSkillCompiler(opts: SkillCompilerOptions = {}): SkillCompiler {
-  const dir = opts.skillsDir ?? process.env.TEAMAGENT_SKILLS_DIR ?? DEFAULT_DIR;
+  const dir = opts.skillsDir ?? process.env.VIKI_SKILLS_DIR ?? DEFAULT_DIR;
 
   return {
     compile(entries: KnowledgeEntry[]): SkillArtifact[] {

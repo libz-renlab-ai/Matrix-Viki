@@ -2,9 +2,9 @@
  * Issue #209: graceful shim for user-level Claude Code hook commands.
  *
  * `install-hook`'s `applyUserLevelChannelOps` and `install-user-hook`'s SessionStart
- * registration both stage hook bundles to `~/.teamagent/hooks/<basename>` and
+ * registration both stage hook bundles to `~/.viki/hooks/<basename>` and
  * point `~/.claude/settings.json` at that staged path. If the staged file is
- * later removed (manual cleanup, `~/.teamagent/hooks/` rm -rf, partial install,
+ * later removed (manual cleanup, `~/.viki/hooks/` rm -rf, partial install,
  * disk-full mid-stage) the entry stays in settings.json forever — `node
  * <missing>.cjs` then dumps a `MODULE_NOT_FOUND` loader trace into every Stop /
  * PreToolUse / PostToolUse / UserPromptSubmit / SessionStart that fires.

@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { STATIC_USER_SKILLS } from "@teamagent/core";
+import { STATIC_USER_SKILLS } from "@viki/core";
 import { executeInit } from "../commands/init.js";
 
 /**
@@ -14,7 +14,7 @@ import { executeInit } from "../commands/init.js";
  * files exist. Then assert that all static skills landed in both
  * `~/.claude/skills/<name>/` and `~/.codex/skills/<name>/`.
  */
-describe("teamagent init mirrors static user skills to ~/.claude + ~/.codex", () => {
+describe("viki init mirrors static user skills to ~/.claude + ~/.codex", () => {
   let tmpHome: string;
   let tmpCwd: string;
   const repoRoot = path.resolve(
@@ -23,8 +23,8 @@ describe("teamagent init mirrors static user skills to ~/.claude + ~/.codex", ()
   );
 
   beforeEach(() => {
-    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-init-skills-home-"));
-    tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-init-skills-cwd-"));
+    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-init-skills-home-"));
+    tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "viki-init-skills-cwd-"));
     // Symlink .claude/skills source so the mirror function finds it via paths.cwd.
     fs.mkdirSync(path.join(tmpCwd, ".claude"), { recursive: true });
     fs.symlinkSync(

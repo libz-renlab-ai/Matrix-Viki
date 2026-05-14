@@ -27,7 +27,7 @@ type ExpectationKind =
   | "post-tool-use-hook"
   | "stop-hook"
   | "tool-use"
-  | "teamagent-reason"
+  | "viki-reason"
   | "permission-deny"
   | "claudefast-context"
   | "schema-output";
@@ -99,8 +99,8 @@ interface CaseResult {
 
 const REPO_ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const DEFAULT_OUT_ROOT = path.join(REPO_ROOT, "scripts", "out", "claudefast-stream-json");
-const PROJECT_DB_PATH = path.join(REPO_ROOT, ".teamagent", "knowledge.db");
-const FIXTURE_BLOCK_RULE_ID = "teamagent-test-claudefast-block-deny";
+const PROJECT_DB_PATH = path.join(REPO_ROOT, ".viki", "knowledge.db");
+const FIXTURE_BLOCK_RULE_ID = "viki-test-claudefast-block-deny";
 const FIXTURE_BLOCK_MARKER = "claudefast_batch_insert_deny";
 const require = createRequire(import.meta.url);
 
@@ -153,7 +153,7 @@ const CASES: TestCase[] = [
     id: "bash-pre-post-hooks",
     feature: "Bash PreToolUse + PostToolUse hooks",
     prompt: () =>
-      "Run this shell command exactly once, then summarize the output: printf 'teamagent-stream-json-ok\\n'",
+      "Run this shell command exactly once, then summarize the output: printf 'viki-stream-json-ok\\n'",
     expectations: [
       "stream-json",
       "final-result",
@@ -172,7 +172,7 @@ const CASES: TestCase[] = [
       return [
         `Create the file ${target}.`,
         "The file should export a TypeScript async function getJson(url: string).",
-        "Use axios in the implementation so TeamAgent can evaluate the project rule.",
+        "Use axios in the implementation so Viki can evaluate the project rule.",
       ].join(" ");
     },
     expectations: [
@@ -180,7 +180,7 @@ const CASES: TestCase[] = [
       "final-result",
       "tool-use",
       "pre-tool-use-hook",
-      "teamagent-reason",
+      "viki-reason",
       "user-prompt-submit-hook",
     ],
     optionalExpectations: ["post-tool-use-hook", "stop-hook", "partial-messages"],
@@ -193,7 +193,7 @@ const CASES: TestCase[] = [
       return [
         `Create the file ${target}.`,
         "Pretend it is a Claude Code hook entrypoint.",
-        "Include a console.log call for debugging so TeamAgent can evaluate the hook protocol rule.",
+        "Include a console.log call for debugging so Viki can evaluate the hook protocol rule.",
       ].join(" ");
     },
     expectations: [
@@ -201,7 +201,7 @@ const CASES: TestCase[] = [
       "final-result",
       "tool-use",
       "pre-tool-use-hook",
-      "teamagent-reason",
+      "viki-reason",
       "user-prompt-submit-hook",
     ],
     optionalExpectations: ["post-tool-use-hook", "stop-hook", "partial-messages"],
@@ -223,7 +223,7 @@ const CASES: TestCase[] = [
       "stream-json",
       "tool-use",
       "pre-tool-use-hook",
-      "teamagent-reason",
+      "viki-reason",
       "permission-deny",
       "user-prompt-submit-hook",
     ],
@@ -376,7 +376,7 @@ function isClaudeCodePnpmStubEntry(entry: string): boolean {
 }
 
 function runEnvSelfTest(): void {
-  const home = path.join(path.sep, "tmp", "teamagent-claudefast-home");
+  const home = path.join(path.sep, "tmp", "viki-claudefast-home");
   const projectBin = path.join(REPO_ROOT, "node_modules", ".bin");
   const nestedProjectBin = path.join(REPO_ROOT, "packages", "cli", "node_modules", ".bin");
   const systemBin = path.join(path.sep, "usr", "bin");
@@ -425,7 +425,7 @@ async function main(): Promise<number> {
   opts.hookEvidenceMode = capabilities.hookEvidenceMode;
   opts.preferLocalBinForBrokenPnpmStub = capabilities.preferLocalBinForBrokenPnpmStub;
 
-  console.log("🧪 TeamAgent claudefast stream-json test pool");
+  console.log("🧪 Viki claudefast stream-json test pool");
   console.log(`  cases:       ${selected.length}`);
   console.log(`  concurrency: ${opts.concurrency}`);
   console.log(`  bin:         ${opts.bin}`);
@@ -456,7 +456,7 @@ async function main(): Promise<number> {
 
 function installFixtureRules(): void {
   if (!existsSync(PROJECT_DB_PATH)) {
-    throw new Error(`Missing ${PROJECT_DB_PATH}. Run teamagent init before claudefast hook tests.`);
+    throw new Error(`Missing ${PROJECT_DB_PATH}. Run viki init before claudefast hook tests.`);
   }
 
   const db = openSqlite(PROJECT_DB_PATH);
@@ -876,8 +876,8 @@ function checkExpectation(expectation: ExpectationKind, parsed: ParsedStream, ho
       return hasPassingHook(parsed, "Stop", hookDebugText);
     case "tool-use":
       return includesAny(text, ["tool_use", "tool_result", '"toolUse"', '"toolResult"']);
-    case "teamagent-reason":
-      return includesAny(text, ["TeamAgent", "teamagent", "permissionDecisionReason", "规则匹配", "hookSpecificOutput"]);
+    case "viki-reason":
+      return includesAny(text, ["Viki", "viki", "permissionDecisionReason", "规则匹配", "hookSpecificOutput"]);
     case "permission-deny":
       return includesAny(text, [
         '"permissionDecision":"deny"',

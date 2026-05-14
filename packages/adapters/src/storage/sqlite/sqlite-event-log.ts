@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
 import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
-import type { PersistedEvent } from "@teamagent/types";
+import type { PersistedEvent } from "@viki/types";
 
 const CORE_KEYS = new Set(["id", "kind", "knowledge_id", "tool_use_id", "timestamp", "schema_version"]);
 

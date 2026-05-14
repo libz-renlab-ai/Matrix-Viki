@@ -9,10 +9,10 @@
  *   level 1 → 2: silence next 48h
  *   level 2 → 3+: silence next 7d (cap)
  *
- * `never_prompt: true` is permanent — only cleared by `teamagent update --enable`
- * or by the user editing `~/.teamagent/update-state.json` by hand.
+ * `never_prompt: true` is permanent — only cleared by `viki update --enable`
+ * or by the user editing `~/.viki/update-state.json` by hand.
  *
- * `TEAMAGENT_NEVER_PROMPT=1` env var is a runtime-only override (no state
+ * `VIKI_NEVER_PROMPT=1` env var is a runtime-only override (no state
  * change). Useful for CI / dogfood probes that don't want banners but also
  * don't want to mutate persistent state.
  */
@@ -69,7 +69,7 @@ export interface ShouldPromptInput {
  *   - state has a `pending_banner` (regardless of `pending_banner.shown`)
  *     OR pendingToVersion provided
  *   - never_prompt is false
- *   - TEAMAGENT_NEVER_PROMPT env var is not "1"
+ *   - VIKI_NEVER_PROMPT env var is not "1"
  *   - now >= snooze_until_ts (snooze window has elapsed)
  *   - prompt_dismissed_for_to !== the current pending_banner.to (i.e. user
  *     hasn't already picked A/B/C for THIS version)
@@ -85,7 +85,7 @@ export interface ShouldPromptInput {
  */
 export function shouldPromptUpgrade(input: ShouldPromptInput): boolean {
   const { state, now, env, pendingToVersion } = input;
-  if (env["TEAMAGENT_NEVER_PROMPT"] === "1") return false;
+  if (env["VIKI_NEVER_PROMPT"] === "1") return false;
   if (state.never_prompt) return false;
 
   // No upgrade to show: skip. Note: removed the legacy `shown===false` gate so

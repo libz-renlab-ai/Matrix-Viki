@@ -44,7 +44,7 @@ describe("executeVerify", () => {
     expect(returned).toBe(reportPath);
     expect(nodeFs.existsSync(reportPath)).toBe(true);
     const md = nodeFs.readFileSync(reportPath, "utf-8");
-    expect(md).toContain("TeamAgent Verify 报告");
+    expect(md).toContain("Viki Verify 报告");
     expect(md).toContain("python-version");
     expect(md).toContain("PRR");
     expect(md).toContain("KP");
@@ -127,7 +127,7 @@ describe("renderVerifyMarkdown", () => {
       },
       new Date("2026-04-15T01:00:00Z"),
     );
-    expect(md).toContain("# TeamAgent Verify 报告");
+    expect(md).toContain("# Viki Verify 报告");
     expect(md).toContain("## 总览");
     expect(md).toContain("### demo ✓");
     expect(md).toContain("**Phase A");

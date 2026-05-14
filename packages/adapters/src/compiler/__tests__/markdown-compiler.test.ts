@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { MarkdownCompiler } from "../markdown-compiler.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "md-compiler-"));
@@ -59,8 +59,8 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
   it("compile() returns string block (pure, no IO)", () => {
     const compiler = new MarkdownCompiler(mdPath, () => "2026-04-14T00:00:00Z");
     const out = compiler.compile([makeEntry()]);
-    expect(out).toContain("TEAMAGENT:START");
-    expect(out).toContain("TEAMAGENT:END");
+    expect(out).toContain("VIKI:START");
+    expect(out).toContain("VIKI:END");
     expect(out).toContain("dayjs");
     // 纯 compile 不应写文件
     expect(fs.existsSync(mdPath)).toBe(false);
@@ -74,7 +74,7 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
     expect(info.blockLineCount).toBeGreaterThan(0);
   });
 
-  it("writeToFile() preserves content outside TEAMAGENT markers", () => {
+  it("writeToFile() preserves content outside VIKI markers", () => {
     fs.writeFileSync(
       mdPath,
       "# My Project\n\nUser content here.\n\n## Rules\n- always use pnpm\n",
@@ -88,13 +88,13 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
     expect(content).toContain("# My Project");
     expect(content).toContain("User content here.");
     expect(content).toContain("always use pnpm");
-    expect(content).toContain("TEAMAGENT:START");
+    expect(content).toContain("VIKI:START");
   });
 
-  it("writeToFile() replaces existing TEAMAGENT block, keeps user content", () => {
+  it("writeToFile() replaces existing VIKI block, keeps user content", () => {
     fs.writeFileSync(
       mdPath,
-      "# Project\n\n<!-- TEAMAGENT:START -->\nold content\n<!-- TEAMAGENT:END -->\n\nAfter.\n",
+      "# Project\n\n<!-- VIKI:START -->\nold content\n<!-- VIKI:END -->\n\nAfter.\n",
       "utf-8",
     );
 
@@ -114,7 +114,7 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
     const content = fs.readFileSync(mdPath, "utf-8");
     // 区块应该有 START + header + 2 entries + END = 5 lines
     expect(info.blockLineCount).toBeGreaterThanOrEqual(4);
-    expect(content).toContain("TEAMAGENT:START");
+    expect(content).toContain("VIKI:START");
   });
 
   it("writeToFile() reports line offset of block in file", () => {
@@ -151,11 +151,11 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
       expect(content).toContain("Top 3");
     });
 
-    it("TEAMAGENT_CLAUDE_MD_LIMIT env var controls the cap", () => {
-      const prev = process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-      const prevDiv = process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY;
-      process.env.TEAMAGENT_CLAUDE_MD_LIMIT = "4";
-      process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY = "off";
+    it("VIKI_CLAUDE_MD_LIMIT env var controls the cap", () => {
+      const prev = process.env.VIKI_CLAUDE_MD_LIMIT;
+      const prevDiv = process.env.VIKI_CLAUDE_MD_DIVERSITY;
+      process.env.VIKI_CLAUDE_MD_LIMIT = "4";
+      process.env.VIKI_CLAUDE_MD_DIVERSITY = "off";
       try {
         const compiler = new MarkdownCompiler(
           mdPath,
@@ -172,16 +172,16 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
           .length;
         expect(bulletCount).toBe(4);
       } finally {
-        if (prev === undefined) delete process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-        else process.env.TEAMAGENT_CLAUDE_MD_LIMIT = prev;
-        if (prevDiv === undefined) delete process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY;
-        else process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY = prevDiv;
+        if (prev === undefined) delete process.env.VIKI_CLAUDE_MD_LIMIT;
+        else process.env.VIKI_CLAUDE_MD_LIMIT = prev;
+        if (prevDiv === undefined) delete process.env.VIKI_CLAUDE_MD_DIVERSITY;
+        else process.env.VIKI_CLAUDE_MD_DIVERSITY = prevDiv;
       }
     });
 
     it("explicit compileOptions.limit wins over env var", () => {
-      const prev = process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-      process.env.TEAMAGENT_CLAUDE_MD_LIMIT = "4";
+      const prev = process.env.VIKI_CLAUDE_MD_LIMIT;
+      process.env.VIKI_CLAUDE_MD_LIMIT = "4";
       try {
         const compiler = new MarkdownCompiler(mdPath, {
           now: () => "2026-04-14T00:00:00Z",
@@ -198,16 +198,16 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
           .length;
         expect(bulletCount).toBe(2);
       } finally {
-        if (prev === undefined) delete process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-        else process.env.TEAMAGENT_CLAUDE_MD_LIMIT = prev;
+        if (prev === undefined) delete process.env.VIKI_CLAUDE_MD_LIMIT;
+        else process.env.VIKI_CLAUDE_MD_LIMIT = prev;
       }
     });
 
     it("ignores invalid env var values (non-numeric / ≤0)", () => {
-      const prev = process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-      const prevDiv = process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY;
-      process.env.TEAMAGENT_CLAUDE_MD_LIMIT = "not-a-number";
-      process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY = "off";
+      const prev = process.env.VIKI_CLAUDE_MD_LIMIT;
+      const prevDiv = process.env.VIKI_CLAUDE_MD_DIVERSITY;
+      process.env.VIKI_CLAUDE_MD_LIMIT = "not-a-number";
+      process.env.VIKI_CLAUDE_MD_DIVERSITY = "off";
       try {
         const compiler = new MarkdownCompiler(
           mdPath,
@@ -225,10 +225,10 @@ describe("MarkdownCompiler adapter (legacy/internal CLAUDE.md block)", () => {
           .length;
         expect(bulletCount).toBe(10);
       } finally {
-        if (prev === undefined) delete process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
-        else process.env.TEAMAGENT_CLAUDE_MD_LIMIT = prev;
-        if (prevDiv === undefined) delete process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY;
-        else process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY = prevDiv;
+        if (prev === undefined) delete process.env.VIKI_CLAUDE_MD_LIMIT;
+        else process.env.VIKI_CLAUDE_MD_LIMIT = prev;
+        if (prevDiv === undefined) delete process.env.VIKI_CLAUDE_MD_DIVERSITY;
+        else process.env.VIKI_CLAUDE_MD_DIVERSITY = prevDiv;
       }
     });
   });

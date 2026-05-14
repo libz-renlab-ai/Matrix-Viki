@@ -26,7 +26,7 @@ describe("XenovaRuleEmbedder fetch timeout (issue #189)", () => {
 
   afterEach(() => {
     globalThis.fetch = origFetch;
-    delete process.env["TEAMAGENT_EMBEDDER_FETCH_TIMEOUT_MS"];
+    delete process.env["VIKI_EMBEDDER_FETCH_TIMEOUT_MS"];
   });
 
   it("loadModel rejects within timeout when fetch hangs forever", async () => {
@@ -62,7 +62,7 @@ describe("XenovaRuleEmbedder fetch timeout (issue #189)", () => {
       },
     ) as typeof globalThis.fetch;
 
-    process.env["TEAMAGENT_EMBEDDER_FETCH_TIMEOUT_MS"] = "300";
+    process.env["VIKI_EMBEDDER_FETCH_TIMEOUT_MS"] = "300";
 
     const { XenovaRuleEmbedder } = await import("../xenova-rule-embedder.js");
     const embedder = new XenovaRuleEmbedder();

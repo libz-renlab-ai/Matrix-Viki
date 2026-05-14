@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 
 const s = new DualLayerStore({
-  projectDbPath: path.join(process.cwd(), ".teamagent", "knowledge.db"),
-  userGlobalDbPath: path.join(os.homedir(), ".teamagent", "global.db"),
+  projectDbPath: path.join(process.cwd(), ".viki", "knowledge.db"),
+  userGlobalDbPath: path.join(os.homedir(), ".viki", "global.db"),
 });
 
 const BAD_ID = "glob-20260414080446-jkguoj";

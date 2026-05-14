@@ -25,7 +25,7 @@ export {
 export {
   compileMarkdownBlock,
   injectBlockIntoDoc,
-  stripLegacyTeamagentBlock,
+  stripLegacyVikiBlock,
   BLOCK_START,
   BLOCK_END,
   type CompileMarkdownOptions,

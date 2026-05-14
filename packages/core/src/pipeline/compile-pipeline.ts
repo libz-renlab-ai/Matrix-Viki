@@ -1,5 +1,5 @@
-import type { SkillCompiler, AttributionBus } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { SkillCompiler, AttributionBus } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** MarkdownCompiler 的最小接口，让 compile-pipeline 依赖注入而非具体实现。 */
 export interface MarkdownCompilerLike {

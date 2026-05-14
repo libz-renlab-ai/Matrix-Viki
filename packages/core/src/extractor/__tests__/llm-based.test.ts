@@ -3,7 +3,7 @@ import {
   llmBasedKnowledgeExtractor,
   parseExtractionResponse,
 } from "../llm-based.js";
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 const VALID_JSON_OBJECT = {
   category: "E",

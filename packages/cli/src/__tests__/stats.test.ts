@@ -11,9 +11,9 @@ import {
   findStuckInPromotion,
   renderStuckInPromotion,
 } from "../commands/stats.js";
-import { DualLayerStore, SqliteEventLog, openDb } from "@teamagent/adapters";
+import { DualLayerStore, SqliteEventLog, openDb } from "@viki/adapters";
 import { executePitfall } from "../commands/pitfall.js";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 function rmRetry(p: string) {
   // Windows: node:sqlite WAL mode holds shm/wal files briefly after close()
@@ -77,7 +77,7 @@ describe("renderStats (pure)", () => {
   it("empty state shows helper text", () => {
     const out = renderStats({ personal: [], team: [], global: [] });
     expect(out).toContain("尚无知识条目");
-    expect(out).toContain("teamagent pitfall");
+    expect(out).toContain("viki pitfall");
   });
 
   it("counts by category", () => {
@@ -377,8 +377,8 @@ describe("executeStats (IO)", () => {
     });
 
     it("executeStats --stuck-in-promotion returns stuck rules", () => {
-      const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-      const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+      const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+      const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
       fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
       fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
       const store = new DualLayerStore({ projectDbPath, userGlobalDbPath });
@@ -409,7 +409,7 @@ describe("executeStats (IO)", () => {
     });
 
     it("executeStats reads events.db and shows movement section", () => {
-      const eventsDir = path.join(tmp.home, ".teamagent");
+      const eventsDir = path.join(tmp.home, ".viki");
       fs.mkdirSync(eventsDir, { recursive: true });
       const eventsDbPath = path.join(eventsDir, "events.db");
       const eventLog = new SqliteEventLog(openDb(eventsDbPath));
@@ -425,9 +425,9 @@ describe("executeStats (IO)", () => {
       eventLog.close();
 
       // Seed a knowledge entry so stats has at least 1 entry
-      const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
+      const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
       fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
-      const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+      const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
       const store = new DualLayerStore({ projectDbPath, userGlobalDbPath });
       store.add(makeEntry({ id: "rule-x" }));
       store.close();

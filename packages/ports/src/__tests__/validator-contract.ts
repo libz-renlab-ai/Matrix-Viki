@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Validator } from "../validator.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
  * Validator contract. Invariants:

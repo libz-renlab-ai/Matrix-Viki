@@ -13,7 +13,7 @@ This drawer holds port interfaces that previously lived in `packages/ports/src/`
 | `bootstrap-port.ts` | `FsBootstrap` @ `packages/adapters/src/m5/fs-bootstrap.ts` | M5 viral sync; CONTEXT.md states "git-backed transport is the唯一 channel" — second prod adapter is forbidden by domain rules |
 | `team-rule-store-port.ts` | `FsTeamRuleStore` @ `packages/adapters/src/m5/fs-team-rule-store.ts` | Same as above |
 
-Type definitions (e.g., `CorrectionDetector`, `CandidateQueue`, `BootstrapPort`) have been **inlined into the lone-implementation files** by Workers 3 and 4 and re-exported from `@teamagent/core` (for the first two) or `@teamagent/adapters` (for the latter four). Callers now import from those packages instead of `@teamagent/ports`.
+Type definitions (e.g., `CorrectionDetector`, `CandidateQueue`, `BootstrapPort`) have been **inlined into the lone-implementation files** by Workers 3 and 4 and re-exported from `@viki/core` (for the first two) or `@viki/adapters` (for the latter four). Callers now import from those packages instead of `@viki/ports`.
 
 ## Revival conditions
 

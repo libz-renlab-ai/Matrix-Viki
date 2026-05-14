@@ -1,5 +1,5 @@
-import type { RuleEmbedder, SemanticRetriever } from "@teamagent/ports";
-import { DEFAULT_FIRE_THRESHOLD, type KnowledgeEntry } from "@teamagent/types";
+import type { RuleEmbedder, SemanticRetriever } from "@viki/ports";
+import { DEFAULT_FIRE_THRESHOLD, type KnowledgeEntry } from "@viki/types";
 import { scoreSoftAnd } from "./soft-and-scorer.js";
 
 export interface SemanticMatch {
@@ -49,7 +49,7 @@ export async function semanticMatch(args: {
     topK: args.topK,
   });
 
-  const debug = (globalThis as any).process?.env?.TEAMAGENT_HOOK_DEBUG === "1";
+  const debug = (globalThis as any).process?.env?.VIKI_HOOK_DEBUG === "1";
 
   const scored = candidates.map((c) => {
     // Resolve hard_negatives: deserializeRow already JSON.parses into number[][],
@@ -83,13 +83,13 @@ export async function semanticMatch(args: {
   if (debug) {
     const proc = (globalThis as any).process;
     proc?.stderr?.write?.(
-      `[teamagent-matcher] scope=${args.scope.level} scored ${scored.length} candidates\n`,
+      `[viki-matcher] scope=${args.scope.level} scored ${scored.length} candidates\n`,
     );
     for (const m of scored.slice(0, 5)) {
       const ft = (m.rule as any).fire_threshold ?? DEFAULT_FIRE_THRESHOLD;
       const passed = m.score > ft;
       proc?.stderr?.write?.(
-        `[teamagent-matcher]   ${m.rule.id} t=${m.triggerSim.toFixed(3)} ` +
+        `[viki-matcher]   ${m.rule.id} t=${m.triggerSim.toFixed(3)} ` +
         `p=${m.patternSim.toFixed(3)} hn=${m.hardNegSim.toFixed(3)} ` +
         `score=${m.score.toFixed(3)} >${ft.toFixed(2)}? ${passed ? "PASS" : "drop"}\n`,
       );

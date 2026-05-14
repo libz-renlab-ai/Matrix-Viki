@@ -1,4 +1,4 @@
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { RuleEmbedder } from "@viki/ports";
 
 export const deterministicRuleEmbedder: RuleEmbedder = {
   modelId: "e2e-test-deterministic",

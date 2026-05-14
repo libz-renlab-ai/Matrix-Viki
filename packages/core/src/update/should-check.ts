@@ -11,7 +11,7 @@ const FAILURE_BACKOFF_MS = 24 * 60 * 60 * 1000;
 const FAILURE_THRESHOLD = 3;
 
 export function shouldCheckUpdate(input: ShouldCheckInput): boolean {
-  if (input.env.TEAMAGENT_AUTO_UPDATE === "0") return false;
+  if (input.env.VIKI_AUTO_UPDATE === "0") return false;
   if (input.disabledMarkerExists) return false;
 
   const { state, now } = input;

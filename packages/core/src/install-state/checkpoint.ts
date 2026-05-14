@@ -12,7 +12,7 @@
  * `core -> ports` runtime dependency direction in
  * `packages/core/package.json`.
  */
-import type { InstallStateStore } from "@teamagent/ports";
+import type { InstallStateStore } from "@viki/ports";
 import { markStepDone } from "./lifecycle.js";
 import { makeEmptyState } from "./lifecycle.js";
 import type { InstallState, StepKey } from "./schema.js";

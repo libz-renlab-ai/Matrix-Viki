@@ -31,7 +31,7 @@ import {
   StdoutRenderer,
   normalizeCwd,
   openDb,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 
 import type {
   AdvancedHookContext,
@@ -45,7 +45,7 @@ import type {
   Visibility,
 } from "./types.js";
 import { assertEscapeNonEmpty, type RequireAtLeastOneEscape } from "./conditional-gate.js";
-import { findTeamagentRoot } from "../lib/walk-up.js";
+import { findVikiRoot } from "../lib/walk-up.js";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Shared helpers
@@ -60,7 +60,7 @@ async function readStdinJson(): Promise<unknown> {
 }
 
 function parseVisibility(env: Readonly<NodeJS.ProcessEnv>): Visibility {
-  const raw = (env.TEAMAGENT_VISIBILITY ?? "verbose").toLowerCase();
+  const raw = (env.VIKI_VISIBILITY ?? "verbose").toLowerCase();
   return raw === "silent" || raw === "smart" || raw === "verbose"
     ? raw
     : "verbose";
@@ -76,29 +76,29 @@ function parseVisibility(env: Readonly<NodeJS.ProcessEnv>): Visibility {
  * highlight/warning summary that `smart` mode already produces.
  *
  * This helper opts users into the noisy verbose tail explicitly via
- * `TEAMAGENT_HOOK_VERBOSE=1` (or `=true`). When unset, the shell
+ * `VIKI_HOOK_VERBOSE=1` (or `=true`). When unset, the shell
  * downgrades the renderer's mode from `verbose` to `smart` for hook
  * channels only, preserving the JSON envelope on stdout (returned to
  * Claude Code) untouched.
  *
  * Non-hook commands (`pitfall`, `skeleton-demo`) continue to honour
- * `TEAMAGENT_VISIBILITY` directly because they construct their own
+ * `VIKI_VISIBILITY` directly because they construct their own
  * renderer outside this shell.
  */
 export function shouldShowVerboseHookOutput(env: Readonly<NodeJS.ProcessEnv>): boolean {
-  const raw = env.TEAMAGENT_HOOK_VERBOSE;
+  const raw = env.VIKI_HOOK_VERBOSE;
   return raw === "1" || raw === "true";
 }
 
 /**
  * Effective hook-channel visibility — downgrades `verbose` to `smart` unless
- * `TEAMAGENT_HOOK_VERBOSE=1` is set. `silent` and `smart` pass through
+ * `VIKI_HOOK_VERBOSE=1` is set. `silent` and `smart` pass through
  * unchanged.
  *
  * PR #183 fix: the original W3 commit only used this for the
  * `StdoutRenderer` mode (stderr human-prose), but `ctx.visibility` was still
  * forwarded to handlers as the raw `verbose` and pre-tool-use-handler.ts:120
- * went on to write `◈ TeamAgent: ✓ <tool> 放行 (检查 N 条规则)` into the
+ * went on to write `◈ Viki: ✓ <tool> 放行 (检查 N 条规则)` into the
  * stdout JSON envelope's `systemMessage` on every clean pass. That stdout
  * leak defeated the user-visible promise of the W3 slice. We now thread
  * this single effective value into BOTH the renderer mode AND `ctx.visibility`
@@ -116,15 +116,15 @@ export function effectiveHookVisibility(
 
 function resolvePaths(cwd: string, home: string): HookDbPaths {
   // Issue #161: walk up from cwd to find the nearest ancestor with
-  // .teamagent/knowledge.db (a hook fired from a sub-directory must still
+  // .viki/knowledge.db (a hook fired from a sub-directory must still
   // resolve to the project root's DB). Falls back to cwd itself if no
   // ancestor contains one — preserves the legacy "create new project
   // here" path for first-run.
-  const projectRoot = findTeamagentRoot(cwd) ?? cwd;
+  const projectRoot = findVikiRoot(cwd) ?? cwd;
   return {
-    projectDbPath: path.join(projectRoot, ".teamagent", "knowledge.db"),
-    globalDbPath: path.join(home, ".teamagent", "global.db"),
-    eventsDbPath: path.join(home, ".teamagent", "events.db"),
+    projectDbPath: path.join(projectRoot, ".viki", "knowledge.db"),
+    globalDbPath: path.join(home, ".viki", "global.db"),
+    eventsDbPath: path.join(home, ".viki", "events.db"),
   };
 }
 
@@ -136,7 +136,7 @@ function ensureDirsForPaths(paths: HookDbPaths): void {
 
 function makeMirror(env: Readonly<NodeJS.ProcessEnv>): (text: string) => void {
   return (text: string) => {
-    if (env.TEAMAGENT_HOOK_STDERR === "0") return;
+    if (env.VIKI_HOOK_STDERR === "0") return;
     if (typeof text !== "string" || text.length === 0) return;
     try { process.stderr.write(`${text}\n`); } catch { /* best-effort */ }
   };
@@ -145,7 +145,7 @@ function makeMirror(env: Readonly<NodeJS.ProcessEnv>): (text: string) => void {
 function logFallback(channel: HookChannel, phase: string, err: unknown): void {
   try {
     const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
-    process.stderr.write(`teamagent ${channel}-hook: ${phase}: ${msg}\n`);
+    process.stderr.write(`viki ${channel}-hook: ${phase}: ${msg}\n`);
   } catch { /* never throw from logger */ }
 }
 
@@ -173,12 +173,12 @@ interface ResolvedRuntime {
 
 function resolveRuntime(rawCwd: unknown): ResolvedRuntime {
   const env: Readonly<NodeJS.ProcessEnv> = process.env;
-  // TEAMAGENT_HOME takes precedence over os.homedir() for the same reason
+  // VIKI_HOME takes precedence over os.homedir() for the same reason
   // bin-stop and other commands already honor it: a clean override slot for
   // ops scripts and tests that don't want to mutate the system home. Falls
-  // back to os.homedir() in production where TEAMAGENT_HOME is unset.
-  const home = (env.TEAMAGENT_HOME && env.TEAMAGENT_HOME.length > 0)
-    ? env.TEAMAGENT_HOME
+  // back to os.homedir() in production where VIKI_HOME is unset.
+  const home = (env.VIKI_HOME && env.VIKI_HOME.length > 0)
+    ? env.VIKI_HOME
     : os.homedir();
   // cwd resolution priority (Codex P2 fix on PR #152):
   //   1. raw.cwd from stdin payload — Claude Code SDK populates this for
@@ -188,7 +188,7 @@ function resolveRuntime(rawCwd: unknown): ResolvedRuntime {
   //      stdin (SessionStart, UserPromptSubmit) rely on this fallback when
   //      no raw.cwd is sent. Hook processes can also be launched from a
   //      non-project working directory while project root is conveyed via
-  //      this env — without the fallback we'd read/write `.teamagent` state
+  //      this env — without the fallback we'd read/write `.viki` state
   //      under the wrong path.
   //   3. process.cwd() — last-resort, matches legacy bin-*.ts behavior for
   //      manual / test invocations where neither signal is present.
@@ -260,13 +260,13 @@ export async function runHook<TInput, TOutput>(
     // emit `bus.emit({ kind, ... })` and trust the rendering reaches the
     // terminal — no need for each bin to wire its own renderer.
     //
-    // Issue #174 W3 + PR #183 fix: gate `verbose` behind `TEAMAGENT_HOOK_VERBOSE=1`
+    // Issue #174 W3 + PR #183 fix: gate `verbose` behind `VIKI_HOOK_VERBOSE=1`
     // for BOTH the StdoutRenderer mode (stderr human-prose) and ctx.visibility
     // (the value handlers consume to decide whether to emit a verbose
     // `systemMessage` into the stdout JSON envelope). Computing once and
     // threading it everywhere keeps stdout + stderr in lockstep — the W3
     // commit only gated the renderer, leaving the stdout systemMessage leak
-    // (`◈ TeamAgent: ✓ <tool> 放行`) on by default. The JSON envelope SHAPE
+    // (`◈ Viki: ✓ <tool> 放行`) on by default. The JSON envelope SHAPE
     // is unchanged; only the human-prose `systemMessage` field is suppressed
     // when verbose isn't opted in.
     const effectiveVisibility = effectiveHookVisibility(visibility, rt.env);
@@ -449,7 +449,7 @@ export async function runAdvancedHook<
   // ensures each lands on stderr per visibility mode without each handler
   // managing its own subscription.
   //
-  // Issue #174 W3 + PR #183 fix: same `TEAMAGENT_HOOK_VERBOSE=1` gate as the
+  // Issue #174 W3 + PR #183 fix: same `VIKI_HOOK_VERBOSE=1` gate as the
   // default layer — downgrade `verbose` to `smart` for BOTH the renderer
   // (stderr) AND ctx.visibility (which advanced handlers consume to gate
   // verbose `systemMessage` writes into the stdout JSON envelope). The W3
@@ -465,8 +465,8 @@ export async function runAdvancedHook<
       try { process.stderr.write(`${text}\n`); } catch { /* best-effort */ }
     }
   });
-  const teamagentHome = (rt.env.TEAMAGENT_HOME ?? rt.home);
-  const errorLogPath = path.join(teamagentHome, ".teamagent", `${channel}-errors.log`);
+  const vikiHome = (rt.env.VIKI_HOME ?? rt.home);
+  const errorLogPath = path.join(vikiHome, ".viki", `${channel}-errors.log`);
   const logError = (step: string, err: unknown): void => {
     try {
       fs.mkdirSync(path.dirname(errorLogPath), { recursive: true });

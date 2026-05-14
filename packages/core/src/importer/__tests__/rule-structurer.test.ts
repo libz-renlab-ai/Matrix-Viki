@@ -4,8 +4,8 @@ import {
   structureRuleTextsBatch,
   DEFAULT_IMPORT_CONFIDENCE,
 } from "../rule-structurer.js";
-import type { AttributionBus } from "@teamagent/ports";
-import type { AttributionEvent } from "@teamagent/types";
+import type { AttributionBus } from "@viki/ports";
+import type { AttributionEvent } from "@viki/types";
 
 const STRUCTURED_SAMPLE = {
   category: "E",

@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** L0 机械检查的结果。 */
 export interface ValidationL0Result {

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { withUpdateStateLock } from "../update-state-lock.js";
-import { defaultUpdateState, parseUpdateState } from "@teamagent/core";
+import { defaultUpdateState, parseUpdateState } from "@viki/core";
 
 /**
  * Issue #244 — update-state-lock unit tests.
@@ -168,7 +168,7 @@ describe("withUpdateStateLock", () => {
 
   it("field-ownership merge: bin-updater pattern preserves foreground-owned fields", () => {
     // bin-updater holds a stale `state` (read at the top of runUpdater, before
-    // a multi-second HTTP fetch). Meanwhile a foreground `teamagent update
+    // a multi-second HTTP fetch). Meanwhile a foreground `viki update
     // --snooze` lands a new snooze_level. When bin-updater later persists, its
     // writeState dep uses withUpdateStateLock with a mutator that overlays only
     // updater-owned fields on top of the fresh `live` state. This test models

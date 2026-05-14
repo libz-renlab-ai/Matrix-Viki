@@ -7,8 +7,8 @@ import {
   type Scenario,
   type ScenarioResult,
   type VerifyResult,
-} from "@teamagent/core";
-import { InMemoryKnowledgeStore } from "@teamagent/adapters";
+} from "@viki/core";
+import { InMemoryKnowledgeStore } from "@viki/adapters";
 import { allScenarios } from "../../../../fixtures/scenarios/index.js";
 
 export interface VerifyOptions {
@@ -47,7 +47,7 @@ export async function executeVerify(
 /** 终端友好的简短渲染（每个场景 1-3 行）。 */
 export function renderVerifyTerminal(r: VerifyResult): string {
   const lines: string[] = [];
-  lines.push("🔬 TeamAgent Verify");
+  lines.push("🔬 Viki Verify");
   lines.push("");
   for (const s of r.scenarios) {
     const sym = s.passed ? "✓" : "✗";
@@ -77,7 +77,7 @@ export function renderVerifyTerminal(r: VerifyResult): string {
 /** 完整 Markdown 报告（写文件用）。 */
 export function renderVerifyMarkdown(r: VerifyResult, now: Date): string {
   const lines: string[] = [];
-  lines.push("# TeamAgent Verify 报告");
+  lines.push("# Viki Verify 报告");
   lines.push("");
   lines.push(`> 生成时间: ${now.toISOString()}`);
   lines.push(`> 场景数: ${r.total}`);
@@ -170,7 +170,7 @@ export function parseVerifyArgs(argv: string[]): VerifyOptions {
       const base = a.split("=")[0]!;
       if (!VERIFY_KNOWN_FLAGS.has(base)) {
         throw new VerifyArgError(
-          `verify: unknown flag "${a}". Run 'teamagent --help' for valid flags.`,
+          `verify: unknown flag "${a}". Run 'viki --help' for valid flags.`,
         );
       }
     }

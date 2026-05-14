@@ -5,7 +5,7 @@ import type {
   KnowledgeStore,
   Validator,
   ValidationL0Result,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import type {
   CorrectionDetector,
   CorrectionMoment,
@@ -14,8 +14,8 @@ import type {
   KnowledgeEntry,
   ParsedSession,
   Scope,
-} from "@teamagent/types";
-import { DEFAULT_FIRE_THRESHOLD, computeEnforcement } from "@teamagent/types";
+} from "@viki/types";
+import { DEFAULT_FIRE_THRESHOLD, computeEnforcement } from "@viki/types";
 import { buildSemanticDescriptions } from "./semantic-descriptions.js";
 
 /**

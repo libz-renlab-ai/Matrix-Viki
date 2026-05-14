@@ -7,25 +7,25 @@
  *     by renaming it aside).
  *   - `save(projectId, state)`: writes the notebook. Caller is responsible
  *     for invariants (timestamp monotonicity, schemaVersion correctness)
- *     — see `markStepDone` in `@teamagent/core/install-state`.
+ *     — see `markStepDone` in `@viki/core/install-state`.
  *
  * Implementations:
  *   - `FsInstallStateStore` (`packages/cli/src/install-state-fs-store.ts`)
  *     — production fs-backed adapter, reads/writes
- *     `~/.teamagent/install-state/<projectId>.json`.
+ *     `~/.viki/install-state/<projectId>.json`.
  *   - In-memory fakes for tests live next to the contract suite at
  *     `packages/ports/src/__tests__/install-state-store-contract.ts`.
  *
  * ## Why InstallState is declared structurally here
  *
  * The canonical InstallStateV1 type lives in
- * `@teamagent/core/install-state`. This file declares an identically-
+ * `@viki/core/install-state`. This file declares an identically-
  * shaped structural type so that `packages/ports/` does NOT take a
- * runtime dependency on `@teamagent/core` (which would invert the
+ * runtime dependency on `@viki/core` (which would invert the
  * existing `core -> ports` direction and create a workspace cycle).
  *
  * Structural typing makes the two definitions interchangeable: any
- * `InstallStateV1` from `@teamagent/core/install-state` is assignable to
+ * `InstallStateV1` from `@viki/core/install-state` is assignable to
  * the `InstallState` type below and vice versa, because TypeScript
  * compares object shapes, not nominal identities.
  */
@@ -35,14 +35,14 @@
  *
  * Future-version files (v2+) read by v1 code surface as a parse failure,
  * not as a successful load — handled by `parseState` in
- * `@teamagent/core/install-state`.
+ * `@viki/core/install-state`.
  */
 export type InstallStateSchemaVersion = "v1";
 
 /**
  * Step keys recognized by the install-state notebook v1.
  *
- * Mirrors `STEP_KEYS` in `@teamagent/core/install-state`. Adding a new
+ * Mirrors `STEP_KEYS` in `@viki/core/install-state`. Adding a new
  * step here MUST be matched in core so the Zod schema accepts it.
  */
 export type InstallStepKey =
@@ -56,7 +56,7 @@ export type InstallStepKey =
 /**
  * Structural shape of the install-state notebook v1.
  *
- * Identical to `InstallStateV1` exported by `@teamagent/core/install-state`.
+ * Identical to `InstallStateV1` exported by `@viki/core/install-state`.
  * See module-level comment for why this is declared structurally rather
  * than imported.
  */

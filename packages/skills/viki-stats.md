@@ -1,18 +1,18 @@
 ---
-name: teamagent-stats
-description: Show TeamAgent knowledge base statistics (total, by-scope, by-category, top hits, recent additions). Use when the user says "看一下知识库", "/stats", "teamagent stats", or asks "我现在有多少条经验".
+name: viki-stats
+description: Show Viki knowledge base statistics (total, by-scope, by-category, top hits, recent additions). Use when the user says "看一下知识库", "/stats", "viki stats", or asks "我现在有多少条经验".
 ---
 
-# /teamagent stats — 查看知识库统计
+# /viki stats — 查看知识库统计
 
-当用户想看 TeamAgent 当前状态时触发。
+当用户想看 Viki 当前状态时触发。
 
 ## 操作
 
 直接调用底层 CLI 并把输出原样展示：
 
 ```bash
-pnpm teamagent stats
+pnpm viki stats
 ```
 
 输出包含：
@@ -29,4 +29,4 @@ pnpm teamagent stats
 ## 注意
 
 - 不做数据总结或二次加工。CLI 输出的文本就是最终答案。
-- 如果用户进一步追问某条具体知识，用 SQLite 查询或 CLI explain 查看 `{项目根}/.teamagent/knowledge.db` / `~/.teamagent/global.db`
+- 如果用户进一步追问某条具体知识，用 SQLite 查询或 CLI explain 查看 `{项目根}/.viki/knowledge.db` / `~/.viki/global.db`

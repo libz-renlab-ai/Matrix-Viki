@@ -71,7 +71,7 @@ export interface FetchLatestInput {
 export const DEFAULT_PAGES_URL =
   "https://libz-renlab-ai.github.io/TeamBrain/latest.json";
 export const DEFAULT_NPM_URL =
-  "https://registry.npmjs.org/teamagent/latest";
+  "https://registry.npmjs.org/viki/latest";
 
 // ── Per-source attempts ───────────────────────────────────────────────────────
 
@@ -185,7 +185,7 @@ async function attemptNpm(
     return {
       ok: false,
       reason: "npm_404",
-      message: "npm registry: teamagent@latest not found",
+      message: "npm registry: viki@latest not found",
     };
   }
   if (res.statusCode >= 500 && res.statusCode <= 599) {
@@ -230,7 +230,7 @@ export async function fetchLatestVersion(
   const get = input?.httpsGet ?? makeDefaultHttpsGet(input?.timeoutMs ?? 10_000);
   const pagesUrl = input?.pagesUrl ?? DEFAULT_PAGES_URL;
   const npmUrl = input?.npmUrl ?? DEFAULT_NPM_URL;
-  const ua = input?.userAgent ?? "teamagent-updater";
+  const ua = input?.userAgent ?? "viki-updater";
 
   const pages = await attemptPages(get, pagesUrl, ua);
   if (pages.ok) {

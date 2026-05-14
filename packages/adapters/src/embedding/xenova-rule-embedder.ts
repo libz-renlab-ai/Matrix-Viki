@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { RuleEmbedder } from "@viki/ports";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XenovaPipeline = (
@@ -55,7 +55,7 @@ export class XenovaRuleEmbedder implements RuleEmbedder {
   ) {
     // Issue #315 — env-gated ctor tracker.
     //
-    // When TEAMAGENT_XENOVA_TRACKER is set to a file path, append one line
+    // When VIKI_XENOVA_TRACKER is set to a file path, append one line
     // per construction. Used by judge harness to assert that hook-side code
     // never instantiates this class in-process (the bug #315 fixes: only
     // bin-embedder.cjs daemon should construct one XenovaRuleEmbedder per
@@ -64,12 +64,12 @@ export class XenovaRuleEmbedder implements RuleEmbedder {
     // FAIL_FAST=1 lets the harness terminate the entire fan-out (10 parallel
     // hook child processes) the moment ANY second loader appears, so the
     // test machine itself is not OOM-spiked by the bug being verified.
-    const trackerPath = process.env["TEAMAGENT_XENOVA_TRACKER"];
+    const trackerPath = process.env["VIKI_XENOVA_TRACKER"];
     if (trackerPath) {
       try {
         const line = `${Date.now()} pid=${process.pid} argv=${process.argv.slice(0, 2).join(" ")}\n`;
         fs.appendFileSync(trackerPath, line);
-        if (process.env["TEAMAGENT_XENOVA_TRACKER_FAIL_FAST"] === "1") {
+        if (process.env["VIKI_XENOVA_TRACKER_FAIL_FAST"] === "1") {
           const lines = fs
             .readFileSync(trackerPath, "utf-8")
             .split("\n")
@@ -123,7 +123,7 @@ export class XenovaRuleEmbedder implements RuleEmbedder {
     const { pipeline, env } = await import("@xenova/transformers");
     // Support HuggingFace mirror (e.g. for environments without direct HF access).
     const mirror =
-      process.env["HF_ENDPOINT"] ?? process.env["TEAMAGENT_HF_ENDPOINT"];
+      process.env["HF_ENDPOINT"] ?? process.env["VIKI_HF_ENDPOINT"];
     if (mirror) {
       env.remoteHost = mirror;
     }
@@ -151,7 +151,7 @@ export class XenovaRuleEmbedder implements RuleEmbedder {
     // fetch resolves.
     const fetchTimeoutMs = ((): number => {
       const v = parseInt(
-        process.env["TEAMAGENT_EMBEDDER_FETCH_TIMEOUT_MS"] ?? "",
+        process.env["VIKI_EMBEDDER_FETCH_TIMEOUT_MS"] ?? "",
         10,
       );
       return Number.isFinite(v) && v > 0 ? v : 90_000;

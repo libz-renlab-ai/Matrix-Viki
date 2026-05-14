@@ -1,5 +1,5 @@
 import type { CorrectionSignal } from "../correction-detector/rule-based.js";
-import type { KnowledgeEntry, ParsedSession } from "@teamagent/types";
+import type { KnowledgeEntry, ParsedSession } from "@viki/types";
 
 /**
  * 场景 DSL：表达"踩坑 → 学习 → 避坑"三段闭环测试。

@@ -48,13 +48,13 @@ importers:
       '@mozilla/readability':
         specifier: ^0.6.0
         version: 0.6.0
-      '@teamagent/core':
+      '@viki/core':
         specifier: workspace:*
         version: link:../core
-      '@teamagent/ports':
+      '@viki/ports':
         specifier: workspace:*
         version: link:../ports
-      '@teamagent/types':
+      '@viki/types':
         specifier: workspace:*
         version: link:../types
       '@xenova/transformers':
@@ -94,16 +94,16 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.2.0
         version: 0.2.110(zod@3.25.76)
-      '@teamagent/adapters':
+      '@viki/adapters':
         specifier: workspace:*
         version: link:../adapters
-      '@teamagent/core':
+      '@viki/core':
         specifier: workspace:*
         version: link:../core
-      '@teamagent/ports':
+      '@viki/ports':
         specifier: workspace:*
         version: link:../ports
-      '@teamagent/types':
+      '@viki/types':
         specifier: workspace:*
         version: link:../types
       cli-table3:
@@ -128,10 +128,10 @@ importers:
 
   packages/core:
     dependencies:
-      '@teamagent/ports':
+      '@viki/ports':
         specifier: workspace:*
         version: link:../ports
-      '@teamagent/types':
+      '@viki/types':
         specifier: workspace:*
         version: link:../types
       tree-sitter-python:
@@ -153,7 +153,7 @@ importers:
 
   packages/ports:
     dependencies:
-      '@teamagent/types':
+      '@viki/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -161,7 +161,13 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.19.17)(jsdom@29.0.2)
 
-  packages/teamagent:
+  packages/types:
+    dependencies:
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+
+  packages/viki:
     dependencies:
       '@xenova/transformers':
         specifier: ^2.17.0
@@ -175,12 +181,6 @@ importers:
       ulid:
         specifier: ^2.4.0
         version: 2.4.0
-
-  packages/types:
-    dependencies:
-      zod:
-        specifier: ^3.23.0
-        version: 3.25.76
 
 packages:
 

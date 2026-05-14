@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { executeIngest, parseIngestArgs } from "../commands/ingest.js";
-import { DualLayerStore } from "@teamagent/adapters";
-import type { LLMClient } from "@teamagent/ports";
+import { DualLayerStore } from "@viki/adapters";
+import type { LLMClient } from "@viki/ports";
 
 describe("parseIngestArgs", () => {
   it("--from-insights requires path", () => {
@@ -60,8 +60,8 @@ describe("executeIngest", () => {
       fs.writeFileSync(
         candidatesPath,
         [
-          "# TeamAgent ingest candidates (git-hotspot)",
-          "<!-- teamagent-candidate-source: git-hotspot -->",
+          "# Viki ingest candidates (git-hotspot)",
+          "<!-- viki-candidate-source: git-hotspot -->",
           "",
           "- [x] src/a.ts changed often; replace axios with fetch",
           "- [x] src/b.ts changed often; replace moment with dayjs",

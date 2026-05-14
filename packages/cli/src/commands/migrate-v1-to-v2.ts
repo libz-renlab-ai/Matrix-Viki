@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 export interface MigrateOptions {
   homeDir?: string;
@@ -38,9 +38,9 @@ export async function executeMigrate(opts: MigrateOptions = {}): Promise<Migrate
   const cwd = opts.cwd ?? process.cwd();
   const dryRun = opts.dryRun ?? false;
 
-  const personalPath = path.join(home, ".teamagent", "personal", "knowledge.jsonl");
-  const teamPath = path.join(cwd, ".teamagent", "knowledge.jsonl");
-  const globalPath = path.join(home, ".teamagent", "global", "knowledge.jsonl");
+  const personalPath = path.join(home, ".viki", "personal", "knowledge.jsonl");
+  const teamPath = path.join(cwd, ".viki", "knowledge.jsonl");
+  const globalPath = path.join(home, ".viki", "global", "knowledge.jsonl");
 
   const personal = readJsonlIfExists(personalPath);
   const team = readJsonlIfExists(teamPath);
@@ -65,13 +65,13 @@ export async function executeMigrate(opts: MigrateOptions = {}): Promise<Migrate
   }
 
   // write-side (Q5 决策 B: 干净重启)
-  const projectDbPath = path.join(cwd, ".teamagent", "knowledge.db");
-  const globalDbPath = path.join(home, ".teamagent", "global.db");
+  const projectDbPath = path.join(cwd, ".viki", "knowledge.db");
+  const globalDbPath = path.join(home, ".viki", "global.db");
 
   fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
   fs.mkdirSync(path.dirname(globalDbPath), { recursive: true });
 
-  const { DualLayerStore } = await import("@teamagent/adapters/storage/sqlite/dual-layer-store");
+  const { DualLayerStore } = await import("@viki/adapters/storage/sqlite/dual-layer-store");
   const store = new DualLayerStore({ projectDbPath, userGlobalDbPath: globalDbPath });
 
   const now = new Date().toISOString();

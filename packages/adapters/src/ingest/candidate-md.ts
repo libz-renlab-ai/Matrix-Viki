@@ -1,14 +1,14 @@
-import type { ExtractionInput, ExtractionKind } from "@teamagent/ports";
+import type { ExtractionInput, ExtractionKind } from "@viki/ports";
 
 /**
  * 半自动源（git-hotspot / ci-failure）的候选 markdown 格式。
  *
  * 文件形如：
  * ```md
- * # TeamAgent ingest candidates (git-hotspot)
- * <!-- teamagent-candidate-source: git-hotspot -->
+ * # Viki ingest candidates (git-hotspot)
+ * <!-- viki-candidate-source: git-hotspot -->
  *
- * 勾选 [x] 后运行: teamagent ingest --from-candidates <this-file>
+ * 勾选 [x] 后运行: viki ingest --from-candidates <this-file>
  *
  * - [ ] src/foo.ts (changed 5 times)
  * - [x] src/bar.ts (changed 12 times)
@@ -24,7 +24,7 @@ export interface CandidateItem {
   meta?: string;
 }
 
-const SOURCE_COMMENT_RE = /<!--\s*teamagent-candidate-source:\s*([\w-]+)\s*-->/;
+const SOURCE_COMMENT_RE = /<!--\s*viki-candidate-source:\s*([\w-]+)\s*-->/;
 const CHECKBOX_LINE_RE = /^\s*-\s*\[([ xX])\]\s+(.+?)\s*$/;
 
 export function formatCandidateMd(
@@ -33,8 +33,8 @@ export function formatCandidateMd(
   opts: { generatedAt?: string } = {},
 ): string {
   const lines: string[] = [];
-  lines.push(`# TeamAgent ingest candidates (${source})`);
-  lines.push(`<!-- teamagent-candidate-source: ${source} -->`);
+  lines.push(`# Viki ingest candidates (${source})`);
+  lines.push(`<!-- viki-candidate-source: ${source} -->`);
   if (opts.generatedAt) {
     lines.push(`<!-- generated-at: ${opts.generatedAt} -->`);
   }
@@ -42,7 +42,7 @@ export function formatCandidateMd(
   lines.push("勾选 `[x]` 保留想摄入的候选，然后跑：");
   lines.push("");
   lines.push("```");
-  lines.push(`teamagent ingest --from-candidates <this-file>`);
+  lines.push(`viki ingest --from-candidates <this-file>`);
   lines.push("```");
   lines.push("");
   if (items.length === 0) {
@@ -66,7 +66,7 @@ export function parseCandidateMd(md: string): ParsedCandidates {
   const sourceMatch = md.match(SOURCE_COMMENT_RE);
   if (!sourceMatch) {
     throw new Error(
-      "candidate md 缺少 <!-- teamagent-candidate-source: ... --> 标记",
+      "candidate md 缺少 <!-- viki-candidate-source: ... --> 标记",
     );
   }
   const source = sourceMatch[1] as CandidateSource;

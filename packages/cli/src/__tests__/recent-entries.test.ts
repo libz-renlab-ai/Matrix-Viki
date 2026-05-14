@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { getRecentEntries } from "../commands/recent-entries.js";
-import { openDb, closeDb } from "@teamagent/adapters";
+import { openDb, closeDb } from "@viki/adapters";
 
 function rmRetry(p: string) {
   // Windows: node:sqlite WAL mode holds shm/wal files briefly after close()
@@ -29,16 +29,16 @@ afterEach(() => {
 
 describe("getRecentEntries", () => {
   it("returns [] when DB does not exist", async () => {
-    const nonExistentDir = path.join(os.tmpdir(), "teamagent-re-missing-" + Date.now());
+    const nonExistentDir = path.join(os.tmpdir(), "viki-re-missing-" + Date.now());
     const result = await getRecentEntries(nonExistentDir);
     expect(result).toEqual([]);
   });
 
   it("returns active entries created in last 2 hours", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-re-"));
-    const teamagentDir = path.join(tmpDir, ".teamagent");
-    fs.mkdirSync(teamagentDir, { recursive: true });
-    const dbPath = path.join(teamagentDir, "knowledge.db");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-re-"));
+    const vikiDir = path.join(tmpDir, ".viki");
+    fs.mkdirSync(vikiDir, { recursive: true });
+    const dbPath = path.join(vikiDir, "knowledge.db");
 
     // Initialize DB with real schema using openDb (node:sqlite)
     const db = openDb(dbPath);
@@ -88,10 +88,10 @@ describe("getRecentEntries", () => {
   });
 
   it("walks up to project root when called from a subfolder (issue #161)", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-re-walkup-"));
-    const teamagentDir = path.join(tmpDir, ".teamagent");
-    fs.mkdirSync(teamagentDir, { recursive: true });
-    const dbPath = path.join(teamagentDir, "knowledge.db");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-re-walkup-"));
+    const vikiDir = path.join(tmpDir, ".viki");
+    fs.mkdirSync(vikiDir, { recursive: true });
+    const dbPath = path.join(vikiDir, "knowledge.db");
 
     const db = openDb(dbPath);
     db.exec(`
@@ -123,10 +123,10 @@ describe("getRecentEntries", () => {
   });
 
   it("falls back to trigger when correct_pattern_tldr is null", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-re-notldr-"));
-    const teamagentDir = path.join(tmpDir, ".teamagent");
-    fs.mkdirSync(teamagentDir, { recursive: true });
-    const dbPath = path.join(teamagentDir, "knowledge.db");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-re-notldr-"));
+    const vikiDir = path.join(tmpDir, ".viki");
+    fs.mkdirSync(vikiDir, { recursive: true });
+    const dbPath = path.join(vikiDir, "knowledge.db");
 
     const db = openDb(dbPath);
 

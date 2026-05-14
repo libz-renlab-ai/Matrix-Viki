@@ -6,15 +6,15 @@ import {
   MarkdownCompiler,
   CursorRulesCompiler,
   makeSkillCompiler,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   runCompile,
   compileCursorRules,
   type CompilePipelineResult,
   type MarkdownCompilerLike,
-} from "@teamagent/core";
-import type { SkillCompiler, SkillArtifact } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import type { SkillCompiler, SkillArtifact } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 export interface CompileOptions {
   dryRun?: boolean;
@@ -41,7 +41,7 @@ export interface CompileOptions {
   claudeMdPath?: string;
   agentsMdPath?: string;
   skillsDir?: string;
-  /** 用户级 nested rule store 根目录。默认 `~/.claude/teamagent/rules` */
+  /** 用户级 nested rule store 根目录。默认 `~/.claude/viki/rules` */
   userRulesDir?: string;
   projectDbPath?: string;
   userGlobalDbPath?: string;
@@ -54,23 +54,23 @@ export type CompileCommandResult = CompilePipelineResult & {
 function resolvePaths(opts: CompileOptions) {
   const home = opts.homeDir ?? os.homedir();
   const cwd = opts.cwd ?? process.cwd();
-  const teamagentSkillsDir =
+  const vikiSkillsDir =
     opts.skillsDir ??
-    process.env["TEAMAGENT_SKILLS_DIR"] ??
-    path.join(home, ".claude", "skills", "teamagent");
+    process.env["VIKI_SKILLS_DIR"] ??
+    path.join(home, ".claude", "skills", "viki");
   const userRulesDir =
     opts.userRulesDir ??
-    process.env["TEAMAGENT_RULES_DIR"] ??
-    path.join(home, ".claude", "teamagent", "rules");
+    process.env["VIKI_RULES_DIR"] ??
+    path.join(home, ".claude", "viki", "rules");
   return {
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
     claudeMdPath: opts.claudeMdPath ?? path.join(cwd, "CLAUDE.md"),
     agentsMdPath: opts.agentsMdPath ?? path.join(cwd, "AGENTS.md"),
     skillsDir: opts.skillsDir,
-    teamagentSkillsDir,
+    vikiSkillsDir,
     userRulesDir,
     codexSkillsDir: path.join(cwd, ".codex", "skills"),
     cursorRulesPath: opts.cursorOut ?? path.join(cwd, ".cursorrules"),
@@ -79,7 +79,7 @@ function resolvePaths(opts: CompileOptions) {
 
 function resolveLegacyFlag(opts: CompileOptions): boolean {
   if (opts.legacyClaudeMd !== undefined) return opts.legacyClaudeMd;
-  const env = process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
+  const env = process.env["VIKI_LEGACY_CLAUDE_MD"];
   if (env === undefined) return false;
   return env === "1" || env.toLowerCase() === "true" || env.toLowerCase() === "yes";
 }
@@ -118,7 +118,7 @@ export async function executeCompile(opts: CompileOptions = {}): Promise<Compile
 
   const skillCompiler = opts.markdownOnly
     ? makeNoopSkillCompiler()
-    : makeSkillCompiler({ skillsDir: paths.teamagentSkillsDir });
+    : makeSkillCompiler({ skillsDir: paths.vikiSkillsDir });
   const markdownCompiler: MarkdownCompilerLike | undefined = legacy
     ? new MarkdownCompiler(
         paths.claudeMdPath,
@@ -144,17 +144,17 @@ export async function executeCompile(opts: CompileOptions = {}): Promise<Compile
         result.agentsMarkdown = { path: "(dry-run)", blockLineCount: 0 };
       } else if (legacy) {
         // Legacy CLAUDE.md mode：保持 AGENTS.md → CLAUDE.md 软链接行为。
-        fs.mkdirSync(paths.teamagentSkillsDir, { recursive: true });
+        fs.mkdirSync(paths.vikiSkillsDir, { recursive: true });
         ensureSymlink(paths.agentsMdPath, paths.claudeMdPath, "file", () => new Date());
-        ensureSymlink(paths.codexSkillsDir, paths.teamagentSkillsDir, "dir", () => new Date());
+        ensureSymlink(paths.codexSkillsDir, paths.vikiSkillsDir, "dir", () => new Date());
         result.agentsMarkdown = {
           path: paths.agentsMdPath,
           blockLineCount: result.markdown.blockLineCount,
         };
       } else {
         // Skills/docs propagation mode：只让 Codex 看到 skills 目录，不再创建 AGENTS.md → CLAUDE.md 链接。
-        fs.mkdirSync(paths.teamagentSkillsDir, { recursive: true });
-        ensureSymlink(paths.codexSkillsDir, paths.teamagentSkillsDir, "dir", () => new Date());
+        fs.mkdirSync(paths.vikiSkillsDir, { recursive: true });
+        ensureSymlink(paths.codexSkillsDir, paths.vikiSkillsDir, "dir", () => new Date());
       }
     }
     return result;
@@ -178,7 +178,7 @@ function ensureSymlink(
       if (currentAbs === targetPath) return "already";
       fs.unlinkSync(linkPath);
     } else {
-      const backupPath = `${linkPath}.bak-teamagent-${now().toISOString().replace(/[:.]/g, "-")}`;
+      const backupPath = `${linkPath}.bak-viki-${now().toISOString().replace(/[:.]/g, "-")}`;
       fs.renameSync(linkPath, backupPath);
       fs.symlinkSync(relativeTarget, linkPath, targetType === "dir" ? "junction" : "file");
       return "backed-up";
@@ -249,7 +249,7 @@ export function parseCompileArgs(argv: string[]): CompileOptions {
       const base = a.split("=")[0]!;
       if (a.startsWith("--") && !COMPILE_KNOWN_FLAGS.has(base)) {
         throw new CompileArgError(
-          `compile: unknown flag "${a}". Run 'teamagent --help' for valid flags.`,
+          `compile: unknown flag "${a}". Run 'viki --help' for valid flags.`,
         );
       }
       // Non-flag positional args fall through silently for forward-compat;
@@ -271,7 +271,7 @@ export function renderCompileResult(
 ): string {
   const lines: string[] = [];
   const tag = dryRun ? " (dry-run)" : "";
-  lines.push(`🔧 TeamAgent Compile${tag}`);
+  lines.push(`🔧 Viki Compile${tag}`);
   lines.push("");
 
   const isNestedRoot = result.markdown.path.endsWith(`${path.sep}rules${path.sep}INDEX.md`)
@@ -331,7 +331,7 @@ export function renderCompileResult(
   }
 
   lines.push("");
-  lines.push("  Docs propagation is handled by `teamagent docs-propagate` when new rules are added.");
+  lines.push("  Docs propagation is handled by `viki docs-propagate` when new rules are added.");
   lines.push("");
   return lines.join("\n");
 }

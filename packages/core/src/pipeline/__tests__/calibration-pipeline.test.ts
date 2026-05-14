@@ -4,12 +4,12 @@ import { defaultCalibrator } from "../../calibrator/default.js";
 import type {
   AttributionBus,
   KnowledgeStore,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import type {
   AttributionEvent,
   KnowledgeEntry,
   PersistedEvent,
-} from "@teamagent/types";
+} from "@viki/types";
 
 class InMemoryStore implements KnowledgeStore {
   entries: KnowledgeEntry[] = [];

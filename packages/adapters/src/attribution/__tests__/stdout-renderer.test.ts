@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { StdoutRenderer } from "../stdout-renderer.js";
-import type { AttributionEvent, PitfallAddedEvent } from "@teamagent/types";
+import type { AttributionEvent, PitfallAddedEvent } from "@viki/types";
 
 /**
  * Fixture：pitfall.added 事件最完整（含 knowledge change + skill md 路径 +
@@ -80,7 +80,7 @@ describe("StdoutRenderer", () => {
 
     it("contains divider lines and header", () => {
       const out = renderer.render([makePitfallEvent()], "smart");
-      expect(out).toContain("TeamAgent");
+      expect(out).toContain("Viki");
       expect(out).toContain("━");
     });
 
@@ -132,7 +132,7 @@ describe("StdoutRenderer", () => {
       );
       expect(out).toMatchInlineSnapshot(`
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✨ TeamAgent · 本次操作归因
+✨ Viki · 本次操作归因
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ▸ 做了什么: 添加知识条目 rule-abc123 (C/api-hallucination)
 ▸ 知识库变化: 15 → 16 条 (personal/C/api-hallucination)
@@ -188,7 +188,7 @@ describe("StdoutRenderer", () => {
       );
       expect(out).toMatchInlineSnapshot(`
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✨ TeamAgent · 本次操作归因
+✨ Viki · 本次操作归因
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ▸ 做了什么: 添加知识条目 pers-abc123 (E/tech-choice)
 ▸ 知识库变化: 0 → 1 条 (personal/E/tech-choice)

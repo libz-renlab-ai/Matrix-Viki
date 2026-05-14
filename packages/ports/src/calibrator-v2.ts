@@ -1,4 +1,4 @@
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 /** v2 observation entry (maps to observations table). */
 export interface Observation {

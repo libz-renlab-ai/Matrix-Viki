@@ -1,7 +1,7 @@
 import type {
   ValidateL2Input,
   ValidationLLMResult,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import { parseLLMValidation } from "./l1.js";
 
 /**

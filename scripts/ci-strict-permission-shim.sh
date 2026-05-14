@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-tmp="$(mktemp "${TMPDIR:-/tmp}/teamagent-ci-strict-permission-shim.XXXXXX")"
+tmp="$(mktemp "${TMPDIR:-/tmp}/viki-ci-strict-permission-shim.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 cat >"$tmp"
 

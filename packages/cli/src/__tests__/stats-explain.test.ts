@@ -3,8 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { executeStats, renderExplain } from "../commands/stats.js";
-import { DualLayerStore } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 function mkTmp() {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "stats-explain-cwd-"));
@@ -88,9 +88,9 @@ describe("stats --explain (IO)", () => {
   });
 
   function seedEntry(entry: KnowledgeEntry) {
-    const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
+    const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
     fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
-    const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
     fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
     const store = new DualLayerStore({ projectDbPath, userGlobalDbPath });
     store.add(entry);

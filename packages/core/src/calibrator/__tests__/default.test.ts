@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { runCalibratorContract } from "@teamagent/ports/contracts";
+import { runCalibratorContract } from "@viki/ports/contracts";
 import { defaultCalibrator } from "../default.js";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 // --- Contract suite ---
 describe("defaultCalibrator", () => {
@@ -243,7 +243,7 @@ describe("Stage A: self-reference detection (doc/test context)", () => {
     ["README.md", true],
     ["notes.txt", true],
     ["spec.adoc", true],
-    ["~/.teamagent/personal/knowledge.jsonl", true],
+    ["~/.viki/personal/knowledge.jsonl", true],
     ["packages/core/src/calibrator/default.ts", false],
     ["src/api/users.ts", false],
     ["scripts/build.sh", false],

@@ -4,15 +4,15 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { openDb } from "../schema.js";
 import { SqliteKnowledgeStore } from "../sqlite-knowledge-store.js";
-import type { KnowledgeEntry } from "@teamagent/types";
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import type { RuleEmbedder } from "@viki/ports";
 
 /**
  * Auto-embedding contract: when a RuleEmbedder is injected and the entry has
  * trigger_description / pattern_description / tool_context_description, the
  * store automatically writes vec0 rows on insert/update and stamps
  * embedder_model_id. This closes the gap that previously required a manual
- * `pnpm teamagent migrate-v6` after every new rule.
+ * `pnpm viki migrate-v6` after every new rule.
  */
 
 class StubEmbedder implements RuleEmbedder {

@@ -1,5 +1,5 @@
-import type { KnowledgeEntry } from "@teamagent/types";
-import type { KnowledgeStore, QueryOptions } from "@teamagent/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import type { KnowledgeStore, QueryOptions } from "@viki/ports";
 
 /**
  * 内存知识库实现。用于 skeleton-demo 和测试。

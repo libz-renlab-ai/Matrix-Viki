@@ -5,7 +5,7 @@
  * passive-knowledge.
  *
  * Produces a JSON plan + markdown report under scripts/out/. Apply via
- * `teamagent reclassify apply --plan <file>`.
+ * `viki reclassify apply --plan <file>`.
  *
  * LLM: `claude -p <prompt>` subprocess. If unavailable, falls back to a
  * simple heuristic (ASCII vs non-ASCII, bracketed tags vs bare text).
@@ -49,7 +49,7 @@ interface PlanEntry {
 }
 
 const PROMPT = [
-  "You classify a TeamAgent rule into ONE of four channels.",
+  "You classify a Viki rule into ONE of four channels.",
   "",
   "- tool-action: wrong_pattern is a literal string appearing in a TOOL CALL argument (bash command, file path, url, edit content). Examples: \"npm install moment\", \"--dangerously-skip-permissions\", \"rm -rf\".",
   "- ai-narrative: wrong_pattern is a phrase the AI says in its assistant message, not a tool call. Often about claiming completion, waiting, hedging. Examples: phrases in Chinese about being done or waiting.",
@@ -183,7 +183,7 @@ function renderReport(plan: PlanEntry[], total: number): string {
 }
 
 function main() {
-  const projectDb = path.join(process.cwd(), ".teamagent", "knowledge.db");
+  const projectDb = path.join(process.cwd(), ".viki", "knowledge.db");
   if (!fs.existsSync(projectDb)) {
     console.error(`knowledge.db not found at ${projectDb}`);
     process.exit(1);
@@ -241,7 +241,7 @@ function main() {
   console.error("");
   console.error(`Report: ${mdPath}`);
   console.error(`Plan:   ${jsonPath}`);
-  console.error(`Apply:  pnpm teamagent reclassify apply --plan ${jsonPath}`);
+  console.error(`Apply:  pnpm viki reclassify apply --plan ${jsonPath}`);
 }
 
 main();

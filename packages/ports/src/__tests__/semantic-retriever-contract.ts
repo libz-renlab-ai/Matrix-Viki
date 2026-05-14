@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { SemanticRetriever } from "../semantic-retriever.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 type SeedFn = (
   rules: KnowledgeEntry[],

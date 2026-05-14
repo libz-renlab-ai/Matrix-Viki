@@ -31,8 +31,8 @@ describe("shouldCheckUpdate", () => {
     }))).toBe(true);
   });
 
-  it("returns false when TEAMAGENT_AUTO_UPDATE=0", () => {
-    expect(shouldCheckUpdate(input({ env: { TEAMAGENT_AUTO_UPDATE: "0" } }))).toBe(false);
+  it("returns false when VIKI_AUTO_UPDATE=0", () => {
+    expect(shouldCheckUpdate(input({ env: { VIKI_AUTO_UPDATE: "0" } }))).toBe(false);
   });
 
   it("returns false when disabled marker exists", () => {

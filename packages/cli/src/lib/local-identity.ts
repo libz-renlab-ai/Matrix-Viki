@@ -12,7 +12,7 @@
  * downstream will return `false` and the updater falls back to the normal
  * (non-forced) path.
  *
- * Pure logic lives in `@teamagent/core::isLocalUserPrCreator`. This file is
+ * Pure logic lives in `@viki/core::isLocalUserPrCreator`. This file is
  * the IO seam — kept tiny so the surface to mock in tests is the helper, not
  * the shell wrapper. `runUpdater` accepts `gatherIdentity` as an injectable
  * dependency for the same reason.

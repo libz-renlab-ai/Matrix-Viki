@@ -1,4 +1,4 @@
-import type { ValidateL0Input, ValidationL0Result } from "@teamagent/ports";
+import type { ValidateL0Input, ValidationL0Result } from "@viki/ports";
 
 const IMPORT_PATH_RE = /^[@a-zA-Z0-9_\-./]+$/;
 

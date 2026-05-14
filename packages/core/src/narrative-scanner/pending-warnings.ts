@@ -73,7 +73,7 @@ export function selectTopForInjection(
 export function formatInjectionText(warnings: PendingWarning[]): string {
   if (warnings.length === 0) return "";
   const lines = [
-    "◈ TeamAgent observation from previous turn",
+    "◈ Viki observation from previous turn",
     "In your previous reply the following patterns triggered team rules:",
   ];
   for (const w of warnings) {

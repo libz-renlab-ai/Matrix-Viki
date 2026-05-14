@@ -2,7 +2,7 @@
 // Regenerate packages/core/src/static-user-skills/content.ts from .claude/skills/<name>/SKILL.md.
 //
 // The generated content.ts is the single source of inline string constants
-// `teamagent init` ships to `~/.claude/skills/<name>/SKILL.md` and
+// `viki init` ships to `~/.claude/skills/<name>/SKILL.md` and
 // `~/.codex/skills/<name>/SKILL.md`.
 //
 // Freshness is enforced by `packages/cli/src/__tests__/static-user-skills-freshness.test.ts`:

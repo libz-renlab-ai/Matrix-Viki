@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { semanticMatch } from "../semantic-matcher.js";
-import type { RuleEmbedder, SemanticRetriever, SemanticCandidate } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { RuleEmbedder, SemanticRetriever, SemanticCandidate } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 const stubEmbedder: RuleEmbedder = {
   modelId: "test",

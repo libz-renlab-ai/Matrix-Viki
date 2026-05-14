@@ -1,4 +1,4 @@
-import type { Validator } from "@teamagent/ports";
+import type { Validator } from "@viki/ports";
 import { validateLevel0 } from "./l0.js";
 import { validateLevel1 } from "./l1.js";
 import { validateLevel2 } from "./l2.js";

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { CursorRulesCompiler } from "../cursor-rules-compiler.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "cursor-compiler-"));
@@ -123,6 +123,6 @@ describe("CursorRulesCompiler", () => {
   it("compile() includes a generated-by header", () => {
     const compiler = new CursorRulesCompiler(path.join(dir, ".cursorrules"));
     const text = compiler.compile([makeEntry()]);
-    expect(text).toMatch(/generated|teamagent|cursorrules/i);
+    expect(text).toMatch(/generated|viki|cursorrules/i);
   });
 });

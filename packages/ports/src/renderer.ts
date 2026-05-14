@@ -1,4 +1,4 @@
-import type { AttributionEvent, VisibilityMode } from "@teamagent/types";
+import type { AttributionEvent, VisibilityMode } from "@viki/types";
 
 /**
  * 归因事件渲染器。把事件列表渲染成用户可见文本。

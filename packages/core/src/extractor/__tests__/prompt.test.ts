@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildExtractionPrompt, buildRetrofitPrompt } from "../prompt.js";
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 const SAMPLE: ExtractionInput = {
   kind: "correction",

@@ -118,7 +118,7 @@ describe("ClaudeSessionSource", () => {
     it("lists jsonl files sorted by mtime desc", async () => {
       // 构造 3 个伪 project 目录，各 1 个 jsonl
       const projA = path.join(tmp.dir, "projects", "C--bzli-app");
-      const projB = path.join(tmp.dir, "projects", "C--bzli-teamagent");
+      const projB = path.join(tmp.dir, "projects", "C--bzli-viki");
       fs.mkdirSync(projA, { recursive: true });
       fs.mkdirSync(projB, { recursive: true });
 

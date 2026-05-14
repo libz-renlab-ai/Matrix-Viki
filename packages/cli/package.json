@@ -1,10 +1,10 @@
 {
-  "name": "@teamagent/cli",
+  "name": "@viki/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "teamagent": "./src/bin.ts"
+    "viki": "./src/bin.ts"
   },
   "scripts": {
     "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
@@ -15,10 +15,10 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.0",
-    "@teamagent/adapters": "workspace:*",
-    "@teamagent/core": "workspace:*",
-    "@teamagent/ports": "workspace:*",
-    "@teamagent/types": "workspace:*",
+    "@viki/adapters": "workspace:*",
+    "@viki/core": "workspace:*",
+    "@viki/ports": "workspace:*",
+    "@viki/types": "workspace:*",
     "cli-table3": "^0.6.5",
     "js-tiktoken": "^1.0.12",
     "picocolors": "^1.1.1",

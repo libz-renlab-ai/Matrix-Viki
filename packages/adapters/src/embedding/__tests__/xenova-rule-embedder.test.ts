@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ruleEmbedderContractSuite } from "@teamagent/ports/contracts";
+import { ruleEmbedderContractSuite } from "@viki/ports/contracts";
 
 const DIM = 384;
 // Normalized vector: L2 norm = sqrt(DIM * v^2) = 1 => v = 1/sqrt(DIM)

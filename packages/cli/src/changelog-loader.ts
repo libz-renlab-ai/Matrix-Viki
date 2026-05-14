@@ -9,7 +9,7 @@
  * still renders the upgrade prompt without the what's-new section.
  *
  * Lives in `packages/cli/` (imperative shell) because it does fs IO; the
- * pure parser in `@teamagent/core` does the actual line-scan.
+ * pure parser in `@viki/core` does the actual line-scan.
  */
 import fs from "node:fs";
 import path from "node:path";

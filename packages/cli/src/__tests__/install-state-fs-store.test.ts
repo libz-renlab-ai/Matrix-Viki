@@ -2,17 +2,17 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { runInstallStateStoreContract } from "@teamagent/ports/contracts";
-import type { InstallState } from "@teamagent/ports";
+import { runInstallStateStoreContract } from "@viki/ports/contracts";
+import type { InstallState } from "@viki/ports";
 import { FsInstallStateStore } from "../install-state-fs-store.js";
 
 /**
  * Run the canonical contract suite against the fs adapter — every
  * conforming impl must pass these 8 cases.
  */
-describe("FsInstallStateStore — runs the @teamagent/ports/contracts suite", () => {
+describe("FsInstallStateStore — runs the @viki/ports/contracts suite", () => {
   runInstallStateStoreContract(async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "teamagent-isfs-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "viki-isfs-"));
     return {
       store: new FsInstallStateStore({ rootDir: root }),
       teardown: async () => {
@@ -30,7 +30,7 @@ describe("FsInstallStateStore — fs-specific behaviour", () => {
   let store: FsInstallStateStore;
 
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), "teamagent-isfs-"));
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "viki-isfs-"));
     store = new FsInstallStateStore({ rootDir: root, now: () => 999 });
   });
 
@@ -161,20 +161,20 @@ describe("FsInstallStateStore — fs-specific behaviour", () => {
     expect(exists).toBe(false); // no partial write
   });
 
-  it("rootDir defaults to TEAMAGENT_HOME or ~/.teamagent when not set", async () => {
+  it("rootDir defaults to VIKI_HOME or ~/.viki when not set", async () => {
     // Just verifies the default-path code path runs without throwing.
-    // We do NOT actually save anything to ~/.teamagent in tests.
-    const fakeHome = await fs.mkdtemp(path.join(os.tmpdir(), "teamagent-home-"));
-    const prev = process.env["TEAMAGENT_HOME"];
-    process.env["TEAMAGENT_HOME"] = fakeHome;
+    // We do NOT actually save anything to ~/.viki in tests.
+    const fakeHome = await fs.mkdtemp(path.join(os.tmpdir(), "viki-home-"));
+    const prev = process.env["VIKI_HOME"];
+    process.env["VIKI_HOME"] = fakeHome;
     try {
       const defaultStore = new FsInstallStateStore();
       await defaultStore.save("p_env", makeState("p_env", ["hook-write"]));
       const loaded = await defaultStore.load("p_env");
       expect(loaded?.completedSteps).toEqual(["hook-write"]);
     } finally {
-      if (prev === undefined) delete process.env["TEAMAGENT_HOME"];
-      else process.env["TEAMAGENT_HOME"] = prev;
+      if (prev === undefined) delete process.env["VIKI_HOME"];
+      else process.env["VIKI_HOME"] = prev;
       await fs.rm(fakeHome, { recursive: true, force: true });
     }
   });

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # verify-postinstall-detached.sh — judge harness for ADR 0001 two-stage install.
 #
-# Runs packages/teamagent/postinstall.mjs against a temp HOME with a stubbed
+# Runs packages/viki/postinstall.mjs against a temp HOME with a stubbed
 # dist/bin.js so the integration is hermetic (no model download). Emits raw
 # stdout/stderr + JSON metrics so an LLM judge can rule PASS/FAIL from
 # .judge/<run_id>/ without reading the source.
 #
 # Pass criteria (see docs/plans/2026-05-07-fix-install/plan.md §3):
 #   1. default-mode wall-clock <= 30s
-#   2. ~/.teamagent/.warmup-state.json present, status=="downloading", pid==0
-#   3. foreground-mode still works (TEAMAGENT_FOREGROUND_WARMUP=1)
-#   4. skip-mode still works (TEAMAGENT_SKIP_WARMUP=1)
+#   2. ~/.viki/.warmup-state.json present, status=="downloading", pid==0
+#   3. foreground-mode still works (VIKI_FOREGROUND_WARMUP=1)
+#   4. skip-mode still works (VIKI_SKIP_WARMUP=1)
 set -eu
 cd "$(dirname "$0")/.."
 
@@ -22,7 +22,7 @@ mkdir -p "${EVIDENCE_DIR}"
 
 # 1) Stub bin.js — exits 0 for every subcommand; covers doctor / install-user-hook /
 #    warmup so the parent's branches all see a clean child.
-DIST_DIR="${WORKTREE}/packages/teamagent/dist"
+DIST_DIR="${WORKTREE}/packages/viki/dist"
 STUB_CREATED=0
 if [ ! -f "${DIST_DIR}/bin.js" ]; then
   mkdir -p "${DIST_DIR}"
@@ -42,12 +42,12 @@ run_one() {
   local stdout="${EVIDENCE_DIR}/${label}.stdout"
   local stderr="${EVIDENCE_DIR}/${label}.stderr"
   local timing="${EVIDENCE_DIR}/${label}.time"
-  local statefile="${tmphome}/.teamagent/.warmup-state.json"
+  local statefile="${tmphome}/.viki/.warmup-state.json"
   local exit_code=0
 
   # /usr/bin/time -p prints "real <s>" to stderr; capture separately.
   HOME="${tmphome}" "$@" /usr/bin/time -p \
-    node "${WORKTREE}/packages/teamagent/postinstall.mjs" \
+    node "${WORKTREE}/packages/viki/postinstall.mjs" \
     >"${stdout}" 2>"${stderr}.raw" || exit_code=$?
 
   # Pull all three POSIX time -p lines (real/user/sys) into timing file;
@@ -87,11 +87,11 @@ JSON_EOF
 # Path 1: default detached
 run_one "01-default-detached" env
 
-# Path 2: TEAMAGENT_FOREGROUND_WARMUP=1 (synchronous; stub exits 0 immediately)
-run_one "02-foreground" env TEAMAGENT_FOREGROUND_WARMUP=1
+# Path 2: VIKI_FOREGROUND_WARMUP=1 (synchronous; stub exits 0 immediately)
+run_one "02-foreground" env VIKI_FOREGROUND_WARMUP=1
 
-# Path 3: TEAMAGENT_SKIP_WARMUP=1
-run_one "03-skip" env TEAMAGENT_SKIP_WARMUP=1
+# Path 3: VIKI_SKIP_WARMUP=1
+run_one "03-skip" env VIKI_SKIP_WARMUP=1
 
 # Cleanup stub if we created it
 if [ "${STUB_CREATED}" = "1" ]; then

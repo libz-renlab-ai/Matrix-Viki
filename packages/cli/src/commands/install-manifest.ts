@@ -15,7 +15,7 @@
  *
  *   [config]   user-level config writes
  *   [skills]   project-level skill files at <project>/.claude/skills/<id>/SKILL.md
- *              (NOT user-level ~/.claude/skills/teamagent/<id>/SKILL.md, which
+ *              (NOT user-level ~/.claude/skills/viki/<id>/SKILL.md, which
  *               is the `compile` output downstream of [kb])
  *   [kb]       project knowledge base files
  *   [download] vector model (~120 MB) — detached background warmup per
@@ -84,7 +84,7 @@ export interface InstallManifest {
 }
 
 /**
- * Pure: build the structured 5-section manifest for `pnpm teamagent install --preview`.
+ * Pure: build the structured 5-section manifest for `pnpm viki install --preview`.
  * No IO, no env reads, no `os.homedir()` — anything that varies is a parameter.
  *
  * Section ordering is fixed: config → skills → kb → download → refusal.
@@ -103,7 +103,7 @@ export function renderInstallManifest(
     config: {
       header: "[config]",
       lines: [
-        `~/.teamagent/config.json  (~${configKb} KB write)`,
+        `~/.viki/config.json  (~${configKb} KB write)`,
         "  user-level config; created on first run, idempotent on rerun.",
       ],
     },
@@ -111,13 +111,13 @@ export function renderInstallManifest(
       header: "[skills]",
       lines: [
         `<project>/.claude/skills/  (${skillIds.length} project-level skill files: ${skillIds.join(", ")})`,
-        "  user-level ~/.claude/skills/teamagent/<id>/SKILL.md is the compile output downstream of [kb] and is NOT listed here.",
+        "  user-level ~/.claude/skills/viki/<id>/SKILL.md is the compile output downstream of [kb] and is NOT listed here.",
       ],
     },
     kb: {
       header: "[kb]",
       lines: [
-        ".teamagent/kb/  (project knowledge base; user-level ~/.claude/skills/teamagent/<id>/SKILL.md is the compile output downstream of [kb], not listed here)",
+        ".viki/kb/  (project knowledge base; user-level ~/.claude/skills/viki/<id>/SKILL.md is the compile output downstream of [kb], not listed here)",
       ],
     },
     download: {
@@ -183,7 +183,7 @@ export interface InstallArgs {
 }
 
 /**
- * Parse `pnpm teamagent install` args. Order 1 only handles `--preview`;
+ * Parse `pnpm viki install` args. Order 1 only handles `--preview`;
  * any other flag is silently passed through (Order 3's parser will own
  * the strict-flag check).
  */

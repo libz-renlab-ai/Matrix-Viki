@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { AttributionBus } from "../attribution-bus.js";
-import type { AttributionEvent } from "@teamagent/types";
+import type { AttributionEvent } from "@viki/types";
 
 /**
  * 契约测试 fixture：用 skeleton.knowledge-added 这条 kind 当代表事件，

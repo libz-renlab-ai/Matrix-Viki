@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
 import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** 候选规则条目（待人工审核）。 */
 export interface RuleCandidate {

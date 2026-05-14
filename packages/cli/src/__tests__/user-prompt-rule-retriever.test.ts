@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatRuleInjection, buildTechStackText, buildTerminalSummary, passesCoOccurrenceGuard, retrieveRulesForPrompt } from "../user-prompt-rule-retriever.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeRule(id: string, trigger: string, correct: string, conf = 0.9): KnowledgeEntry {
   return {
@@ -45,7 +45,7 @@ describe("formatRuleInjection", () => {
     const rules = [makeRule("r1", "开始实现功能时", "先写测试")];
     const text = formatRuleInjection(rules, "T1");
     expect(text).toContain("T1");
-    expect(text).toContain("TeamAgent");
+    expect(text).toContain("Viki");
   });
 
   it("includes each rule's trigger and correct_pattern", () => {
@@ -67,7 +67,7 @@ describe("buildTerminalSummary", () => {
   it("includes ASCII block header with count", () => {
     const rules = [makeRule("r1", "调用外部 HTTP API 时", "fetch + 错误处理")];
     const text = buildTerminalSummary(rules, []);
-    expect(text).toContain("========|| TeamAgent ||========");
+    expect(text).toContain("========|| Viki ||========");
     expect(text).toContain("1");
   });
 

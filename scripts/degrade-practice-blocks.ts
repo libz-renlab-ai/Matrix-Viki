@@ -17,7 +17,7 @@
  * 使用：
  *   pnpm tsx scripts/degrade-practice-blocks.ts [--db <path>] [--dry-run]
  *
- * 默认 db 路径: ./.teamagent/knowledge.db
+ * 默认 db 路径: ./.viki/knowledge.db
  * --dry-run: 只打印会改哪些规则，不实际改
  *
  * 幂等：已降级过的规则不会被再次改 (它们已经是 warn)。可以安全重跑。
@@ -28,7 +28,7 @@ import process from "node:process";
 
 function parseArgs(): { dbPath: string; dryRun: boolean } {
   const args = process.argv.slice(2);
-  let dbPath = path.resolve(process.cwd(), ".teamagent/knowledge.db");
+  let dbPath = path.resolve(process.cwd(), ".viki/knowledge.db");
   let dryRun = false;
 
   for (let i = 0; i < args.length; i++) {

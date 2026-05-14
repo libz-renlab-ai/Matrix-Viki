@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { scanNarrative } from "../scan.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeRule(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

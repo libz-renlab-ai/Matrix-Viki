@@ -1,14 +1,14 @@
-import type { PersistedEvent, ParsedSession } from "@teamagent/types";
+import type { PersistedEvent, ParsedSession } from "@viki/types";
 import {
   ruleBasedCorrectionDetector,
   clusterByTag,
   type RawErrorSignal,
-} from "@teamagent/core";
+} from "@viki/core";
 
 /**
  * 错误信号采集 Port。
  *
- * `RawErrorSignal` 类型定义住在 `@teamagent/core` (cross-session-cluster.ts) — 唯一定义，避免 nominal divergence。
+ * `RawErrorSignal` 类型定义住在 `@viki/core` (cross-session-cluster.ts) — 唯一定义，避免 nominal divergence。
  *
  * 信号类型：
  *   A - 用户纠正 AI（correction_moment）

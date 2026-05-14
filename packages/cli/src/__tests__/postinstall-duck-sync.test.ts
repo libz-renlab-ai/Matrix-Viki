@@ -13,7 +13,7 @@ const translationsPath = path.join(
 );
 const postinstallPath = path.join(
   repoRoot,
-  "packages/teamagent/postinstall.mjs",
+  "packages/viki/postinstall.mjs",
 );
 
 // ---------------------------------------------------------------------------

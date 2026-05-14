@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// teamagent-statusline-bpp.cjs — BPP (Best-Practice Push) statusline segment.
+// viki-statusline-bpp.cjs — BPP (Best-Practice Push) statusline segment.
 //
 // Spec: docs/superpowers/specs/2026-05-13-best-practice-push-design.md §4.2
 //   row "CC statusline | 默认开启 | 显示 '📬 N 条新推送'".
@@ -21,7 +21,7 @@
 // Behavior on malformed / empty stdin: emit `📬 0 pending best practices` and
 // exit 0. We never want a bad JSON parse to corrupt the CC statusline render.
 //
-// Not wired into scripts/teamagent-statusline.cjs yet — Phase 3 ships this as
+// Not wired into scripts/viki-statusline.cjs yet — Phase 3 ships this as
 // a standalone, composable building block. Integration (concat with the main
 // status row) lands in a later PR.
 

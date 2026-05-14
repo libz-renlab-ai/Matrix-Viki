@@ -8,7 +8,7 @@ import {
   scanUserInput,
   formatUserInputFlag,
 } from "../user-prompt-inject.js";
-import type { KnowledgeEntry, RuleChannel } from "@teamagent/types";
+import type { KnowledgeEntry, RuleChannel } from "@viki/types";
 
 function mkPending(overrides: any = {}) {
   return {
@@ -77,7 +77,7 @@ describe("buildInjectionFromPending", () => {
     const file = path.join(dir, "s1_pending_warnings.json");
     fs.writeFileSync(file, JSON.stringify([mkPending()]));
     const r = buildInjectionFromPending({ sessionsDir: dir, sessionId: "s1" });
-    expect(r.text).toContain("TeamAgent");
+    expect(r.text).toContain("Viki");
     expect(r.injectedIds).toEqual(["n1"]);
     expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual([]);
   });
@@ -169,7 +169,7 @@ describe("formatUserInputFlag", () => {
         reasoning: "",
       },
     ]);
-    expect(text).toContain("TeamAgent");
+    expect(text).toContain("Viki");
     expect(text).toContain("u1");
     expect(text).toContain("<noise>");
   });

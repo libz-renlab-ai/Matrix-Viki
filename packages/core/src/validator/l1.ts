@@ -1,7 +1,7 @@
 import type {
   ValidateL1Input,
   ValidationLLMResult,
-} from "@teamagent/ports";
+} from "@viki/ports";
 
 /**
  * L1 Haiku validator——晋升 stable 前跑一次语义检查。

@@ -20,7 +20,7 @@
 
 import { describe, it, expect } from "vitest";
 import { StdoutRenderer } from "../stdout-renderer.js";
-import type { AttributionEvent } from "@teamagent/types";
+import type { AttributionEvent } from "@viki/types";
 
 const renderer = new StdoutRenderer();
 

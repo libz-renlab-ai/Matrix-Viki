@@ -10,11 +10,11 @@ import type {
   AttributionBus,
   Validator,
   ValidationL0Result,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import type {
   AttributionEvent,
   KnowledgeEntry,
-} from "@teamagent/types";
+} from "@viki/types";
 
 class QueuedExtractor implements KnowledgeExtractor {
   constructor(

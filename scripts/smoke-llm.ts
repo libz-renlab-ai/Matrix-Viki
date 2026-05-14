@@ -96,7 +96,7 @@ function getAtPath(obj: unknown, dotPath: string): unknown {
 }
 
 async function main(): Promise<number> {
-  console.log("🔬 TeamAgent LLM smoke test");
+  console.log("🔬 Viki LLM smoke test");
   console.log("  Backend: claude -p --output-format json");
   console.log("  Prompt:  'Say exactly OK'");
   console.log("");

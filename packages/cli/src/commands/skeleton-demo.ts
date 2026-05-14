@@ -2,10 +2,10 @@ import {
   InMemoryKnowledgeStore,
   InMemoryAttributionBus,
   StdoutRenderer,
-} from "@teamagent/adapters";
-import { compileMarkdownBlock, defaultValidator, runCompile, formatAsAgentSkill } from "@teamagent/core";
-import { parseVisibilityMode, type KnowledgeEntry } from "@teamagent/types";
-import type { SkillCompiler, SkillArtifact } from "@teamagent/ports";
+} from "@viki/adapters";
+import { compileMarkdownBlock, defaultValidator, runCompile, formatAsAgentSkill } from "@viki/core";
+import { parseVisibilityMode, type KnowledgeEntry } from "@viki/types";
+import type { SkillCompiler, SkillArtifact } from "@viki/ports";
 
 /**
  * M0 Walking Skeleton 演示命令。
@@ -14,7 +14,7 @@ import type { SkillCompiler, SkillArtifact } from "@teamagent/ports";
  * 的 Fake 实现能组合工作。所有输出都经过 AttributionBus + Renderer，
  * 无任何直接 console.log——这是原则 6 的强制落地。
  *
- * Visibility mode 由环境变量 TEAMAGENT_VISIBILITY 控制。
+ * Visibility mode 由环境变量 VIKI_VISIBILITY 控制。
  */
 export async function runSkeletonDemo(
   opts: {
@@ -24,7 +24,7 @@ export async function runSkeletonDemo(
 ): Promise<string> {
   const env = opts.env ?? process.env;
   const now = opts.now ?? new Date().toISOString();
-  const mode = parseVisibilityMode(env.TEAMAGENT_VISIBILITY);
+  const mode = parseVisibilityMode(env.VIKI_VISIBILITY);
 
   const store = new InMemoryKnowledgeStore();
   const bus = new InMemoryAttributionBus();
@@ -164,7 +164,7 @@ export async function runSkeletonDemo(
     timestamp: now,
     userFacingValue: [
       "CLAUDE.md 出口：legacy/internal 已禁用（普通命令不写 root rule dump）",
-      `Skills 出口：stable+ 规则 ${compileResult.skills.written.length} 条 → ~/.claude/skills/teamagent/ 目录（dry-run，未实际写入）`,
+      `Skills 出口：stable+ 规则 ${compileResult.skills.written.length} 条 → ~/.claude/skills/viki/ 目录（dry-run，未实际写入）`,
       `  导出 skill: [${compileResult.skills.written.join(", ")}]`,
     ].join("\n  "),
     counterfactual: "没有 Skills 编译，规则无法作为 Claude Code skill 被所有项目复用",

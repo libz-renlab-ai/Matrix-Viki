@@ -1,6 +1,6 @@
 // packages/cli/src/commands/doctor-diff.ts
-// Issue #172: line-based unified diff for `teamagent doctor --fix --dry-run`.
-// Self-contained — no `diff` npm dep, since this is the only consumer in @teamagent/cli.
+// Issue #172: line-based unified diff for `viki doctor --fix --dry-run`.
+// Self-contained — no `diff` npm dep, since this is the only consumer in @viki/cli.
 
 type DiffOp = { type: "eq" | "del" | "add"; line: string };
 

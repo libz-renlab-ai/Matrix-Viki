@@ -20,7 +20,7 @@ describe("install-hook ↔ tsup ENTRIES parity (issue #299)", () => {
   const __dirname = path.dirname(__filename);
   const tsupConfigPath = path.resolve(
     __dirname,
-    "../../../teamagent/tsup.config.ts",
+    "../../../viki/tsup.config.ts",
   );
 
   it("tsup.config.ts exists at the expected relative path", () => {

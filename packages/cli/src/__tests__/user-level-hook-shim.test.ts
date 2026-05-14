@@ -33,8 +33,8 @@ describe("buildUserLevelHookCommand — shim shape", () => {
   });
 
   it("normalises Windows backslash paths to forward slashes", () => {
-    const cmd = buildUserLevelHookCommand("C:\\Users\\u\\.teamagent\\hooks\\bin-stop.cjs");
-    expect(cmd).toContain("/Users/u/.teamagent/hooks/bin-stop.cjs");
+    const cmd = buildUserLevelHookCommand("C:\\Users\\u\\.viki\\hooks\\bin-stop.cjs");
+    expect(cmd).toContain("/Users/u/.viki/hooks/bin-stop.cjs");
     expect(cmd).not.toContain("\\Users\\");
   });
 
@@ -48,7 +48,7 @@ describe("buildUserLevelHookCommand — shim shape", () => {
     // Paths under home dirs containing apostrophes (`/home/Jane O'Brien/...`)
     // would close the outer `'...'` if the path were inlined. The fix is to
     // pass the path as positional argv ($1).
-    const cmd = buildUserLevelHookCommand("/home/Jane O'Brien/.teamagent/hooks/bin-stop.cjs");
+    const cmd = buildUserLevelHookCommand("/home/Jane O'Brien/.viki/hooks/bin-stop.cjs");
     // The body between `bash -c '` and the next bare `'` must NOT contain
     // the apostrophe (otherwise the body got cut short by it).
     const m = cmd.match(/^bash -c '([^]*?)' _ /);

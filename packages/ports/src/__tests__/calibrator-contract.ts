@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Calibrator } from "../calibrator.js";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 /**
  * Calibrator 契约测试：任何实现都必须满足下面这组**结构性**保证。

@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import { matchRules as keywordMatch, type ToolCallContext } from "./legacy/keyword-matcher.js";
 import { initAstMatcher, isInsideCommentOrString } from "./legacy/ast-context.js";
 

@@ -93,7 +93,7 @@ describe("executeFixtureReplay", () => {
       scenarioId: "moment-dayjs",
     });
     const out = renderFixtureReplayResult(result);
-    expect(out).toContain("TeamAgent fixture replay");
+    expect(out).toContain("Viki fixture replay");
     expect(out).toContain("PASS moment-dayjs");
     expect(out).toContain("expected=block actual=block");
   });

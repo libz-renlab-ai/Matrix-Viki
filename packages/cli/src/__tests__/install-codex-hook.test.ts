@@ -10,17 +10,17 @@ import { executeInit } from "../commands/init.js";
  *
  * Tests the three Acceptance facts:
  *   (1) `init --target=both` (and `--target=codex`) writes ~/.codex/hooks.json.
- *   (2) Re-running is idempotent: no duplicate teamagent entries, no clobber.
+ *   (2) Re-running is idempotent: no duplicate viki entries, no clobber.
  *   (3) `target=claude` behavior is unchanged (no Codex files written).
  *
- * Plus grill §15 verdict (idempotent + no clobber via _teamagentTag merge):
+ * Plus grill §15 verdict (idempotent + no clobber via _vikiTag merge):
  *   (4) User-authored untagged entries survive a re-init.
- *   (5) Project hook scripts are staged into ~/.teamagent/hooks/codex/.
+ *   (5) Project hook scripts are staged into ~/.viki/hooks/codex/.
  *
  * Out of scope (deferred — see PR notes):
  *   - --strict exit code (grill §14)
  *   - --json output formatter (grill §14)
- *   - .teamagent/init-state.json + hook_config_hash (grill §15 enhancement)
+ *   - .viki/init-state.json + hook_config_hash (grill §15 enhancement)
  *
  * Notes on test setup (mirrors existing init.test.ts conventions):
  *   - No CLAUDE.md in tmp cwd → doImportRules is a no-op so no LLM needed.
@@ -34,7 +34,7 @@ import { executeInit } from "../commands/init.js";
 interface CodexBlock {
   matcher?: string;
   hooks?: Array<{ type?: string; command?: string; timeout?: number }>;
-  _teamagentTag?: string;
+  _vikiTag?: string;
 }
 interface CodexCfg {
   hooks?: Record<string, CodexBlock[]>;
@@ -139,18 +139,18 @@ describe("init doInstallCodexHooks (issue #291)", () => {
     tmp.cleanup();
   });
 
-  it("target=codex writes ~/.codex/hooks.json with _teamagentTag per event block", async () => {
+  it("target=codex writes ~/.codex/hooks.json with _vikiTag per event block", async () => {
     await executeInit({ ...baseOpts(tmp.cwd, tmp.home), target: "codex", skipHook: false });
     const userHooksPath = path.join(tmp.home, ".codex", "hooks.json");
     expect(fs.existsSync(userHooksPath)).toBe(true);
     const cfg: CodexCfg = JSON.parse(fs.readFileSync(userHooksPath, "utf-8"));
-    expect(cfg.hooks?.SessionStart?.[0]?._teamagentTag).toBe("teamagent:codex-SessionStart:v1");
-    expect(cfg.hooks?.PreToolUse?.[0]?._teamagentTag).toBe("teamagent:codex-PreToolUse:v1");
+    expect(cfg.hooks?.SessionStart?.[0]?._vikiTag).toBe("viki:codex-SessionStart:v1");
+    expect(cfg.hooks?.PreToolUse?.[0]?._vikiTag).toBe("viki:codex-PreToolUse:v1");
   });
 
-  it("stages .codex/hooks/*.sh into ~/.teamagent/hooks/codex/", async () => {
+  it("stages .codex/hooks/*.sh into ~/.viki/hooks/codex/", async () => {
     await executeInit({ ...baseOpts(tmp.cwd, tmp.home), target: "codex", skipHook: false });
-    const stagedDir = path.join(tmp.home, ".teamagent", "hooks", "codex");
+    const stagedDir = path.join(tmp.home, ".viki", "hooks", "codex");
     expect(fs.existsSync(path.join(stagedDir, "newsboard-session-start.sh"))).toBe(true);
     expect(fs.existsSync(path.join(stagedDir, "pre-tool-use-adapter.sh"))).toBe(true);
   });
@@ -163,7 +163,7 @@ describe("init doInstallCodexHooks (issue #291)", () => {
     const cmd = cfg.hooks?.PreToolUse?.[0]?.hooks?.[0]?.command ?? "";
     expect(cmd).not.toMatch(/\$root|CODEX_PROJECT_DIR|git -C/);
     expect(cmd).toContain("pre-tool-use-adapter.sh");
-    expect(cmd).toContain(".teamagent");
+    expect(cmd).toContain(".viki");
     expect(cmd).toContain("codex");
   });
 
@@ -192,10 +192,10 @@ describe("init doInstallCodexHooks (issue #291)", () => {
     const after: CodexCfg = JSON.parse(fs.readFileSync(userHooksPath, "utf-8"));
     const stopBlocks = after.hooks?.Stop ?? [];
     expect(stopBlocks.length).toBe(1);
-    expect(stopBlocks[0]?._teamagentTag).toBeUndefined();
+    expect(stopBlocks[0]?._vikiTag).toBeUndefined();
     expect(stopBlocks[0]?.hooks?.[0]?.command).toBe("echo user-custom");
-    expect(after.hooks?.SessionStart?.[0]?._teamagentTag).toBe("teamagent:codex-SessionStart:v1");
-    expect(after.hooks?.PreToolUse?.[0]?._teamagentTag).toBe("teamagent:codex-PreToolUse:v1");
+    expect(after.hooks?.SessionStart?.[0]?._vikiTag).toBe("viki:codex-SessionStart:v1");
+    expect(after.hooks?.PreToolUse?.[0]?._vikiTag).toBe("viki:codex-PreToolUse:v1");
   });
 
   it("target=claude does NOT write ~/.codex/hooks.json (unchanged behavior)", async () => {

@@ -6,22 +6,22 @@ describe("runSkeletonDemo", () => {
 
   it("smart mode (default) → includes attribution block header", async () => {
     const out = await runSkeletonDemo({ env: {}, now: fixedNow });
-    expect(out).toContain("✨ TeamAgent");
+    expect(out).toContain("✨ Viki");
     expect(out).toContain("本次操作归因");
     expect(out).toContain("[skeleton]");
   });
 
   it("smart mode does NOT include counterfactual line", async () => {
     const out = await runSkeletonDemo({
-      env: { TEAMAGENT_VISIBILITY: "smart" },
+      env: { VIKI_VISIBILITY: "smart" },
       now: fixedNow,
     });
-    expect(out).not.toContain("如果没有 TeamAgent");
+    expect(out).not.toContain("如果没有 Viki");
   });
 
   it("silent mode → empty output", async () => {
     const out = await runSkeletonDemo({
-      env: { TEAMAGENT_VISIBILITY: "silent" },
+      env: { VIKI_VISIBILITY: "silent" },
       now: fixedNow,
     });
     expect(out).toBe("");
@@ -29,20 +29,20 @@ describe("runSkeletonDemo", () => {
 
   it("verbose mode → includes counterfactual + raw JSON", async () => {
     const out = await runSkeletonDemo({
-      env: { TEAMAGENT_VISIBILITY: "verbose" },
+      env: { VIKI_VISIBILITY: "verbose" },
       now: fixedNow,
     });
-    expect(out).toContain("如果没有 TeamAgent");
+    expect(out).toContain("如果没有 Viki");
     expect(out).toContain("Walking Skeleton");
     expect(out).toContain('"source"');
   });
 
   it("unknown mode falls back to default (verbose)", async () => {
     const out = await runSkeletonDemo({
-      env: { TEAMAGENT_VISIBILITY: "dev" },
+      env: { VIKI_VISIBILITY: "dev" },
       now: fixedNow,
     });
-    expect(out).toContain("✨ TeamAgent");
-    expect(out).toContain("如果没有 TeamAgent");
+    expect(out).toContain("✨ Viki");
+    expect(out).toContain("如果没有 Viki");
   });
 });

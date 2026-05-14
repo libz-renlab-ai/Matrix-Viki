@@ -4,11 +4,11 @@ import {
   formatPluginSpec,
   type MarketplaceSpec,
   type PluginSpec,
-} from "@teamagent/core";
+} from "@viki/core";
 import {
   ClaudePluginInstaller,
   type StepOutcome,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 
 export type InstallItemStatus = "added" | "already" | "failed" | "would-do";
 

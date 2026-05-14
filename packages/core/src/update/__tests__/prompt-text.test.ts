@@ -3,7 +3,7 @@ import { renderUpgradePrompt, renderWhatsNewTail } from "../prompt-text.js";
 import type { ChangelogBullet } from "../changelog-parser.js";
 
 const BULLETS: ChangelogBullet[] = [
-  { version: "0.10.5", theme: "Fixed", bullet: "Windows install no longer destroys teamagent" },
+  { version: "0.10.5", theme: "Fixed", bullet: "Windows install no longer destroys viki" },
   { version: "0.10.5", theme: "Fixed", bullet: "warmup exits 0 when optional vector deps absent" },
   { version: "0.10.2", theme: "Added", bullet: "Vector matcher BM25+dense RRF" },
 ];
@@ -16,12 +16,12 @@ describe("renderUpgradePrompt", () => {
       bullets: BULLETS,
       snoozeLevel: 0,
     });
-    expect(out).toContain("TeamAgent 0.10.5 可用");
+    expect(out).toContain("Viki 0.10.5 可用");
     expect(out).toContain("0.10.1");
-    expect(out).toContain("Windows install no longer destroys teamagent");
-    expect(out).toContain("teamagent update --now");
-    expect(out).toContain("teamagent update --snooze");
-    expect(out).toContain("teamagent update --never");
+    expect(out).toContain("Windows install no longer destroys viki");
+    expect(out).toContain("viki update --now");
+    expect(out).toContain("viki update --snooze");
+    expect(out).toContain("viki update --never");
   });
 
   it("prints theme prefix in [brackets] when set", () => {
@@ -74,8 +74,8 @@ describe("renderWhatsNewTail", () => {
     });
     expect(out).toContain("🆕");
     expect(out).toContain("0.10.5");
-    expect(out).toContain("Windows install no longer destroys teamagent");
-    expect(out).toContain("teamagent whatsnew");
+    expect(out).toContain("Windows install no longer destroys viki");
+    expect(out).toContain("viki whatsnew");
   });
 
   it("returns empty string when no bullets", () => {

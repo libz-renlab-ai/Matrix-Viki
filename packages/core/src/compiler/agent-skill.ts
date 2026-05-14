@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 const MAX_DESCRIPTION_LENGTH = 400;
 

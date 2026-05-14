@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { accumulateHardNegative, MAX_HARD_NEG } from "../hard-negative-accumulator.js";
-import type { KnowledgeEntry } from "@teamagent/types";
-import type { RuleEmbedder } from "@teamagent/ports";
-import type { KnowledgeStore } from "@teamagent/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import type { RuleEmbedder } from "@viki/ports";
+import type { KnowledgeStore } from "@viki/ports";
 
 // Simple stub embedder (4-dim)
 const stubEmbedder: RuleEmbedder = {

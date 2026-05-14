@@ -38,7 +38,7 @@ export interface MatcherResult {
 }
 
 export interface MatcherOptions {
-  /** Extra trigger phrases (e.g. parsed from `TEAMAGENT_DAILY_TRIGGERS`). */
+  /** Extra trigger phrases (e.g. parsed from `VIKI_DAILY_TRIGGERS`). */
   readonly extraTriggers?: readonly string[];
   /** Disable the matcher entirely. Equivalent to layer-3 passthrough always. */
   readonly disabled?: boolean;

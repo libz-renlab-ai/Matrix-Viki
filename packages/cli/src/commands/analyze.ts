@@ -10,7 +10,7 @@ import {
   makeSkillCompiler,
   syncRuleVectors,
   XenovaRuleEmbedder,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   ruleBasedCorrectionDetector,
   ruleBasedSuccessDetector,
@@ -21,9 +21,9 @@ import {
   defaultValidator,
   runCalibrationPipeline,
   runCompile,
-} from "@teamagent/core";
-import type { LLMClient } from "@teamagent/ports";
-import type { KnowledgeEntry, ParsedSession } from "@teamagent/types";
+} from "@viki/core";
+import type { LLMClient } from "@viki/ports";
+import type { KnowledgeEntry, ParsedSession } from "@viki/types";
 import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 type AnalyzeEmbedder = {
@@ -148,7 +148,7 @@ export async function executeAnalyze(opts: AnalyzeOptions = {}): Promise<string>
     if (recent.length === 0) {
       return [
         "未找到任何会话日志 (~/.claude/projects/ 为空)。",
-        "先用 Claude Code 开几次会话再跑 teamagent analyze。",
+        "先用 Claude Code 开几次会话再跑 viki analyze。",
         "",
       ].join("\n");
     }
@@ -211,12 +211,12 @@ async function runCommit(
   const home = opts.homeDir ?? os.homedir();
   const cwd = opts.cwd ?? process.cwd();
   const projectDbPath =
-    opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db");
+    opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db");
   const userGlobalDbPath =
-    opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db");
+    opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db");
   const eventsDbPath =
-    opts.eventsDbPath ?? path.join(home, ".teamagent", "events.db");
-  const skillsDir = opts.skillsDir ?? path.join(home, ".claude", "skills", "teamagent");
+    opts.eventsDbPath ?? path.join(home, ".viki", "events.db");
+  const skillsDir = opts.skillsDir ?? path.join(home, ".claude", "skills", "viki");
 
   fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
   fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
@@ -395,8 +395,8 @@ function renderReport(
   const lines: string[] = [];
   lines.push(
     committing
-      ? "📊 TeamAgent Session Analyze (--commit 模式)"
-      : "📊 TeamAgent Session Analyze (dry-run，不写知识库)",
+      ? "📊 Viki Session Analyze (--commit 模式)"
+      : "📊 Viki Session Analyze (dry-run，不写知识库)",
   );
   lines.push("");
   lines.push(`源: ${sourceDesc}`);
@@ -459,7 +459,7 @@ async function vectorizeExtractedEntries(
   projectDbPath: string,
   embedder?: AnalyzeEmbedder,
 ): Promise<void> {
-  const { buildSemanticDescriptions } = await import("@teamagent/core");
+  const { buildSemanticDescriptions } = await import("@viki/core");
   const actualEmbedder = embedder ?? new XenovaRuleEmbedder();
   const embedderModelId = actualEmbedder.modelId ?? "Xenova/multilingual-e5-small";
   const vdb = openDb(projectDbPath);

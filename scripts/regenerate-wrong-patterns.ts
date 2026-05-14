@@ -74,9 +74,9 @@ function cleanLLMOutput(raw: string): string {
 const BAD_FRAGMENTS = [
   /^__[a-z]+__\/?$/i,         // __tests__/, __mocks__/
   /^packages\//,              // packages/
-  /^@teamagent\//,            // @teamagent/...
+  /^@viki\//,            // @viki/...
   /^src\/?$/,                 // 纯 src/
-  /^\.teamagent\//,           // .teamagent/
+  /^\.viki\//,           // .viki/
   /^node_modules/,            // node_modules
 ];
 
@@ -124,8 +124,8 @@ function isValidKeyword(s: string, originalPattern: string): boolean {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const projectDbPath = path.join(repoRoot, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(os.homedir(), ".teamagent", "global.db");
+  const projectDbPath = path.join(repoRoot, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(os.homedir(), ".viki", "global.db");
 
   console.log(`mode   : ${args.dryRun ? "dry-run (no writes)" : "APPLY (will update DBs)"}`);
   console.log(`model  : ${args.model}`);

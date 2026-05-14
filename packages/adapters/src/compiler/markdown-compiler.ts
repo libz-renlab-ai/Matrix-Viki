@@ -5,9 +5,9 @@ import {
   injectBlockIntoDoc,
   BLOCK_START,
   type CompileMarkdownOptions,
-} from "@teamagent/core";
-import type { Compiler } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import type { Compiler } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 import { createTiktokenCounter } from "../token-counter/index.js";
 
 const DEFAULT_TIER_FILTER = ["canonical", "enforced"] as const;
@@ -19,9 +19,9 @@ const DEFAULT_DIVERSITY_THRESHOLD = 0.6;
  */
 export interface CompileWriteInfo {
   filePath: string;
-  /** 生成的 TEAMAGENT 区块（含 START/END 标记）总行数 */
+  /** 生成的 VIKI 区块（含 START/END 标记）总行数 */
   blockLineCount: number;
-  /** TEAMAGENT:START 在整个文件中的行号（0-indexed） */
+  /** VIKI:START 在整个文件中的行号（0-indexed） */
   blockStartLine: number;
 }
 
@@ -42,7 +42,7 @@ export interface MarkdownCompilerOptions {
  * 实现原则（Ports & Adapters）：
  * 编译逻辑在 core（纯函数），adapter 只做 IO 包装。
  *
- * 支持从环境变量 `TEAMAGENT_CLAUDE_MD_LIMIT` 读取条目数上限。显式传入
+ * 支持从环境变量 `VIKI_CLAUDE_MD_LIMIT` 读取条目数上限。显式传入
  * `compileOptions.limit` 优先于环境变量。
  */
 export class MarkdownCompiler implements Compiler<string> {
@@ -71,7 +71,7 @@ export class MarkdownCompiler implements Compiler<string> {
   }
 
   /**
-   * 把区块写入 CLAUDE.md。保留用户在 TEAMAGENT 区块外的内容。
+   * 把区块写入 CLAUDE.md。保留用户在 VIKI 区块外的内容。
    * 文件不存在会被创建（同时创建父目录）。
    */
   writeToFile(entries: KnowledgeEntry[]): CompileWriteInfo {
@@ -121,13 +121,13 @@ function resolveOptionsFromEnv(): CompileMarkdownOptions {
     diversityThreshold: DEFAULT_DIVERSITY_THRESHOLD,
   };
 
-  const rawBudget = process.env.TEAMAGENT_CLAUDE_MD_TOKEN_BUDGET;
+  const rawBudget = process.env.VIKI_CLAUDE_MD_TOKEN_BUDGET;
   if (rawBudget) {
     const n = parseInt(rawBudget, 10);
     if (Number.isFinite(n) && n > 0) out.tokenBudget = n;
   }
 
-  const rawLimit = process.env.TEAMAGENT_CLAUDE_MD_LIMIT;
+  const rawLimit = process.env.VIKI_CLAUDE_MD_LIMIT;
   if (rawLimit) {
     const n = parseInt(rawLimit, 10);
     if (Number.isFinite(n) && n > 0) {
@@ -137,7 +137,7 @@ function resolveOptionsFromEnv(): CompileMarkdownOptions {
     }
   }
 
-  const rawDiversity = process.env.TEAMAGENT_CLAUDE_MD_DIVERSITY;
+  const rawDiversity = process.env.VIKI_CLAUDE_MD_DIVERSITY;
   if (rawDiversity !== undefined) {
     const normalized = rawDiversity.trim().toLowerCase();
     if (normalized === "off" || normalized === "0" || normalized === "false") {

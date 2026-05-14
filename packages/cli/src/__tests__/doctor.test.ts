@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { openDb } from "@teamagent/adapters";
+import { openDb } from "@viki/adapters";
 import {
   checkClaudeMd,
   checkInstallTableBundles,
@@ -48,7 +48,7 @@ describe("renderDoctorResult", () => {
   it("shows all-pass message when allPassed=true", () => {
     const out = renderDoctorResult(makeResult({ allPassed: true, passed: 8 }));
     expect(out).toContain("全部检查通过");
-    expect(out).toContain("TeamAgent 运行正常");
+    expect(out).toContain("Viki 运行正常");
   });
 
   it("shows failure count and fix hint when failed > 0", () => {
@@ -130,16 +130,16 @@ describe("doctor CLAUDE.md checks", () => {
     }
   });
 
-  it("flags old generated TEAMAGENT blocks and points users at --fix (B-109)", () => {
+  it("flags old generated VIKI blocks and points users at --fix (B-109)", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "doctor-cli-"));
     try {
       fs.writeFileSync(
         path.join(root, "CLAUDE.md"),
-        "# Manual\n\n<!-- TEAMAGENT:START - old -->\n- generated\n<!-- TEAMAGENT:END -->\n",
+        "# Manual\n\n<!-- VIKI:START - old -->\n- generated\n<!-- VIKI:END -->\n",
       );
       const claudeMd = checkClaudeMd(path.join(root, "CLAUDE.md"));
       expect(claudeMd?.status).toBe("fail");
-      expect(claudeMd?.detail).toContain("旧 TEAMAGENT:START");
+      expect(claudeMd?.detail).toContain("旧 VIKI:START");
       // The fix suggestion must NOT call `compile` (which would re-write the
       // block); it must point at `doctor --fix` which strips the block.
       expect(claudeMd?.fix).toBeDefined();
@@ -159,7 +159,7 @@ describe("executeDoctor team-sharing boundary", () => {
   });
 
   function makeTempWorkspace(): { cwd: string; homeDir: string; cleanup: () => void } {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-doctor-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "viki-doctor-"));
     const cwd = path.join(root, "workspace");
     const homeDir = path.join(root, "home");
     fs.mkdirSync(cwd, { recursive: true });
@@ -172,7 +172,7 @@ describe("executeDoctor team-sharing boundary", () => {
   }
 
   function createKnowledgeDb(cwd: string): void {
-    const dbPath = path.join(cwd, ".teamagent", "knowledge.db");
+    const dbPath = path.join(cwd, ".viki", "knowledge.db");
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     const db = openDb(dbPath);
     db.close();
@@ -222,7 +222,7 @@ describe("executeDoctor team-sharing boundary", () => {
   });
 
   // From #74: user-level settings.json should satisfy hook-registered
-  it("passes hook-registered when only user-level settings.json has a teamagent hook", async () => {
+  it("passes hook-registered when only user-level settings.json has a viki hook", async () => {
     const workspace = makeTempWorkspace();
     try {
       createKnowledgeDb(workspace.cwd);
@@ -234,7 +234,7 @@ describe("executeDoctor team-sharing boundary", () => {
           hooks: {
             SessionStart: [
               {
-                _teamagentTag: "teamagent-session-start",
+                _vikiTag: "viki-session-start",
                 hooks: [{ type: "command", command: "node /fake/bin-session-start.cjs", timeout: 10 }],
               },
             ],
@@ -252,15 +252,15 @@ describe("executeDoctor team-sharing boundary", () => {
     }
   });
 
-  // B-109: doctor --fix should strip the legacy TEAMAGENT block from CLAUDE.md
-  it("--fix strips legacy TEAMAGENT:START block and re-checks pass (B-109)", async () => {
+  // B-109: doctor --fix should strip the legacy VIKI block from CLAUDE.md
+  it("--fix strips legacy VIKI:START block and re-checks pass (B-109)", async () => {
     const workspace = makeTempWorkspace();
     try {
       createKnowledgeDb(workspace.cwd);
       const claudeMdPath = path.join(workspace.cwd, "CLAUDE.md");
       fs.writeFileSync(
         claudeMdPath,
-        "# Project\n\nManual notes here.\n\n<!-- TEAMAGENT:START - old -->\n- generated rule\n<!-- TEAMAGENT:END -->\n\nFooter.\n",
+        "# Project\n\nManual notes here.\n\n<!-- VIKI:START - old -->\n- generated rule\n<!-- VIKI:END -->\n\nFooter.\n",
       );
       const result = await executeDoctor({
         cwd: workspace.cwd,
@@ -271,7 +271,7 @@ describe("executeDoctor team-sharing boundary", () => {
       const claudeMd = result.checks.find((c) => c.name === "claude-md");
       expect(claudeMd?.status).toBe("pass");
       const after = fs.readFileSync(claudeMdPath, "utf-8");
-      expect(after).not.toContain("TEAMAGENT:START");
+      expect(after).not.toContain("VIKI:START");
       expect(after).toContain("Manual notes here.");
       expect(after).toContain("Footer.");
     } finally {
@@ -286,7 +286,7 @@ describe("executeDoctor team-sharing boundary", () => {
       const claudeMdPath = path.join(workspace.cwd, "CLAUDE.md");
       fs.writeFileSync(
         claudeMdPath,
-        "<!-- TEAMAGENT:START - old -->\n- only rule\n<!-- TEAMAGENT:END -->\n",
+        "<!-- VIKI:START - old -->\n- only rule\n<!-- VIKI:END -->\n",
       );
       await executeDoctor({
         cwd: workspace.cwd,
@@ -393,7 +393,7 @@ describe("checkSettingsJsonScope", () => {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify({
       hooks: {
-        PreToolUse: [{ _teamagentTag: "teamagent-pre-tool-use", hooks: [] }],
+        PreToolUse: [{ _vikiTag: "viki-pre-tool-use", hooks: [] }],
       },
     }));
   }
@@ -556,7 +556,7 @@ describe("doctor --fix safety net (issue #172)", () => {
   });
 
   function makeWorkspace172(): { cwd: string; homeDir: string; cleanup: () => void } {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-doctor-172-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "viki-doctor-172-"));
     const cwd = path.join(root, "workspace");
     const homeDir = path.join(root, "home");
     fs.mkdirSync(cwd, { recursive: true });
@@ -565,7 +565,7 @@ describe("doctor --fix safety net (issue #172)", () => {
   }
 
   function createKnowledgeDb172(cwd: string): void {
-    const dbPath = path.join(cwd, ".teamagent", "knowledge.db");
+    const dbPath = path.join(cwd, ".viki", "knowledge.db");
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     const db = openDb(dbPath);
     db.close();
@@ -585,7 +585,7 @@ describe("doctor --fix safety net (issue #172)", () => {
       createKnowledgeDb172(ws.cwd);
       const claudeMdPath = path.join(ws.cwd, "CLAUDE.md");
       const original =
-        "# Project\n\nManual notes.\n\n<!-- TEAMAGENT:START - old -->\n- generated rule A\n- generated rule B\n<!-- TEAMAGENT:END -->\n\nFooter.\n";
+        "# Project\n\nManual notes.\n\n<!-- VIKI:START - old -->\n- generated rule A\n- generated rule B\n<!-- VIKI:END -->\n\nFooter.\n";
       fs.writeFileSync(claudeMdPath, original);
 
       const result = await executeDoctor({
@@ -607,7 +607,7 @@ describe("doctor --fix safety net (issue #172)", () => {
       expect(claudeMdOutcome?.diff).toContain(`+++ ${claudeMdPath}`);
       expect(claudeMdOutcome?.diff).toMatch(/^-.*generated rule A/m);
       // No backup directory should have been created (dry-run does no I/O).
-      expect(fs.existsSync(path.join(ws.homeDir, ".teamagent", "backups"))).toBe(false);
+      expect(fs.existsSync(path.join(ws.homeDir, ".viki", "backups"))).toBe(false);
       // File on disk is untouched (sha-via-content equality).
       expect(fs.readFileSync(claudeMdPath, "utf-8")).toBe(original);
       // The claude-md check still reports fail because no real fix ran.
@@ -623,7 +623,7 @@ describe("doctor --fix safety net (issue #172)", () => {
       createKnowledgeDb172(ws.cwd);
       const claudeMdPath = path.join(ws.cwd, "CLAUDE.md");
       const original =
-        "# Project\n\nManual notes.\n\n<!-- TEAMAGENT:START - old -->\n- generated rule\n<!-- TEAMAGENT:END -->\n\nFooter.\n";
+        "# Project\n\nManual notes.\n\n<!-- VIKI:START - old -->\n- generated rule\n<!-- VIKI:END -->\n\nFooter.\n";
       fs.writeFileSync(claudeMdPath, original);
 
       const result = await executeDoctor({
@@ -643,13 +643,13 @@ describe("doctor --fix safety net (issue #172)", () => {
       // Backup file exists with pre-fix content.
       expect(fs.existsSync(claudeMdOutcome!.backupPath!)).toBe(true);
       expect(fs.readFileSync(claudeMdOutcome!.backupPath!, "utf-8")).toBe(original);
-      // Backup lives under <homeDir>/.teamagent/backups/.
+      // Backup lives under <homeDir>/.viki/backups/.
       expect(claudeMdOutcome!.backupPath!).toContain(
-        path.join(ws.homeDir, ".teamagent", "backups"),
+        path.join(ws.homeDir, ".viki", "backups"),
       );
       // CLAUDE.md was rewritten without the legacy block.
       const after = fs.readFileSync(claudeMdPath, "utf-8");
-      expect(after).not.toContain("TEAMAGENT:START");
+      expect(after).not.toContain("VIKI:START");
       expect(after).toContain("Manual notes.");
       expect(after).toContain("Footer.");
     } finally {
@@ -662,7 +662,7 @@ describe("doctor --fix safety net (issue #172)", () => {
     try {
       createKnowledgeDb172(ws.cwd);
       const claudeMdPath = path.join(ws.cwd, "CLAUDE.md");
-      const blockOnly = "<!-- TEAMAGENT:START - old -->\n- only rule\n<!-- TEAMAGENT:END -->\n";
+      const blockOnly = "<!-- VIKI:START - old -->\n- only rule\n<!-- VIKI:END -->\n";
       fs.writeFileSync(claudeMdPath, blockOnly);
 
       const result = await executeDoctor({
@@ -689,7 +689,7 @@ describe("doctor --fix safety net (issue #172)", () => {
     try {
       createKnowledgeDb172(ws.cwd);
       const claudeMdPath = path.join(ws.cwd, "CLAUDE.md");
-      const blockOnly = "<!-- TEAMAGENT:START - old -->\n- only rule\n<!-- TEAMAGENT:END -->\n";
+      const blockOnly = "<!-- VIKI:START - old -->\n- only rule\n<!-- VIKI:END -->\n";
       fs.writeFileSync(claudeMdPath, blockOnly);
 
       const result = await executeDoctor({
@@ -736,7 +736,7 @@ describe("doctor --fix safety net (issue #172)", () => {
     expect(out).toContain("--json");
     expect(out).toContain("--cwd");
     expect(out).toContain("备份");
-    expect(out).toContain("~/.teamagent/backups/");
+    expect(out).toContain("~/.viki/backups/");
     // Must NOT contain the diagnostic header that real `doctor` execution prints.
     expect(out).not.toContain("环境诊断 / Environment Check");
   });
@@ -755,7 +755,7 @@ describe("doctor --fix safety net (issue #172)", () => {
           status: "preview",
           filePath: "/tmp/proj/CLAUDE.md",
           diff: "--- /tmp/proj/CLAUDE.md\n+++ /tmp/proj/CLAUDE.md\n@@ -1,3 +1,1 @@\n header\n-old block\n footer\n",
-          detail: "将剥离 legacy TEAMAGENT 块",
+          detail: "将剥离 legacy VIKI 块",
         },
       ],
     };
@@ -779,17 +779,17 @@ describe("doctor --fix safety net (issue #172)", () => {
           name: "claude-md",
           status: "applied",
           filePath: "/tmp/proj/CLAUDE.md",
-          backupPath: "/tmp/home/.teamagent/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak",
-          detail: "已剥离 legacy TEAMAGENT 块",
+          backupPath: "/tmp/home/.viki/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak",
+          detail: "已剥离 legacy VIKI 块",
         },
       ],
     };
     const out = renderDoctorResult(fakeResult);
     expect(out).toContain("doctor --fix");
     expect(out).toContain("已剥离");
-    expect(out).toContain("备份: /tmp/home/.teamagent/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak");
+    expect(out).toContain("备份: /tmp/home/.viki/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak");
     expect(out).toContain(
-      `还原: cp "/tmp/home/.teamagent/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak" "/tmp/proj/CLAUDE.md"`,
+      `还原: cp "/tmp/home/.viki/backups/CLAUDE.md.2026-05-09T16-22-34-000Z.bak" "/tmp/proj/CLAUDE.md"`,
     );
   });
 });
@@ -840,7 +840,7 @@ describe("checkHookSpawn (issue #280)", () => {
     expect(out.status).toBe("fail");
     expect(out.detail).toContain("启动失败");
     expect(out.detail).toContain("ENOENT");
-    expect(out.fix).toContain("npm install -g teamagent");
+    expect(out.fix).toContain("npm install -g viki");
   });
 
   it("fails when the probe times out", async () => {
@@ -885,8 +885,8 @@ describe("checkInstallTableBundles (issue #299)", () => {
 
   it("passes when every install-table bundle exists", () => {
     const enumerate: InstallTableEnumerator = () => [
-      { channel: "Stop", tag: "teamagent-stop", bundleFilename: "bin-stop.cjs", absPath: "/fake/dist/bin-stop.cjs", scopes: userScope },
-      { channel: "Stop", tag: "teamagent-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/fake/dist/bin-digital-twin-tap.cjs", scopes: userScope },
+      { channel: "Stop", tag: "viki-stop", bundleFilename: "bin-stop.cjs", absPath: "/fake/dist/bin-stop.cjs", scopes: userScope },
+      { channel: "Stop", tag: "viki-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/fake/dist/bin-digital-twin-tap.cjs", scopes: userScope },
     ];
     const result = checkInstallTableBundles(enumerate, () => true);
     expect(result.status).toBe("pass");
@@ -895,8 +895,8 @@ describe("checkInstallTableBundles (issue #299)", () => {
 
   it("fails when one bundle is missing and names the filename in detail", () => {
     const entries: InstallTableEntry[] = [
-      { channel: "Stop", tag: "teamagent-stop", bundleFilename: "bin-stop.cjs", absPath: "/fake/dist/bin-stop.cjs", scopes: userScope },
-      { channel: "Stop", tag: "teamagent-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/fake/dist/bin-digital-twin-tap.cjs", scopes: userScope },
+      { channel: "Stop", tag: "viki-stop", bundleFilename: "bin-stop.cjs", absPath: "/fake/dist/bin-stop.cjs", scopes: userScope },
+      { channel: "Stop", tag: "viki-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/fake/dist/bin-digital-twin-tap.cjs", scopes: userScope },
     ];
     const enumerate: InstallTableEnumerator = () => entries;
     const existsFn = (p: string) => !p.includes("digital-twin-tap");
@@ -925,7 +925,7 @@ describe("checkInstallTableBundles (issue #299)", () => {
 describe("executeDoctor → install-table-bundles wiring (issue #299)", () => {
   it("flips allPassed=false when an install-table bundle is missing", async () => {
     const enumerate: InstallTableEnumerator = () => [
-      { channel: "Stop", tag: "teamagent-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/missing/bin-digital-twin-tap.cjs", scopes: ["user"] as const },
+      { channel: "Stop", tag: "viki-digital-twin-tap", bundleFilename: "bin-digital-twin-tap.cjs", absPath: "/missing/bin-digital-twin-tap.cjs", scopes: ["user"] as const },
     ];
     const r = await executeDoctor({
       cwd: os.tmpdir(),

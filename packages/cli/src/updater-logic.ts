@@ -3,8 +3,8 @@ import {
   type PendingBanner,
   isLocalUserPrCreator,
   makeUpdateInstalledEvent,
-} from "@teamagent/core";
-import type { UpdateInstalledEvent } from "@teamagent/types";
+} from "@viki/core";
+import type { UpdateInstalledEvent } from "@viki/types";
 import type { FetchShaResult } from "./github-api.js";
 import type { FetchLatestResult } from "./update/fetch-latest.js";
 import type { LocalIdentity } from "./lib/local-identity.js";

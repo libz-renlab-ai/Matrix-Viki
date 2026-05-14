@@ -1,7 +1,7 @@
 // issue #168: 状态栏字段加中文标签 + 消除 helped/risk 重叠 + 抑制
 // SQLite ExperimentalWarning + B-lite 0/0/0 待命引导。
 //
-// 这里通过 spawn 真实 `node scripts/teamagent-statusline.cjs` 验证 stdout /
+// 这里通过 spawn 真实 `node scripts/viki-statusline.cjs` 验证 stdout /
 // stderr / exit code，不 mock —— statusline 是 sub-shell 黑盒进程，行为合同
 // 必须按"实际拼出的字符串"来锁。
 import { describe, it, expect } from "vitest";
@@ -20,7 +20,7 @@ const { DatabaseSync } = requireCjs("node:sqlite") as typeof import("node:sqlite
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // repo root: packages/cli/src/__tests__ → 4 up
 const REPO_ROOT = path.resolve(HERE, "..", "..", "..", "..");
-const STATUSLINE = path.join(REPO_ROOT, "scripts", "teamagent-statusline.cjs");
+const STATUSLINE = path.join(REPO_ROOT, "scripts", "viki-statusline.cjs");
 
 function mkTmpHome(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "statusline-iss168-"));
@@ -29,8 +29,8 @@ function mkTmpHome(): string {
 function seedKnowledge(home: string, file: "global.db" | "knowledge.db", projectDir = home): void {
   const dir =
     file === "knowledge.db"
-      ? path.join(projectDir, ".teamagent")
-      : path.join(home, ".teamagent");
+      ? path.join(projectDir, ".viki")
+      : path.join(home, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(path.join(dir, file));
   db.exec("CREATE TABLE knowledge (status TEXT, type TEXT, created_at TEXT)");
@@ -41,7 +41,7 @@ function seedKnowledgeWithRows(
   home: string,
   rows: Array<{ status: string; type: string | null }>,
 ): void {
-  const dir = path.join(home, ".teamagent");
+  const dir = path.join(home, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(path.join(dir, "global.db"));
   db.exec("CREATE TABLE knowledge (status TEXT, type TEXT, created_at TEXT)");
@@ -52,7 +52,7 @@ function seedKnowledgeWithRows(
 }
 
 function seedEvents(home: string, rows: Array<{ kind: string; daysAgo?: number }>): void {
-  const dir = path.join(home, ".teamagent");
+  const dir = path.join(home, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(path.join(dir, "events.db"));
   db.exec("CREATE TABLE events (kind TEXT, timestamp TEXT)");
@@ -113,7 +113,7 @@ describe("statusline issue #168 — labelled fields + de-overlap + warning suppr
       expect(r.stdout).toContain("今/");
       expect(r.stdout).toContain("周");
       expect(r.stdout).toContain("拦过:");
-      expect(r.stdout).toMatch(/TeamAgent \| 规则:/);
+      expect(r.stdout).toMatch(/Viki \| 规则:/);
       // 不含老英文裸字段
       expect(r.stdout).not.toMatch(/\brules:/);
       expect(r.stdout).not.toMatch(/\bhelped:/);
@@ -226,7 +226,7 @@ describe("statusline issue #168 — labelled fields + de-overlap + warning suppr
     try {
       seedKnowledgeWithRows(home, [{ status: "active", type: "avoidance" }]);
       // helper seedEvents only supports daysAgo (past). Manually insert future row:
-      const dir = path.join(home, ".teamagent");
+      const dir = path.join(home, ".viki");
       fs.mkdirSync(dir, { recursive: true });
       const db = new DatabaseSync(path.join(dir, "events.db"));
       db.exec("CREATE TABLE events (kind TEXT, timestamp TEXT)");
@@ -290,7 +290,7 @@ describe("statusline issue #168 — labelled fields + de-overlap + warning suppr
 });
 
 // Worktree handling: when cwd is a git worktree, PROJECT_DB used to be
-// resolved purely from `process.cwd()/.teamagent/knowledge.db`. Worktrees
+// resolved purely from `process.cwd()/.viki/knowledge.db`. Worktrees
 // share state with their main checkout (`.git` is a FILE pointing to
 // `<main>/.git/worktrees/<name>`), so the project DB lives in the main
 // checkout — not under the worktree. The statusline must walk the .git
@@ -300,7 +300,7 @@ function seedProjectKnowledge(
   projectRoot: string,
   rows: Array<{ status: string; type: string | null }>,
 ): void {
-  const dir = path.join(projectRoot, ".teamagent");
+  const dir = path.join(projectRoot, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(path.join(dir, "knowledge.db"));
   db.exec("CREATE TABLE knowledge (status TEXT, type TEXT, created_at TEXT)");
@@ -334,9 +334,9 @@ function cleanupFakeWorktree(dirs: { home: string; main: string; worktree: strin
 // remain byte-identical to the legacy 4-field output (existing tests above).
 describe("statusline issue #331 — CC runtime fields when stdin is supplied", () => {
   function seedDbs(home: string): void {
-    fs.mkdirSync(path.join(home, ".teamagent"), { recursive: true });
+    fs.mkdirSync(path.join(home, ".viki"), { recursive: true });
     for (const f of ["global.db", "events.db"] as const) {
-      const db = new DatabaseSync(path.join(home, ".teamagent", f));
+      const db = new DatabaseSync(path.join(home, ".viki", f));
       if (f === "global.db") {
         db.exec("CREATE TABLE knowledge (status TEXT, type TEXT, created_at TEXT)");
       } else {
@@ -413,7 +413,7 @@ describe("statusline issue #331 — CC runtime fields when stdin is supplied", (
       expect(r.stdout).toMatch(/7d:\d+(?:\.\d+)?K/);
       expect(r.stdout).toContain("会话:OK");
       // Legacy fields still present in exact form.
-      expect(r.stdout).toContain("TeamAgent | 规则:");
+      expect(r.stdout).toContain("Viki | 规则:");
       expect(r.stdout).toContain("帮过:");
       expect(r.stdout).toContain("拦过:");
     } finally {
@@ -456,7 +456,7 @@ describe("statusline issue #331 — CC runtime fields when stdin is supplied", (
       // exceeds_200k_tokens absent → 会话 field skipped entirely (not OK, not 超长).
       expect(r.stdout).not.toContain("会话:");
       // Legacy fields still rendered.
-      expect(r.stdout).toContain("TeamAgent | 规则:0 | 帮过:0今/0周 | 拦过:0今");
+      expect(r.stdout).toContain("Viki | 规则:0 | 帮过:0今/0周 | 拦过:0今");
     } finally {
       fs.rmSync(home, { recursive: true, force: true });
     }
@@ -472,7 +472,7 @@ describe("statusline issue #331 — CC runtime fields when stdin is supplied", (
       for (const anchor of ["模型:", "上下文:", "用量:", "5h:", "7d:", "会话:"]) {
         expect(r.stdout).not.toContain(anchor);
       }
-      expect(r.stdout).toMatch(/TeamAgent \| 规则:0 \| 帮过:0今\/0周 \| 拦过:0今 \| /);
+      expect(r.stdout).toMatch(/Viki \| 规则:0 \| 帮过:0今\/0周 \| 拦过:0今 \| /);
     } finally {
       fs.rmSync(home, { recursive: true, force: true });
     }
@@ -529,7 +529,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
         Array.from({ length: 7 }, () => ({ status: "active", type: "avoidance" })),
       );
       const r = runStatusline(dirs.home, dirs.worktree);
-      expect(r.stdout).not.toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).not.toContain("Viki 未初始化本项目");
       // Rule count must come from the main checkout's project DB
       expect(r.stdout).toContain("规则:7");
     } finally {
@@ -542,10 +542,10 @@ describe("statusline worktree handling — resolve project DB via main checkout"
     try {
       // No seedProjectKnowledge call — main checkout is NOT init'd.
       const r = runStatusline(dirs.home, dirs.worktree);
-      // The warning must still fire, telling the user to run `teamagent init`
-      // (in the main checkout — `teamagent init` itself is responsible for
+      // The warning must still fire, telling the user to run `viki init`
+      // (in the main checkout — `viki init` itself is responsible for
       // landing the DB at the canonical location).
-      expect(r.stdout).toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).toContain("Viki 未初始化本项目");
     } finally {
       cleanupFakeWorktree(dirs);
     }
@@ -566,7 +566,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
         Array.from({ length: 11 }, () => ({ status: "active", type: "avoidance" })),
       );
       const r = runStatusline(dirs.home, dirs.worktree);
-      expect(r.stdout).not.toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).not.toContain("Viki 未初始化本项目");
       expect(r.stdout).toContain("规则:11");
     } finally {
       cleanupFakeWorktree(dirs);
@@ -592,7 +592,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
         "utf-8",
       );
       const r = runStatusline(home, submodule);
-      expect(r.stdout).toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).toContain("Viki 未初始化本项目");
     } finally {
       fs.rmSync(home, { recursive: true, force: true });
       fs.rmSync(superRoot, { recursive: true, force: true });
@@ -619,7 +619,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
         "utf-8",
       );
       const r = runStatusline(dirs.home, dirs.worktree);
-      expect(r.stdout).not.toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).not.toContain("Viki 未初始化本项目");
       expect(r.stdout).toContain("规则:5");
     } finally {
       cleanupFakeWorktree(dirs);
@@ -636,7 +636,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
     const sibling = fs.mkdtempSync(path.join(os.tmpdir(), "statusline-sibling-"));
     const hostile = fs.mkdtempSync(path.join(os.tmpdir(), "statusline-hostile-"));
     try {
-      // Put a real DB at `sibling/.teamagent/knowledge.db` and shape a
+      // Put a real DB at `sibling/.viki/knowledge.db` and shape a
       // `.git/worktrees/...` directory under it, then point a relative
       // gitdir from hostile cwd to it.
       fs.mkdirSync(path.join(sibling, ".git", "worktrees", "wt1"), { recursive: true });
@@ -651,7 +651,7 @@ describe("statusline worktree handling — resolve project DB via main checkout"
       fs.writeFileSync(path.join(hostile, ".git"), `gitdir: ${relGitdir}\n`, "utf-8");
       const r = runStatusline(home, hostile);
       // The traversal must fail: warning fires, no spoofed rule count.
-      expect(r.stdout).toContain("TeamAgent 未初始化本项目");
+      expect(r.stdout).toContain("Viki 未初始化本项目");
       expect(r.stdout).not.toContain("规则:99");
     } finally {
       fs.rmSync(home, { recursive: true, force: true });

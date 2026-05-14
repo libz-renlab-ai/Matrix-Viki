@@ -1,4 +1,4 @@
-import type { ParsedSession, ToolCall } from "@teamagent/types";
+import type { ParsedSession, ToolCall } from "@viki/types";
 import { ruleBasedCorrectionDetector } from "../correction-detector/rule-based.js";
 
 /** 成功信号类型。对应 spec v5.2 成功信号表。 */

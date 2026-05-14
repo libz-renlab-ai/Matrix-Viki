@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
  * 知识编译器——把知识条目编译为目标格式。

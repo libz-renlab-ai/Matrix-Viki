@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
  * Issue #158 — install-time safety net.
  *
  * Background: `npm i -g github:libz-renlab-ai/TeamBrain#release` fails on
- * Windows because npm reify removes the user's existing global teamagent dir
+ * Windows because npm reify removes the user's existing global viki dir
  * BEFORE the new tree-sitter native deps fail to compile, leaving the user
  * with no working install. The MAIN fix removes those tree-sitter deps from
  * package.json. THIS module is the defense-in-depth so future analogous
@@ -17,9 +17,9 @@ import { execFileSync } from "node:child_process";
  * available at the time it runs from a curl pipe). The two implementations
  * MUST agree on:
  *   - backup file naming: `<ISO-with-colons-replaced-by-dashes>.tgz`
- *   - backup root: `<homeDir>/.teamagent/backups/`
+ *   - backup root: `<homeDir>/.viki/backups/`
  *   - retention: keep last 3 by mtime, FIFO eviction
- *   - log file: `<homeDir>/.teamagent/postinstall.log`
+ *   - log file: `<homeDir>/.viki/postinstall.log`
  *   - log line shape: `[<ISO-ts>] stage=install status=rolled-back source=<backup-path>`
  *
  * Tar format: shell out to system `tar` via execFileSync. Windows 10 (build
@@ -41,8 +41,8 @@ import { execFileSync } from "node:child_process";
  * code path on Windows.
  *
  * IO contract: all functions take an explicit `homeDir` so tests can sandbox
- * inside `os.tmpdir()` without touching the real `~/.teamagent/`. Same
- * pattern as `findTeamagentRoot(start, opts?: { homeDir?: string })`.
+ * inside `os.tmpdir()` without touching the real `~/.viki/`. Same
+ * pattern as `findVikiRoot(start, opts?: { homeDir?: string })`.
  */
 
 export interface BackupOptions {
@@ -93,11 +93,11 @@ function tarArgs(...flags: string[]): string[] {
 }
 
 function backupRoot(homeDir: string): string {
-  return path.join(homeDir, ".teamagent", "backups");
+  return path.join(homeDir, ".viki", "backups");
 }
 
 function logPath(homeDir: string): string {
-  return path.join(homeDir, ".teamagent", "postinstall.log");
+  return path.join(homeDir, ".viki", "postinstall.log");
 }
 
 function isoStampForFilename(now: Date): string {
@@ -125,7 +125,7 @@ function dirHasContent(dir: string): boolean {
 
 /**
  * Snapshot the existing install directory into a `.tgz` under
- * `<homeDir>/.teamagent/backups/`. No-op (status="skipped") when the install
+ * `<homeDir>/.viki/backups/`. No-op (status="skipped") when the install
  * directory is absent or empty — there is nothing to lose, so don't waste
  * disk on an empty archive.
  *
@@ -282,7 +282,7 @@ export function rollbackFromBackup(opts: RollbackOptions): RollbackResult {
 
 /**
  * Keep the `keep` most-recent `.tgz` backups under
- * `<homeDir>/.teamagent/backups/`; delete the rest. FIFO eviction by mtime.
+ * `<homeDir>/.viki/backups/`; delete the rest. FIFO eviction by mtime.
  *
  * No-op when the backup root does not exist. Non-`.tgz` entries are
  * preserved (e.g. a stray README or a future metadata file).

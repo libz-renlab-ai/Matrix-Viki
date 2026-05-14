@@ -1,4 +1,4 @@
-import { duckifyText } from "@teamagent/core";
+import { duckifyText } from "@viki/core";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -6,8 +6,8 @@ import {
   DualLayerStore,
   SqliteEventLog,
   openDb,
-} from "@teamagent/adapters";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/adapters";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 export interface StatsOptions {
   projectDbPath?: string;
@@ -54,11 +54,11 @@ function resolvePaths(opts: StatsOptions) {
   const cwd = opts.cwd ?? process.cwd();
   return {
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
     eventsDbPath:
-      opts.eventsDbPath ?? path.join(home, ".teamagent", "events.db"),
+      opts.eventsDbPath ?? path.join(home, ".viki", "events.db"),
   };
 }
 
@@ -175,13 +175,13 @@ export function renderStats(
 
   if (all.length === 0) {
     const emptyLines = [
-      "📊 TeamAgent 知识库统计",
+      "📊 Viki 知识库统计",
       "",
       "尚无知识条目。",
       "",
       "录入方式:",
-      "  pnpm teamagent pitfall            交互式录入",
-      "  pnpm teamagent pitfall --non-interactive --trigger=... --wrong=... --correct=... --reason=...",
+      "  pnpm viki pitfall            交互式录入",
+      "  pnpm viki pitfall --non-interactive --trigger=... --wrong=... --correct=... --reason=...",
       "",
     ];
     // Issue #245: even in the "no knowledge yet" state, show 升级事件
@@ -216,7 +216,7 @@ export function renderStats(
     .slice(0, 5);
 
   const lines: string[] = [];
-  lines.push("📊 TeamAgent 知识库统计");
+  lines.push("📊 Viki 知识库统计");
   lines.push("");
   lines.push(
     `总数: ${all.length} (活跃 ${active.length}${archived.length > 0 ? `, 归档 ${archived.length}` : ""})`,
@@ -361,12 +361,12 @@ export function renderOverrideSignals(events: PersistedEvent[]): string {
   }
 
   if (counts.size === 0) {
-    return "TeamAgent Override Signals\n\n  (无记录)\n";
+    return "Viki Override Signals\n\n  (无记录)\n";
   }
 
   const rows = [...counts.entries()].sort((a, b) => b[1].ignored - a[1].ignored);
 
-  const lines = ["TeamAgent Override Signals", ""];
+  const lines = ["Viki Override Signals", ""];
   lines.push(
     "  Rule ID".padEnd(32) + "ignored".padEnd(10) + "complied",
   );

@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
  * 从文本规则文件导入结构化知识。M5 的 ClaudeMdRuleImporter /

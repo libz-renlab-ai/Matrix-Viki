@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { openDb } from "../../storage/sqlite/schema.js";
 import { SqliteSemanticRetriever } from "../sqlite-semantic-retriever.js";
-import type { KnowledgeEntry } from "@teamagent/types";
-import { semanticRetrieverContractSuite } from "@teamagent/ports/contracts";
+import type { KnowledgeEntry } from "@viki/types";
+import { semanticRetrieverContractSuite } from "@viki/ports/contracts";
 
 function tempPath(): string {
   return join(mkdtempSync(join(tmpdir(), "m4b-retriever-")), "t.db");

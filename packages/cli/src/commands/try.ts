@@ -1,6 +1,6 @@
 /*
  *   ┌──────────────────────────────────────────────────────────┐
- *   │  teamagent try — 5-case headline demo (issue 174 / W2)   │
+ *   │  viki try — 5-case headline demo (issue 174 / W2)   │
  *   ├──────────────────────────────────────────────────────────┤
  *   │  argv ──> parse ──> 5x executeDemoHook ──> stdout         │
  *   │            │                  │                           │
@@ -36,7 +36,7 @@ interface TryCase {
   toolInput: Record<string, unknown>;
 }
 
-/** Five canonical fixture cases that exercise TeamAgent hook interception. */
+/** Five canonical fixture cases that exercise Viki hook interception. */
 const TRY_CASES: readonly TryCase[] = [
   {
     label: "npm install moment",
@@ -67,8 +67,8 @@ const TRY_CASES: readonly TryCase[] = [
 
 const HELP_TEXT = [
   "用法:",
-  "  teamagent try                依次播放 5 个经典 hook 拦截场景",
-  "  teamagent try --help         显示帮助",
+  "  viki try                依次播放 5 个经典 hook 拦截场景",
+  "  viki try --help         显示帮助",
   "",
   "用例:",
   "  npm install moment    → moment.js 拦截",
@@ -85,7 +85,7 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * `teamagent try` — 30-second headline demo.
+ * `viki try` — 30-second headline demo.
  *
  * Plays 5 fixture cases sequentially through executeDemoHook (real offline
  * PreToolUse simulator). Renders Chinese intro + each case's real hook
@@ -148,7 +148,7 @@ export async function executeTry(opts: TryOptions = {}): Promise<TryResult> {
 
   lines.push("✅ 演示完成。");
   lines.push(
-    "   想体验 TeamAgent 在你日常工作中的拦截，跑：teamagent demo hook <tool> <args>",
+    "   想体验 Viki 在你日常工作中的拦截，跑：viki demo hook <tool> <args>",
   );
   lines.push("");
 

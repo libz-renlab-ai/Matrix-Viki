@@ -1,5 +1,5 @@
 /**
- * Thin adapter wrapper around `createPostToolUseHandler` from `@teamagent/core`.
+ * Thin adapter wrapper around `createPostToolUseHandler` from `@viki/core`.
  *
  * The pure handler lives in `packages/core/src/hook/post-tool-use-handler.ts`
  * (FCIS: Functional Core, Imperative Shell — see ADR-0008 and the matching
@@ -12,7 +12,7 @@ import {
   createPostToolUseHandler as createPostToolUseHandlerCore,
   inferToolSuccess as inferToolSuccessCore,
   type PostToolUseDeps as CorePostToolUseDeps,
-} from "@teamagent/core";
+} from "@viki/core";
 
 /**
  * Caller-facing deps. Excludes the two injectable purity points

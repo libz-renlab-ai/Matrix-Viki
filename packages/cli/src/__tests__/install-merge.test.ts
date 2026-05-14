@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryInstallStateStore } from "@teamagent/ports/contracts";
+import { InMemoryInstallStateStore } from "@viki/ports/contracts";
 import type { InstallArgs } from "../commands/install-manifest.js";
 import {
   renderInstallHelp,
@@ -87,7 +87,7 @@ describe("runInstall", () => {
     const { deps } = makeDeps();
     const result = await runInstall(args(), deps);
     const configLine = result.output.indexOf("[config]");
-    const promptLine = result.output.indexOf("Install TeamAgent hooks and knowledge base? (Y/n)");
+    const promptLine = result.output.indexOf("Install Viki hooks and knowledge base? (Y/n)");
     expect(configLine).toBeGreaterThanOrEqual(0);
     expect(promptLine).toBeGreaterThan(configLine);
     expect(result.output).toMatch(/\[config\].*\[skills\].*\[kb\].*\[download\].*\[refusal\]/s);
@@ -145,7 +145,7 @@ describe("runInstall", () => {
 
   it("help contains no vector-model skip flag", () => {
     const help = renderInstallHelp();
-    expect(help).toContain("Usage: teamagent install");
+    expect(help).toContain("Usage: viki install");
     expect(help).not.toMatch(/--skip-(vector-)?model/);
   });
 });

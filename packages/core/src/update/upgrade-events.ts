@@ -8,8 +8,8 @@
  *
  * 4 个工厂函数对应 4 个 emit 点：
  *   - SessionStart hook 弹 banner    → makeUpdatePromptShownEvent
- *   - `teamagent update --snooze`    → makeUpdateSnoozedEvent
- *   - `teamagent update --never`     → makeUpdateNeverSetEvent
+ *   - `viki update --snooze`    → makeUpdateSnoozedEvent
+ *   - `viki update --never`     → makeUpdateNeverSetEvent
  *   - runUpdater 写入新 sha 后        → makeUpdateInstalledEvent
  *
  * 这一层只负责"造 event 对象"；写入 AttributionBus 与 SqliteEventLog 的
@@ -30,7 +30,7 @@ import type {
   UpdateSnoozedEvent,
   UpdateNeverSetEvent,
   UpdateInstalledEvent,
-} from "@teamagent/types";
+} from "@viki/types";
 
 /** 共同生成器 —— 把 epoch ms 转 ISO 8601。 */
 function isoFromMs(epochMs: number): string {
@@ -98,7 +98,7 @@ export function makeUpdateInstalledEvent(input: {
 }
 
 /**
- * Type-guard for `kind LIKE 'update-%'` filter — used by `teamagent stats`
+ * Type-guard for `kind LIKE 'update-%'` filter — used by `viki stats`
  * to aggregate the 7d "升级事件" section without re-stringifying kind unions.
  */
 export function isUpgradeAttributionEvent(
@@ -120,7 +120,7 @@ export function isUpgradeAttributionEvent(
  * Factory for the matching `PersistedEvent` row that lands in events.db.
  *
  * AttributionBus carries the in-memory rich event for Renderer; events.db
- * stores the durable JSON row for `teamagent stats` 7d aggregation. We
+ * stores the durable JSON row for `viki stats` 7d aggregation. We
  * keep `id` deterministic-ish (`update-{kind}-{nowMs}`) so concurrent
  * SessionStarts do not double-emit (`INSERT OR IGNORE` upserts), but
  * also unique enough across distinct firings.

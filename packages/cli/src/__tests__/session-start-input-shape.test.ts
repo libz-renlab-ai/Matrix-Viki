@@ -30,7 +30,7 @@ const TSX_LOADER = path.resolve(
 describe.skipIf(!isHookBuilt())("bin-session-start input-shape gate (B-145)", () => {
   let tempHome: string;
   beforeEach(async () => {
-    tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "teamagent-session-start-test-"));
+    tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "viki-session-start-test-"));
   });
   afterEach(async () => {
     await fs.rm(tempHome, { recursive: true, force: true });
@@ -45,8 +45,8 @@ describe.skipIf(!isHookBuilt())("bin-session-start input-shape gate (B-145)", ()
     // Must not block — exit 0 always.
     expect(r.status).toBe(0);
     // Must not have run m5-bootstrap (no banner).
-    expect(r.stderr).not.toMatch(/teamagent M5/);
-    expect(r.stdout).not.toMatch(/teamagent M5/);
+    expect(r.stderr).not.toMatch(/viki M5/);
+    expect(r.stdout).not.toMatch(/viki M5/);
   });
 
   it("empty stdin without CLAUDE_PROJECT_DIR is silent", () => {
@@ -56,7 +56,7 @@ describe.skipIf(!isHookBuilt())("bin-session-start input-shape gate (B-145)", ()
       env: cleanEnv(tempHome),
     });
     expect(r.status).toBe(0);
-    expect(r.stderr).not.toMatch(/teamagent M5/);
+    expect(r.stderr).not.toMatch(/viki M5/);
   });
 
   it("payload without hook_event_name is silent", () => {
@@ -66,7 +66,7 @@ describe.skipIf(!isHookBuilt())("bin-session-start input-shape gate (B-145)", ()
       env: cleanEnv(tempHome),
     });
     expect(r.status).toBe(0);
-    expect(r.stderr).not.toMatch(/teamagent M5/);
+    expect(r.stderr).not.toMatch(/viki M5/);
   });
 
   it("hook_event_name=SessionStart proceeds (CLAUDE_PROJECT_DIR not set)", () => {
@@ -104,14 +104,14 @@ function isHookBuilt(): boolean {
 }
 
 function cleanEnv(home: string): NodeJS.ProcessEnv {
-  // Drop CLAUDE_PROJECT_DIR + TEAMAGENT_* so each case starts from a known baseline.
+  // Drop CLAUDE_PROJECT_DIR + VIKI_* so each case starts from a known baseline.
   // Keep PATH so node can find subprocess deps.
   const env: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
     HOME: home,
     USERPROFILE: home,
-    TEAMAGENT_HOME: path.join(home, ".teamagent"),
-    TEAMAGENT_M5_AUTOSESSION: "0", // do not actually mutate filesystem in test
+    VIKI_HOME: path.join(home, ".viki"),
+    VIKI_M5_AUTOSESSION: "0", // do not actually mutate filesystem in test
   };
   return env;
 }

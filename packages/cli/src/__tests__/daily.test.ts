@@ -56,7 +56,7 @@ describe("renderDailyHelp", () => {
     const out = renderDailyHelp();
     const parsed = JSON.parse(out);
     expect(parsed).toMatchObject({
-      command: "teamagent daily",
+      command: "viki daily",
       summary: expect.any(String),
       usage: expect.any(String),
       flags: expect.any(Object),
@@ -73,21 +73,21 @@ describe("renderDailyHelp", () => {
 describe("buildDailyResult + executeDaily integration", () => {
   let tmpHome: string;
   let projectsRoot: string;
-  const originalEnv = process.env["TEAMAGENT_HOME"];
+  const originalEnv = process.env["VIKI_HOME"];
 
   beforeEach(() => {
     tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "tb-daily-"));
     projectsRoot = path.join(tmpHome, ".claude", "projects");
     fs.mkdirSync(projectsRoot, { recursive: true });
-    delete process.env["TEAMAGENT_HOME"];
+    delete process.env["VIKI_HOME"];
   });
 
   afterEach(() => {
     fs.rmSync(tmpHome, { recursive: true, force: true });
     if (originalEnv === undefined) {
-      delete process.env["TEAMAGENT_HOME"];
+      delete process.env["VIKI_HOME"];
     } else {
-      process.env["TEAMAGENT_HOME"] = originalEnv;
+      process.env["VIKI_HOME"] = originalEnv;
     }
   });
 
@@ -126,7 +126,7 @@ describe("buildDailyResult + executeDaily integration", () => {
     expect(result.worktreeMergedCount).toBe(1);
   });
 
-  it("writes the archive to <homeDir>/.teamagent/daily/<date>.md when --archive set", () => {
+  it("writes the archive to <homeDir>/.viki/daily/<date>.md when --archive set", () => {
     writeSession("-tmp-tb-projA", "main", [
       { type: "user", message: { role: "user", content: "first" } },
     ]);
@@ -135,7 +135,7 @@ describe("buildDailyResult + executeDaily integration", () => {
       homeDir: tmpHome,
       archive: true,
     });
-    const expected = path.join(tmpHome, ".teamagent", "daily", `${out.result.date}.md`);
+    const expected = path.join(tmpHome, ".viki", "daily", `${out.result.date}.md`);
     expect(out.archivePath).toBe(expected);
     expect(fs.existsSync(expected)).toBe(true);
     const body = fs.readFileSync(expected, "utf-8");
@@ -143,13 +143,13 @@ describe("buildDailyResult + executeDaily integration", () => {
     expect(body).toContain("projA");
   });
 
-  it("honors TEAMAGENT_HOME for archive root", () => {
+  it("honors VIKI_HOME for archive root", () => {
     writeSession("-tmp-tb-projA", "main", [
       { type: "user", message: { role: "user", content: "first" } },
     ]);
     const overrideRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tb-daily-override-"));
     try {
-      process.env["TEAMAGENT_HOME"] = overrideRoot;
+      process.env["VIKI_HOME"] = overrideRoot;
       const out = executeDaily({
         projectsRoot,
         homeDir: tmpHome,
@@ -170,7 +170,7 @@ describe("buildDailyResult + executeDaily integration", () => {
     const out = executeDaily({ projectsRoot, homeDir: tmpHome });
     expect(renderDailyStdout(out, { format: "json" })).toContain('"projects"');
     expect(renderDailyStdout(out, { format: "context" })).toContain(
-      "# TeamAgent daily summary",
+      "# Viki daily summary",
     );
   });
 });

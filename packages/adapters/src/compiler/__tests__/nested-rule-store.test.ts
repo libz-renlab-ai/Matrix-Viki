@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { NestedRuleStoreCompiler } from "../nested-rule-store.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nested-rules-"));

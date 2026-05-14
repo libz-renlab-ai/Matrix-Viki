@@ -76,7 +76,7 @@ describe("candidate-md round-trip", () => {
     const md = formatCandidateMd("git-hotspot", items);
     // 默认全部未勾选
     expect(md).toContain("- [ ] src/a.ts");
-    expect(md).toContain("teamagent-candidate-source: git-hotspot");
+    expect(md).toContain("viki-candidate-source: git-hotspot");
     const parsed = parseCandidateMd(md);
     expect(parsed.source).toBe("git-hotspot");
     expect(parsed.checked).toEqual([]);
@@ -91,7 +91,7 @@ describe("candidate-md round-trip", () => {
   it("candidatesToExtractionInputs preserves kind", () => {
     const md = [
       "# x",
-      "<!-- teamagent-candidate-source: git-hotspot -->",
+      "<!-- viki-candidate-source: git-hotspot -->",
       "- [x] file.ts (x)",
     ].join("\n");
     const parsed = parseCandidateMd(md);
@@ -102,12 +102,12 @@ describe("candidate-md round-trip", () => {
   });
 
   it("throws when source marker missing", () => {
-    expect(() => parseCandidateMd("- [x] foo")).toThrow(/teamagent-candidate-source/);
+    expect(() => parseCandidateMd("- [x] foo")).toThrow(/viki-candidate-source/);
   });
 
   it("rejects unknown source", () => {
     const md = [
-      "<!-- teamagent-candidate-source: unknown-kind -->",
+      "<!-- viki-candidate-source: unknown-kind -->",
       "- [x] a",
     ].join("\n");
     expect(() => parseCandidateMd(md)).toThrow(/未知 candidate source/);
@@ -115,7 +115,7 @@ describe("candidate-md round-trip", () => {
 
   it("accepts [X] uppercase mark", () => {
     const md = [
-      "<!-- teamagent-candidate-source: git-hotspot -->",
+      "<!-- viki-candidate-source: git-hotspot -->",
       "- [X] upper.ts",
     ].join("\n");
     expect(parseCandidateMd(md).checked).toEqual(["upper.ts"]);

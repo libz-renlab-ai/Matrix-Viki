@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 import {
   STATIC_USER_SKILLS,
   STATIC_USER_SKILL_CONTENT,
-} from "@teamagent/core";
+} from "@viki/core";
 
 /**
  * Freshness gate for the inline SKILL.md strings shipped by
- * `teamagent init` (per `docs/INIT-PROPAGATION.md`).
+ * `viki init` (per `docs/INIT-PROPAGATION.md`).
  *
  * The generator script `scripts/regen-static-user-skills.cjs` reads
  * `.claude/skills/<name>/SKILL.md` and writes the inline `STATIC_USER_SKILL_CONTENT`

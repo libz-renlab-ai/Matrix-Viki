@@ -11,4 +11,4 @@ dist
 .dogfood
 *.tsbuildinfo
 packages/*/.cache
-packages/*/.teamagent
+packages/*/.viki

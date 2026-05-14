@@ -47,15 +47,15 @@ describe("executeBugReport", () => {
   it("writes a markdown report with system info and raw redacted logs", async () => {
     const cwd = path.join(tmp, "project");
     const homeDir = path.join(tmp, "home");
-    const teamagentHome = path.join(homeDir, ".teamagent");
-    fs.mkdirSync(path.join(cwd, ".teamagent"), { recursive: true });
-    fs.mkdirSync(teamagentHome, { recursive: true });
+    const vikiHome = path.join(homeDir, ".viki");
+    fs.mkdirSync(path.join(cwd, ".viki"), { recursive: true });
+    fs.mkdirSync(vikiHome, { recursive: true });
     fs.writeFileSync(
-      path.join(teamagentHome, "update.log"),
+      path.join(vikiHome, "update.log"),
       "install failed\nTOKEN=secret-value\n",
     );
     fs.writeFileSync(
-      path.join(cwd, ".teamagent", "events.jsonl"),
+      path.join(cwd, ".viki", "events.jsonl"),
       "{\"event\":\"hook_error\",\"message\":\"boom\"}\n",
     );
 
@@ -65,16 +65,16 @@ describe("executeBugReport", () => {
       homeDir,
       outputPath,
       now: new Date("2026-04-29T12:34:56Z"),
-      teamagentVersion: "0.10.1-test",
+      vikiVersion: "0.10.1-test",
       runCommand: (cmd) => (cmd === "claude" ? "Claude Code 2.0.0" : "9.0.0"),
     });
 
     expect(result.outputPath).toBe(outputPath);
     expect(fs.existsSync(outputPath)).toBe(true);
     const md = fs.readFileSync(outputPath, "utf-8");
-    expect(md).toContain("# TeamAgent Bug Report");
+    expect(md).toContain("# Viki Bug Report");
     expect(md).toContain("Claude Code 2.0.0");
-    expect(md).toContain("teamagent: 0.10.1-test");
+    expect(md).toContain("viki: 0.10.1-test");
     expect(md).toContain("## Raw Logs");
     expect(md).toContain("install failed");
     expect(md).toContain("[redacted]");
@@ -85,16 +85,16 @@ describe("executeBugReport", () => {
   it("--stdout mode appends issue-new URL footer and suppresses ## Summary template", async () => {
     const cwd = path.join(tmp, "project");
     const homeDir = path.join(tmp, "home");
-    const teamagentHome = path.join(homeDir, ".teamagent");
-    fs.mkdirSync(path.join(cwd, ".teamagent"), { recursive: true });
-    fs.mkdirSync(teamagentHome, { recursive: true });
+    const vikiHome = path.join(homeDir, ".viki");
+    fs.mkdirSync(path.join(cwd, ".viki"), { recursive: true });
+    fs.mkdirSync(vikiHome, { recursive: true });
 
     const result = await executeBugReport({
       cwd,
       homeDir,
       stdout: true,
       now: new Date("2026-04-29T12:34:56Z"),
-      teamagentVersion: "0.10.1-test",
+      vikiVersion: "0.10.1-test",
       runCommand: (cmd) => (cmd === "claude" ? "Claude Code 2.0.0" : "9.0.0"),
     });
 
@@ -111,9 +111,9 @@ describe("executeBugReport", () => {
   it("--out=path mode keeps ## Summary template and omits issue-new URL footer", async () => {
     const cwd = path.join(tmp, "project");
     const homeDir = path.join(tmp, "home");
-    const teamagentHome = path.join(homeDir, ".teamagent");
-    fs.mkdirSync(path.join(cwd, ".teamagent"), { recursive: true });
-    fs.mkdirSync(teamagentHome, { recursive: true });
+    const vikiHome = path.join(homeDir, ".viki");
+    fs.mkdirSync(path.join(cwd, ".viki"), { recursive: true });
+    fs.mkdirSync(vikiHome, { recursive: true });
 
     const outputPath = path.join(tmp, "report-file.md");
     const result = await executeBugReport({
@@ -121,7 +121,7 @@ describe("executeBugReport", () => {
       homeDir,
       outputPath,
       now: new Date("2026-04-29T12:34:56Z"),
-      teamagentVersion: "0.10.1-test",
+      vikiVersion: "0.10.1-test",
       runCommand: (cmd) => (cmd === "claude" ? "Claude Code 2.0.0" : "9.0.0"),
     });
 

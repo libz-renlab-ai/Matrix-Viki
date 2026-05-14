@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { rerankByConfidence, confidenceWeight } from "../confidence-rank.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import type { SemanticMatch } from "../../matcher/semantic-matcher.js";
 
 function makeRule(overrides: Partial<KnowledgeEntry>): KnowledgeEntry {

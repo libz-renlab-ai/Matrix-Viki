@@ -57,8 +57,8 @@ export interface UpdateState {
    * Issue #225 — soft-force upgrade snooze state machine.
    *
    * Epoch ms; the upgrade banner stays silent until now >= snooze_until_ts.
-   * 0 = no active snooze. Reset to 0 by `teamagent update --now` (user
-   * accepted) or by `teamagent update --enable` (user lifted opt-out).
+   * 0 = no active snooze. Reset to 0 by `viki update --now` (user
+   * accepted) or by `viki update --enable` (user lifted opt-out).
    */
   snooze_until_ts: number;
 
@@ -69,8 +69,8 @@ export interface UpdateState {
   snooze_level: number;
 
   /**
-   * Issue #225 — permanent opt-out. Set to true by `teamagent update --never`.
-   * Cleared by `teamagent update --enable`. When true the SessionStart hook
+   * Issue #225 — permanent opt-out. Set to true by `viki update --never`.
+   * Cleared by `viki update --enable`. When true the SessionStart hook
    * never surfaces the upgrade banner regardless of pending state. Independent
    * of `auto-update.disabled` marker (which gates whether we POLL the remote)
    * — never_prompt only controls the USER-FACING banner.

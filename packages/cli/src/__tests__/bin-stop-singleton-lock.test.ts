@@ -27,7 +27,7 @@ describe("shouldSkipForExistingPipeline (issue #189)", () => {
   let lockPath: string;
 
   beforeEach(() => {
-    tmpDir = mkdtempSync(path.join(os.tmpdir(), "teamagent-locktest-"));
+    tmpDir = mkdtempSync(path.join(os.tmpdir(), "viki-locktest-"));
     lockPath = path.join(tmpDir, ".stop-pipeline.lock");
   });
 

@@ -1,7 +1,7 @@
 /**
  * Embedder daemon state file (issue #164).
  *
- * Single JSON document at `~/.teamagent/.embedder-state.json` that lets
+ * Single JSON document at `~/.viki/.embedder-state.json` that lets
  * short-lived hooks (PreToolUse/Stop) discover the long-running embedder
  * daemon's HTTP port without socket discovery, and lets sessions track
  * shared ownership via a refcounted members list.
@@ -44,7 +44,7 @@ export interface EmbedderState {
 export const EMBEDDER_STATE_FILENAME = ".embedder-state.json";
 
 export function defaultEmbedderStatePath(homeDir: string = os.homedir()): string {
-  return path.join(homeDir, ".teamagent", EMBEDDER_STATE_FILENAME);
+  return path.join(homeDir, ".viki", EMBEDDER_STATE_FILENAME);
 }
 
 /**

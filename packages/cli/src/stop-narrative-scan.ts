@@ -17,8 +17,8 @@ import {
   mergePending,
   type NarrativeHit,
   type PendingWarning,
-} from "@teamagent/core";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/core";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 export interface StopScanDeps {
   aiText: string;

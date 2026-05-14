@@ -12,8 +12,8 @@ set -eu
 mkdir -p ".judge/${RUN_ID}/evidence"
 
 EVDIR=".judge/${RUN_ID}/evidence"
-DB="${HOMEDIR}/.teamagent/global.db"
-STATE="${HOMEDIR}/.teamagent/.warmup-state.json"
+DB="${HOMEDIR}/.viki/global.db"
+STATE="${HOMEDIR}/.viki/.warmup-state.json"
 
 # Require sqlite3 and jq
 for bin in sqlite3 jq; do

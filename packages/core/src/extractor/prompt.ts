@@ -1,4 +1,4 @@
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 /**
  * 构造给 LLM 的提取 prompt。纯函数。
@@ -108,7 +108,7 @@ const SCHEMA_BLOCK = `【输出字段】
     4. 不写正则 —— matcher 只做 substring，\`\\d+\` 不生效，用最长字面前缀
   **禁止**：
     ❌ 整句自然语言（"demote=0 时..." "AI 没先查..."）
-    ❌ 项目专属路径/函数（\`packages/...\`、\`@teamagent/...\`、\`tierFromDemerit\`）
+    ❌ 项目专属路径/函数（\`packages/...\`、\`@viki/...\`、\`tierFromDemerit\`）
     ❌ 抽象动作描述（"直接 emit 新 source 值"）
     ❌ 超长字面量（>40 字符一般太具体）
     ❌ 测试代码片段（\`tierFromDemerit(4, 'stable')\`）
@@ -245,7 +245,7 @@ export function buildRetrofitPrompt(input: RetrofitInput): string {
     "",
     "【禁止】",
     "❌ 整句自然语言 ('demote=0 时返回 currentTier', 'AI 没先查...')",
-    "❌ 项目内部路径 (packages/..., @teamagent/..., src/...)",
+    "❌ 项目内部路径 (packages/..., @viki/..., src/...)",
     "❌ 项目内部函数/变量 (tierFromDemerit, calibrator.adjust)",
     "❌ 过度抽象 ('直接 emit 新 source 值')",
     "❌ 测试代码字面量 (\"tierFromDemerit(4, 'stable')\")",

@@ -1,10 +1,10 @@
 /**
- * Thin adapter wrapper around `createPreToolUseHandler` from `@teamagent/core`.
+ * Thin adapter wrapper around `createPreToolUseHandler` from `@viki/core`.
  *
  * The pure handler lives in `packages/core/src/hook/pre-tool-use-handler.ts`
  * (FCIS: Functional Core, Imperative Shell — see ADR-0008). This module binds
  * production impurities — `crypto.randomUUID()`, `new Date().toISOString()`,
- * and a `process.env.TEAMAGENT_HOOK_ASCII_BOX` formatStyle switch reserved for
+ * and a `process.env.VIKI_HOOK_ASCII_BOX` formatStyle switch reserved for
  * the AttributionEvent reshape (commits 4+) — and accepts the SDK-typed input
  * so existing callers don't change.
  */
@@ -15,7 +15,7 @@ import {
   type PreToolUseResult,
   type SemanticHit,
   type HookFormatStyle,
-} from "@teamagent/core";
+} from "@viki/core";
 
 /**
  * Caller-facing deps. Excludes the three injectable purity points
@@ -53,9 +53,9 @@ export function createPreToolUseHandler(deps: PreToolUseDeps) {
 
 /**
  * Resolve the user-facing format style from env. Default is `"humane"` —
- * the boxless `⚠️ TeamAgent ...` shape introduced by issue #86 (B-86) on
+ * the boxless `⚠️ Viki ...` shape introduced by issue #86 (B-86) on
  * `main`. Callers can opt back into the legacy `+-- title -+` ASCII-box
- * look by setting `TEAMAGENT_HOOK_ASCII_BOX=1` (engineer dogfooders only).
+ * look by setting `VIKI_HOOK_ASCII_BOX=1` (engineer dogfooders only).
  *
  * Default flip preserved through merge with `origin/main`: the upstream
  * format function is `env === "1" ? ascii-box : humane`, which makes
@@ -63,5 +63,5 @@ export function createPreToolUseHandler(deps: PreToolUseDeps) {
  * had this inverted; aligned during merge resolution.
  */
 function resolveFormatStyle(): HookFormatStyle {
-  return process.env.TEAMAGENT_HOOK_ASCII_BOX === "1" ? "ascii-box" : "humane";
+  return process.env.VIKI_HOOK_ASCII_BOX === "1" ? "ascii-box" : "humane";
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { runUpdater, isDevModeTsExtensionError, type UpdaterDeps } from "../updater-logic.js";
-import { defaultUpdateState, type UpdateState } from "@teamagent/core";
+import { defaultUpdateState, type UpdateState } from "@viki/core";
 import type { FetchShaResult } from "../github-api.js";
 import type { FetchLatestResult } from "../update/fetch-latest.js";
 
@@ -212,7 +212,7 @@ describe.skip("runUpdater (legacy, pre-#313 SHA/rate-limit behavior)", () => {
       readState: vi.fn().mockReturnValue(state),
       now: () => 0,
       fetchRemoteSha: vi.fn().mockResolvedValue(
-        failResult("rate_limit_anonymous", "GitHub anonymous rate limit exhausted; set TEAMAGENT_GITHUB_TOKEN to authenticate (5000 req/h)", 403),
+        failResult("rate_limit_anonymous", "GitHub anonymous rate limit exhausted; set VIKI_GITHUB_TOKEN to authenticate (5000 req/h)", 403),
       ),
     });
     await runUpdater(deps);
@@ -630,14 +630,14 @@ describe("isDevModeTsExtensionError (W15-001)", () => {
   it("matches real Node ERR_UNKNOWN_FILE_EXTENSION on .ts source file", () => {
     const stderr = [
       "node:internal/modules/esm/get_format:172",
-      'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for /home/u/.npm-global/lib/node_modules/teamagent/dist/migrate-v6.ts',
+      'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for /home/u/.npm-global/lib/node_modules/viki/dist/migrate-v6.ts',
     ].join("\n");
     expect(isDevModeTsExtensionError(stderr)).toBe(true);
   });
 
   it("matches Windows-path Node ERR_UNKNOWN_FILE_EXTENSION", () => {
     const stderr =
-      'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for C:\\Users\\u\\.npm-global\\node_modules\\teamagent\\dist\\bin.ts';
+      'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for C:\\Users\\u\\.npm-global\\node_modules\\viki\\dist\\bin.ts';
     expect(isDevModeTsExtensionError(stderr)).toBe(true);
   });
 

@@ -1,4 +1,4 @@
-import type { Observation, Tier } from "@teamagent/ports";
+import type { Observation, Tier } from "@viki/ports";
 
 /** Half-life in days per max_tier_ever (excluding dormant). Per design §4.2. */
 export const HALF_LIFE_DAYS: Record<Exclude<Tier, "dormant">, number> = {

@@ -9,10 +9,10 @@ set -euo pipefail
 # See docs/MULTI-USER-SANDBOX.md for design + path table.
 #
 # Subcommands:
-#   setup                 build teamagent + npm-install into .sandbox/npm
+#   setup                 build viki + npm-install into .sandbox/npm
 #   add <user> [<user>…]  create per-user .sandbox/users/<name>/{home,project}
-#   init <user>           teamagent init --target=both inside <user>'s project
-#   as <user> <cmd>…      exec a teamagent subcommand as <user>
+#   init <user>           viki init --target=both inside <user>'s project
+#   as <user> <cmd>…      exec a viki subcommand as <user>
 #   list                  show known users + their HOME paths
 #   reset                 remove .sandbox/users/ (keeps shared npm + single-user)
 #
@@ -25,17 +25,17 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SANDBOX_ROOT="$REPO_ROOT/.sandbox"
 SANDBOX_NPM="$SANDBOX_ROOT/npm"
 SANDBOX_USERS="$SANDBOX_ROOT/users"
-TEAMAGENT_BIN="$SANDBOX_NPM/bin/teamagent"
+VIKI_BIN="$SANDBOX_NPM/bin/viki"
 
 usage() {
   cat <<'USAGE'
 scripts/multi-user-sandbox.sh — multi-user companion to docs/sandbox.md
 
 Subcommands:
-  setup                 build teamagent + npm-install into .sandbox/npm
+  setup                 build viki + npm-install into .sandbox/npm
   add <user> [<user>…]  create per-user .sandbox/users/<name>/{home,project}
-  init <user>           teamagent init --target=both inside <user>'s project
-  as <user> <cmd>…      exec a teamagent subcommand as <user>
+  init <user>           viki init --target=both inside <user>'s project
+  as <user> <cmd>…      exec a viki subcommand as <user>
   list                  show known users + their HOME paths
   reset                 remove .sandbox/users/ (keeps shared npm + single-user)
 
@@ -52,22 +52,22 @@ valid_user_name() {
 }
 
 require_setup() {
-  if [[ ! -x "$TEAMAGENT_BIN" ]]; then
-    echo "error: $TEAMAGENT_BIN missing or not executable." >&2
+  if [[ ! -x "$VIKI_BIN" ]]; then
+    echo "error: $VIKI_BIN missing or not executable." >&2
     echo "       run 'bash scripts/multi-user-sandbox.sh setup' first." >&2
     exit 2
   fi
 }
 
 cmd_setup() {
-  echo "[setup] building teamagent into $SANDBOX_NPM"
+  echo "[setup] building viki into $SANDBOX_NPM"
   mkdir -p "$SANDBOX_NPM/.cache"
   ( cd "$REPO_ROOT" && pnpm build:publish )
-  npm install -g "$REPO_ROOT/packages/teamagent" \
+  npm install -g "$REPO_ROOT/packages/viki" \
     --prefix "$SANDBOX_NPM" \
     --cache  "$SANDBOX_NPM/.cache" \
     --ignore-scripts
-  echo "[setup] done — $TEAMAGENT_BIN"
+  echo "[setup] done — $VIKI_BIN"
 }
 
 cmd_add() {
@@ -77,10 +77,10 @@ cmd_add() {
     local user_root="$SANDBOX_USERS/$name"
     mkdir -p \
       "$user_root/home/.claude" \
-      "$user_root/home/.teamagent" \
+      "$user_root/home/.viki" \
       "$user_root/project/.claude" \
       "$user_root/project/.codex" \
-      "$user_root/project/.teamagent"
+      "$user_root/project/.viki"
     # Marker so `list` can identify users even before init.
     : > "$user_root/.sandbox-user"
     echo "[add] $user_root"
@@ -97,12 +97,12 @@ cmd_init() {
   (
     cd "$user_root/project"
     HOME="$user_root/home" PATH="$SANDBOX_NPM/bin:$PATH" \
-      exec "$TEAMAGENT_BIN" init --target=both
+      exec "$VIKI_BIN" init --target=both
   )
 }
 
 cmd_as() {
-  (( $# >= 2 )) || { echo "usage: as <user> <teamagent-subcmd> [args…]" >&2; exit 2; }
+  (( $# >= 2 )) || { echo "usage: as <user> <viki-subcmd> [args…]" >&2; exit 2; }
   local name="$1"; shift
   valid_user_name "$name" || { echo "error: invalid user name '$name'" >&2; exit 2; }
   require_setup
@@ -111,7 +111,7 @@ cmd_as() {
   (
     cd "$user_root/project"
     HOME="$user_root/home" PATH="$SANDBOX_NPM/bin:$PATH" \
-      exec "$TEAMAGENT_BIN" "$@"
+      exec "$VIKI_BIN" "$@"
   )
 }
 

@@ -3,11 +3,11 @@
  *
  * Exports ONLY pure functions: schema, encode/decode, lifecycle,
  * project-id resolution. Does NOT export the `InstallStateStore` Port
- * (that lives in `@teamagent/ports`) or the `FsInstallStateStore` impl
- * (that lives in `@teamagent/cli`).
+ * (that lives in `@viki/ports`) or the `FsInstallStateStore` impl
+ * (that lives in `@viki/cli`).
  *
  * Imported by consumers as:
- *   import { ... } from "@teamagent/core/install-state";
+ *   import { ... } from "@viki/core/install-state";
  */
 
 export {

@@ -3,8 +3,8 @@ import {
   ruleBasedCorrectionDetector,
   runVerify,
   type ScenarioResult,
-} from "@teamagent/core";
-import { InMemoryKnowledgeStore } from "@teamagent/adapters";
+} from "@viki/core";
+import { InMemoryKnowledgeStore } from "@viki/adapters";
 import { allScenarios } from "../../../../fixtures/scenarios/index.js";
 
 export type FixtureReplayTier = "a";
@@ -50,7 +50,7 @@ export function parseFixtureReplayArgs(argv: string[]): FixtureReplayOptions {
   const subcommand = argv[0];
   if (subcommand !== "replay") {
     throw new FixtureReplayArgError(
-      "fixture: expected subcommand 'replay'. Usage: teamagent fixture replay --tier=a [--scenario <id>] [--json]",
+      "fixture: expected subcommand 'replay'. Usage: viki fixture replay --tier=a [--scenario <id>] [--json]",
     );
   }
 
@@ -103,9 +103,9 @@ function parseTier(value: string): FixtureReplayTier {
 
 export function renderFixtureReplayHelp(): string {
   return [
-    "Usage: teamagent fixture replay --tier=a [--scenario <id>] [--json]",
+    "Usage: viki fixture replay --tier=a [--scenario <id>] [--json]",
     "",
-    "Replays deterministic scenario fixtures through the existing TeamAgent",
+    "Replays deterministic scenario fixtures through the existing Viki",
     "three-phase harness: correction detection -> rule extraction -> intercept.",
     "",
     "Options:",
@@ -163,7 +163,7 @@ export async function executeFixtureReplay(
 
 export function renderFixtureReplayResult(result: FixtureReplayResult): string {
   const lines: string[] = [];
-  lines.push("TeamAgent fixture replay");
+  lines.push("Viki fixture replay");
   lines.push(`tier: ${result.tier}`);
   lines.push(`passed: ${result.passed}/${result.total}`);
   lines.push("");

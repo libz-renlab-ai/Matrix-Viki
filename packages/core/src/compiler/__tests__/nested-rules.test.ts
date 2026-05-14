@@ -6,7 +6,7 @@ import {
   formatRootIndex,
   type NestedRuleArtifact,
 } from "../nested-rules.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeEntry(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {
@@ -80,16 +80,16 @@ describe("formatRuleAsMarkdown", () => {
     expect(md).not.toMatch(/❌\s*错误/);
   });
 
-  it("escapes TEAMAGENT block markers in user-controlled fields", () => {
+  it("escapes VIKI block markers in user-controlled fields", () => {
     const md = formatRuleAsMarkdown(
       makeEntry({
         id: "rule-3",
-        correct_pattern: "say <!-- TEAMAGENT:END --> in pattern",
-        reasoning: "<!-- TEAMAGENT:START -->",
+        correct_pattern: "say <!-- VIKI:END --> in pattern",
+        reasoning: "<!-- VIKI:START -->",
       }),
     );
-    expect(md).not.toMatch(/<!--\s*TEAMAGENT:END\s*-->/);
-    expect(md).not.toMatch(/<!--\s*TEAMAGENT:START\s*-->/);
+    expect(md).not.toMatch(/<!--\s*VIKI:END\s*-->/);
+    expect(md).not.toMatch(/<!--\s*VIKI:START\s*-->/);
   });
 });
 
@@ -120,7 +120,7 @@ describe("formatRootIndex", () => {
       makeEntry({ id: "z", current_tier: "stable" }),
     ];
     const idx = formatRootIndex(entries, "2026-04-14T00:00:00Z");
-    expect(idx).toContain("# TeamAgent Rules");
+    expect(idx).toContain("# Viki Rules");
     expect(idx).toContain("Total active: 3");
     expect(idx).toMatch(/\[canonical\]\(\.\/canonical\/INDEX\.md\)\s+—\s+2 rules/);
     expect(idx).toMatch(/\[stable\]\(\.\/stable\/INDEX\.md\)\s+—\s+1 rule/);

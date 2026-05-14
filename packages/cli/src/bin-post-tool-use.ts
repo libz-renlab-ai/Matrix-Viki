@@ -24,7 +24,7 @@
  * runHook 自带 try/finally 保证不抛出，main 不需要 .catch。
  */
 import type { PostToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
-import { createPostToolUseHandler, type SqliteEventLog } from "@teamagent/adapters";
+import { createPostToolUseHandler, type SqliteEventLog } from "@viki/adapters";
 import { runHook } from "./hook-shell/index.js";
 
 async function main(): Promise<void> {
@@ -33,11 +33,11 @@ async function main(): Promise<void> {
     parseInput: (raw) =>
       raw && typeof raw === "object" ? (raw as PostToolUseHookInput) : null,
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // PostToolUse hook returns empty without writing a `hook-post.result`
       // event to SqliteEventLog. PostToolUse is pure observability — no
       // user-visible behaviour change either way.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return {};
       }
       const handler = createPostToolUseHandler({

@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import type { CandidateQueue, RuleCandidate } from "../candidate-queue.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeEntry(id = "e-001"): KnowledgeEntry {
   return {

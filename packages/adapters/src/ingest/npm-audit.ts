@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 /**
  * npm audit --json 的宽松解析。只保留 high / critical 严重度。

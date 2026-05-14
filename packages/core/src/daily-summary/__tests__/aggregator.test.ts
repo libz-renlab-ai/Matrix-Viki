@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { digestProjectGroup } from "../aggregator.js";
 import type { ProjectGroup } from "../scanner.js";
-import type { ParsedSession } from "@teamagent/types";
+import type { ParsedSession } from "@viki/types";
 
 function makeSession(opts: {
   sessionId: string;

@@ -3,7 +3,7 @@ import { openDb } from "../packages/adapters/src/index.js";
 import os from "node:os";
 import path from "node:path";
 
-const db = openDb(path.join(os.homedir(), ".teamagent", "events.db"));
+const db = openDb(path.join(os.homedir(), ".viki", "events.db"));
 
 const todayEvents = db
   .prepare(

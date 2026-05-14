@@ -1,5 +1,5 @@
 /**
- * Focused claudefast smoke for TeamAgent rule-card rendering.
+ * Focused claudefast smoke for Viki rule-card rendering.
  *
  * This is separate from the broad `smoke:claudefast` batch because it needs a
  * deterministic PreToolUse hook. The script creates isolated temporary
@@ -159,8 +159,8 @@ function makeRule(overrides: Partial<KnowledgeEntry>): KnowledgeEntry {
 }
 
 function seedRules(cwd: string, rules: KnowledgeEntry[]): void {
-  const projectDbPath = path.join(cwd, ".teamagent", "knowledge.db");
-  const globalDbPath = path.join(cwd, ".teamagent-home", "global.db");
+  const projectDbPath = path.join(cwd, ".viki", "knowledge.db");
+  const globalDbPath = path.join(cwd, ".viki-home", "global.db");
   ensureDir(path.dirname(projectDbPath));
   ensureDir(path.dirname(globalDbPath));
   const store = new DualLayerStore({ projectDbPath, userGlobalDbPath: globalDbPath });
@@ -182,8 +182,8 @@ function writeSettingsFile(workDir: string): string {
 
   fs.writeFileSync(settingsPath, JSON.stringify({
     env: {
-      TEAMAGENT_VISIBILITY: "verbose",
-      TEAMAGENT_MATCHER: "legacy",
+      VIKI_VISIBILITY: "verbose",
+      VIKI_MATCHER: "legacy",
     },
     hooks: {
       PreToolUse: [
@@ -300,7 +300,7 @@ async function runScenario(args: {
 
 async function main(): Promise<number> {
   ensureDir(outRoot);
-  console.log("TeamAgent claudefast rule-card smoke");
+  console.log("Viki claudefast rule-card smoke");
   console.log(`out: ${outRoot}`);
 
   const help = await runCommand("claudefast", ["-h"], { cwd: repoRoot, timeoutMs: 30_000 });
@@ -348,7 +348,7 @@ async function main(): Promise<number> {
   }
   console.log(`  ok claudefast hook evidence mode: ${hookEvidenceMode}; stream flags: ${streamJsonArgs.join(" ")}`);
 
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-claudefast-"));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "viki-claudefast-"));
   try {
     const settingsPath = writeSettingsFile(tempRoot);
 
@@ -377,7 +377,7 @@ async function main(): Promise<number> {
         const responses = hookResponses(events, "PreToolUse:Write");
         const combined = [responses.map(eventText).join("\n"), hookDebugText].filter(Boolean).join("\n");
         addCheck(checks, "PreToolUse Write hook responded", responses.length > 0 || hookDebugText.includes("PreToolUse"));
-        addCheck(checks, "warn card rendered as ASCII", combined.includes("+-- TeamAgent 经验提醒"));
+        addCheck(checks, "warn card rendered as ASCII", combined.includes("+-- Viki 经验提醒"));
         addCheck(checks, "warn card kept allow decision", combined.includes('"permissionDecision":"allow"'));
         addCheck(checks, "warn file was created", fs.existsSync(warnFile), warnFile);
         addCheck(
@@ -419,7 +419,7 @@ async function main(): Promise<number> {
         const combined = [responses.map(eventText).join("\n"), hookDebugText].filter(Boolean).join("\n");
         const current = fs.readFileSync(hardFile, "utf8");
         addCheck(checks, "PreToolUse Write hook responded", responses.length > 0 || hookDebugText.includes("PreToolUse"));
-        addCheck(checks, "block card rendered as ASCII", combined.includes("+-- TeamAgent 阻止操作"));
+        addCheck(checks, "block card rendered as ASCII", combined.includes("+-- Viki 阻止操作"));
         addCheck(checks, "hard-rule returned deny decision", combined.includes('"permissionDecision":"deny"'));
         addCheck(checks, "JSON file stayed unchanged after denied write", current === originalJson, current);
         addCheck(checks, "blocked JSON was not written", !current.includes('"hardRule": true'), current);
@@ -449,7 +449,7 @@ async function main(): Promise<number> {
 
     return report.passed ? 0 : 1;
   } finally {
-    if (process.env.TEAMAGENT_KEEP_CLAUDEFAST_TMP !== "1") {
+    if (process.env.VIKI_KEEP_CLAUDEFAST_TMP !== "1") {
       rmRetry(tempRoot);
     } else {
       console.log(`kept temp root: ${tempRoot}`);

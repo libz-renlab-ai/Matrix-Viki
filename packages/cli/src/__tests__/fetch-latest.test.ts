@@ -35,7 +35,7 @@ function pagesOk(version: string, sha?: string): HttpsResponse {
 function npmOk(version: string): HttpsResponse {
   return {
     statusCode: 200,
-    body: JSON.stringify({ name: "teamagent", version }),
+    body: JSON.stringify({ name: "viki", version }),
     headers: {},
   };
 }

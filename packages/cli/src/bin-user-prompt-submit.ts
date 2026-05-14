@@ -16,9 +16,9 @@
  * User-visible side effects move from raw `process.stderr.write` to
  * `ctx.bus.emit({ kind: "user-prompt.injected" | "user-prompt.flagged" })`.
  * The HookShell's wired `StdoutRenderer` turns those into stderr lines per
- * `TEAMAGENT_VISIBILITY`. The `terminalSummary` (rule retriever output) is
+ * `VIKI_VISIBILITY`. The `terminalSummary` (rule retriever output) is
  * mirrored to stderr via `ctx.mirrorSystemMessage` so it still honors the
- * `TEAMAGENT_HOOK_STDERR=0` opt-out.
+ * `VIKI_HOOK_STDERR=0` opt-out.
  *
  * Persisted events (`ai.narrative.injected`, `ai.user_input.flagged`,
  * `calibrator.user_reject`) keep going through `eventLog.append` —
@@ -32,15 +32,15 @@ import path from "node:path";
 import type {
   AttributionEvent,
   KnowledgeEntry,
-} from "@teamagent/types";
+} from "@viki/types";
 import {
   type DualLayerStore,
   type SqliteEventLog,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   matchPrompt as matchDailyPrompt,
   parseExtraTriggersEnv as parseDailyTriggersEnv,
-} from "@teamagent/core";
+} from "@viki/core";
 import { executeDaily } from "./commands/daily.js";
 import {
   buildInjectionFromPending,
@@ -109,13 +109,13 @@ async function main(): Promise<void> {
       return { prompt, session_id: sessionId };
     },
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // UserPromptSubmit hook bails before pending-injection drain, rule
       // retrieval (semantic + BM25 + embedder daemon round-trip), recording
       // memory retrieval, and Claude Code envelope assembly. Returning
       // undefined yields no injection — Claude Code proceeds with the
       // user's raw prompt only.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return undefined;
       }
 
@@ -131,16 +131,16 @@ async function main(): Promise<void> {
       // possible, even when the rest of the hook is still running.
       //
       // Issue #308 grill §3: when the leader has explicitly opted into raw
-      // prompt evidence via TEAMAGENT_REALTIME_RAW_PROMPT=1, thread the
+      // prompt evidence via VIKI_REALTIME_RAW_PROMPT=1, thread the
       // user's prompt text to the snapshot so the receiver can persist it to
       // raw_events for evidence / replay. Default OFF — the hook is the
       // policy boundary; realtime-emit is the transport. emitCcStatus also
-      // enforces loopback-only-by-default + TEAMAGENT_REALTIME_ALLOW_REMOTE,
+      // enforces loopback-only-by-default + VIKI_REALTIME_ALLOW_REMOTE,
       // so even with the env opt-in a misconfigured remote URL still fails
       // closed.
       try {
         const includeRawPrompt =
-          ctx.env.TEAMAGENT_REALTIME_RAW_PROMPT === "1" && prompt.length > 0;
+          ctx.env.VIKI_REALTIME_RAW_PROMPT === "1" && prompt.length > 0;
         emitCcStatus({
           event: "user_prompt_submit",
           ...(sessionId ? { sessionId } : {}),
@@ -148,7 +148,7 @@ async function main(): Promise<void> {
           ...(includeRawPrompt ? { rawPrompt: prompt } : {}),
         });
       } catch { /* never propagate */ }
-      const sessionsDir = path.join(home, ".teamagent", "sessions");
+      const sessionsDir = path.join(home, ".viki", "sessions");
       const eventLog = ctx.eventLog as unknown as SqliteEventLog;
       const store = ctx.store as unknown as DualLayerStore;
 
@@ -232,10 +232,10 @@ async function main(): Promise<void> {
       // and recording memory paths and inject a per-project digest of today's
       // Claude Code activity so the operator's own Claude window can write
       // the one-line-per-project summary.
-      const dailyDisabled = env.TEAMAGENT_DAILY_DISABLED === "1";
+      const dailyDisabled = env.VIKI_DAILY_DISABLED === "1";
       const dailyMatch = matchDailyPrompt(prompt, {
         disabled: dailyDisabled,
-        extraTriggers: parseDailyTriggersEnv(env.TEAMAGENT_DAILY_TRIGGERS),
+        extraTriggers: parseDailyTriggersEnv(env.VIKI_DAILY_TRIGGERS),
       });
       if (dailyMatch.fire) {
         try {
@@ -337,13 +337,13 @@ async function main(): Promise<void> {
       if (blocks.length === 0) return undefined;
 
       const injectionText = blocks.join("\n\n");
-      const rawVis = (env.TEAMAGENT_VISIBILITY ?? "verbose").toLowerCase();
+      const rawVis = (env.VIKI_VISIBILITY ?? "verbose").toLowerCase();
       const terminalSummary =
         rawVis !== "silent" ? buildTerminalSummary(matchedTier1, matchedTier2) : "";
 
       // CC 2.1.x systemMessage UI regression (issue #50542): the terminal no
       // longer renders hook systemMessage. Mirror to stderr as the workaround
-      // — `ctx.mirrorSystemMessage` honors `TEAMAGENT_HOOK_STDERR=0`.
+      // — `ctx.mirrorSystemMessage` honors `VIKI_HOOK_STDERR=0`.
       if (terminalSummary) ctx.mirrorSystemMessage(terminalSummary);
 
       const out: UserPromptOutput = terminalSummary

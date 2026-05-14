@@ -1,7 +1,7 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
- * 元原则（meta-principles）：每次 `teamagent init` 会注入的一组普适规则。
+ * 元原则（meta-principles）：每次 `viki init` 会注入的一组普适规则。
  *
  * 设计约束：
  * - source = "preset"
@@ -10,8 +10,8 @@ import type { KnowledgeEntry } from "@teamagent/types";
  *   wrong_pattern；只在 CLAUDE.md 里展示供 AI 参考
  * - confidence=0.6（suggest 档）：新用户可以按自己习惯 override/archive
  *
- * 如何修改：直接编辑本文件。用户可以在 init 后 `teamagent review` 看到、
- * 用 `teamagent pitfall` 记录自己的替代版本覆盖。
+ * 如何修改：直接编辑本文件。用户可以在 init 后 `viki review` 看到、
+ * 用 `viki pitfall` 记录自己的替代版本覆盖。
  */
 export function getMetaPrinciples(
   now: () => Date = () => new Date(),

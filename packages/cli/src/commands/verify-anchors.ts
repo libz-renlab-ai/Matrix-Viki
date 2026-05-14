@@ -83,7 +83,7 @@ export function parseVerifyAnchorsArgs(argv: string[]): VerifyAnchorsOptions {
       const base = a.split("=")[0]!;
       if (!KNOWN_FLAGS.has(base)) {
         throw new VerifyAnchorsArgError(
-          `verify-anchors: unknown flag "${a}". Run 'teamagent --help' for valid flags.`,
+          `verify-anchors: unknown flag "${a}". Run 'viki --help' for valid flags.`,
         );
       }
     }
@@ -365,7 +365,7 @@ export async function executeVerifyAnchors(
 
 export function renderVerifyAnchorsTerminal(r: VerifyAnchorsResult): string {
   const lines: string[] = [];
-  lines.push("📐 TeamAgent verify-anchors");
+  lines.push("📐 Viki verify-anchors");
   lines.push(`   source: ${r.claudeMdPath}`);
   lines.push("");
   for (const v of r.validations) {

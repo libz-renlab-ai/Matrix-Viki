@@ -1,4 +1,4 @@
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 /**
  * 置信度校准器：根据一条知识条目过去发生过的事件，算出更新后的

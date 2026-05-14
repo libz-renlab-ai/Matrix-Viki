@@ -167,7 +167,7 @@ ${ruleRows}
 node scripts/render-verification-html.js</code></pre>
 
 <div class="foot">
-Local pop-open copy: <code>/tmp/teamagent/issue-427/verification-&lt;ts&gt;.html</code> (per POP-OPEN-HTML rule). Committed to PR branch at <code>docs/plans/2026-05-13-issue-427-claude-md-slim/verification.html</code>. Reviewer can open via <code>raw.githack.com</code> URL in PR body or by cloning the branch.
+Local pop-open copy: <code>/tmp/viki/issue-427/verification-&lt;ts&gt;.html</code> (per POP-OPEN-HTML rule). Committed to PR branch at <code>docs/plans/2026-05-13-issue-427-claude-md-slim/verification.html</code>. Reviewer can open via <code>raw.githack.com</code> URL in PR body or by cloning the branch.
 </div>
 
 </body>

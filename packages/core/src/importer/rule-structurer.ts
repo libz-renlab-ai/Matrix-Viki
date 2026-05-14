@@ -1,5 +1,5 @@
-import type { KnowledgeEntry } from "@teamagent/types";
-import type { AttributionBus } from "@teamagent/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import type { AttributionBus } from "@viki/ports";
 import { llmBasedKnowledgeExtractor } from "../extractor/llm-based.js";
 
 /**

@@ -6,8 +6,8 @@ import type {
   TierTransition,
   DeltaStep,
   Validator,
-} from "@teamagent/ports";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 export interface CalibrationV2Deps {
   calibrator: CalibratorV2;
@@ -106,7 +106,7 @@ export async function runCalibrationPipelineV2(
         const l1 = await deps
           .validator
           .validateLevel1({ entry, similarRules: similar }, deps.callLLM)
-          .catch((e): import("@teamagent/ports").ValidationLLMResult => ({
+          .catch((e): import("@viki/ports").ValidationLLMResult => ({
             ok: false,
             confidence: 0,
             reason: `validator_l1_error: ${String(e).slice(0, 120)}`,
@@ -161,7 +161,7 @@ export async function runCalibrationPipelineV2(
             { entry, recentHits, existingSeniorRules: seniors },
             deps.callLLM,
           )
-          .catch((e): import("@teamagent/ports").ValidationLLMResult => ({
+          .catch((e): import("@viki/ports").ValidationLLMResult => ({
             ok: false,
             confidence: 0,
             reason: `validator_l2_error: ${String(e).slice(0, 120)}`,

@@ -19,7 +19,7 @@
  *   6. user-visible attribution 通过 `ctx.bus.emit({ kind: "hook-pre.matched"|
  *      "hook-pre.passed", ... })` 发，由 shell 注入的 StdoutRenderer 渲染。
  *
- * Matcher 策略（feature-flag via TEAMAGENT_MATCHER env var）：
+ * Matcher 策略（feature-flag via VIKI_MATCHER env var）：
  *   default / "semantic" : 先走 semanticMatch（XenovaRuleEmbedder +
  *                          SqliteSemanticRetriever），失败时自动降级到 legacy
  *                          keyword matcher
@@ -37,9 +37,9 @@ import {
   SqliteToolRetriever,
   type DualLayerStore,
   type SqliteEventLog,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import { DaemonFirstEmbedder } from "./daemon-first-embedder.js";
-import { matchRulesAsync, semanticMatch } from "@teamagent/core";
+import { matchRulesAsync, semanticMatch } from "@viki/core";
 import { runHook } from "./hook-shell/index.js";
 import { buildToolActionSummary } from "./pre-tool-use-context.js";
 import { mergeSemanticAndLegacyMatches } from "./pre-tool-use-merge.js";
@@ -91,11 +91,11 @@ async function main(): Promise<void> {
       return { kind: "ok", input: raw as PreToolUseHookInput };
     },
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // PreToolUse hook returns an unconditional allow without touching
       // matcher / retriever / attribution, so paired TB-ON vs TB-OFF
       // ablation runs see zero TB-side token cost.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return { permissionDecision: "allow" };
       }
 
@@ -112,14 +112,14 @@ async function main(): Promise<void> {
       //   - crashed warmup: status="downloading" but pid is dead (stale)
       //   - failed warmup: status="failed"
       //   - missing state: never ran (treat as not ready)
-      // The user can still force legacy with TEAMAGENT_MATCHER=legacy. When
+      // The user can still force legacy with VIKI_MATCHER=legacy. When
       // the detached warmup completes and writes status="ready", the very
       // next PreToolUse invocation reads the new value and switches to
       // semantic. Per ADR-0008 Q3, this stays channel-specific (in handler)
       // rather than sinking to the shell.
       const warmup = describeWarmupReadiness(defaultWarmupStatePath(ctx.home));
       const explicitlyLegacy =
-        (ctx.env.TEAMAGENT_MATCHER ?? "").toLowerCase() === "legacy";
+        (ctx.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy";
       const useLegacy = explicitlyLegacy || !warmup.ready;
 
       const store = ctx.store as unknown as DualLayerStore;
@@ -162,9 +162,9 @@ async function main(): Promise<void> {
               const projectRetriever = new SqliteSemanticRetriever(projectDb);
               const globalRetriever = new SqliteSemanticRetriever(globalDb);
 
-              let projectPersonalResults: import("@teamagent/core").SemanticMatch[];
-              let projectTeamResults: import("@teamagent/core").SemanticMatch[];
-              let globalResults: import("@teamagent/core").SemanticMatch[];
+              let projectPersonalResults: import("@viki/core").SemanticMatch[];
+              let projectTeamResults: import("@viki/core").SemanticMatch[];
+              let globalResults: import("@viki/core").SemanticMatch[];
               try {
                 [projectPersonalResults, projectTeamResults, globalResults] =
                   await Promise.all([
@@ -202,7 +202,7 @@ async function main(): Promise<void> {
               ];
 
               // 工具操作语义检索（查 knowledge_tool_vec）
-              let toolResults: import("@teamagent/core").SemanticMatch[] = [];
+              let toolResults: import("@viki/core").SemanticMatch[] = [];
               try {
                 const toolProjectDb = openDb(ctx.paths.projectDbPath);
                 const toolGlobalDb = openDb(ctx.paths.globalDbPath);
@@ -252,27 +252,27 @@ async function main(): Promise<void> {
             } catch (_semErr) {
               // Silent fallback to legacy on any semantic error.
               // B-147 (preserved through merge): emit a one-liner reason; full
-              // stack only when TEAMAGENT_HOOK_DEBUG=1 (otherwise users see a
+              // stack only when VIKI_HOOK_DEBUG=1 (otherwise users see a
               // 30-line Node crash dump every PreToolUse when onnxruntime-node
               // is missing).
               const msg =
                 _semErr instanceof Error ? _semErr.message : String(_semErr);
-              if (process.env.TEAMAGENT_HOOK_DEBUG === "1") {
+              if (process.env.VIKI_HOOK_DEBUG === "1") {
                 const stack =
                   (_semErr instanceof Error ? _semErr.stack : String(_semErr)) ??
                   String(_semErr);
                 process.stderr.write(
-                  `teamagent pre-hook: semantic match failed, falling back to legacy: ${stack}\n`,
+                  `viki pre-hook: semantic match failed, falling back to legacy: ${stack}\n`,
                 );
               } else {
                 process.stderr.write(
-                  `teamagent pre-hook: semantic match unavailable (${msg.slice(0, 200)}); using legacy keyword matcher\n`,
+                  `viki pre-hook: semantic match unavailable (${msg.slice(0, 200)}); using legacy keyword matcher\n`,
                 );
               }
             }
           }
 
-          // --- Legacy keyword path (default fallback or TEAMAGENT_MATCHER=legacy) ---
+          // --- Legacy keyword path (default fallback or VIKI_MATCHER=legacy) ---
           return { matched: legacyMatches };
         },
       };
@@ -320,7 +320,7 @@ async function main(): Promise<void> {
 
       // CC 2.1.x systemMessage UI 渲染回归 (issue #50542): 终端不再显示 hook 的
       // systemMessage。镜像到 stderr 作为 workaround；CC 在 verbose / debug 模式
-      // 下会展示 hook stderr。可用 TEAMAGENT_HOOK_STDERR=0 关闭（由 shell 处理）。
+      // 下会展示 hook stderr。可用 VIKI_HOOK_STDERR=0 关闭（由 shell 处理）。
       if (result.systemMessage) {
         ctx.mirrorSystemMessage(result.systemMessage);
       }

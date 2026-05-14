@@ -1,6 +1,6 @@
 import { spawn as nodeSpawn } from "node:child_process";
-import type { MarketplaceSpec, PluginSpec } from "@teamagent/core";
-import { formatPluginSpec } from "@teamagent/core";
+import type { MarketplaceSpec, PluginSpec } from "@viki/core";
+import { formatPluginSpec } from "@viki/core";
 
 export type PluginCmdResult =
   | { kind: "exit"; code: number; stdout: string; stderr: string }

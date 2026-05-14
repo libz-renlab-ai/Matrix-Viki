@@ -121,7 +121,7 @@ describe("formatInjectionText", () => {
         confidence: 0.9,
       }),
     ]);
-    expect(text).toContain("TeamAgent");
+    expect(text).toContain("Viki");
     expect(text).toContain("n1");
     expect(text).toContain("all-fixed-claim");
     expect(text).toContain("show evidence");

@@ -2,13 +2,13 @@
  * 团队标准插件 bundle —— 与项目级 `.claude/settings.json` 的 enabledPlugins
  * 保持一致；`.claude/settings.json` 是 source of truth，本文件镜像它。
  *
- * `teamagent install-plugins` 按本列表依次:
+ * `viki install-plugins` 按本列表依次:
  *   1. 注册 marketplace（`claude plugin marketplace add`）
  *   2. 安装各 plugin（`claude plugin install <plugin>@<marketplace>`）
  *
  * 修改方式：同步更新本文件 + `.claude/settings.json:enabledPlugins`，
  * 二者必须保持一致。单用户可以 `--plugins=<list>` 或
- * `teamagent plugin uninstall` 运行时覆盖。
+ * `viki plugin uninstall` 运行时覆盖。
  */
 
 export interface MarketplaceSpec {

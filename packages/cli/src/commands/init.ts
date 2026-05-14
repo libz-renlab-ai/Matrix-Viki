@@ -2,7 +2,7 @@ import {
   duckifyText,
   parseChangelog,
   renderWhatsNewTail,
-} from "@teamagent/core";
+} from "@viki/core";
 import { loadBundledChangelog } from "../changelog-loader.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,7 +16,7 @@ import {
   openDb,
   ClaudePluginInstaller,
   makeSkillCompiler,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   executeInstallPlugins,
   type InstallPluginsResult,
@@ -36,21 +36,21 @@ import {
   type ObservedFile,
   type ObservedFiles,
   type StaticUserSkillTarget,
-} from "@teamagent/core";
+} from "@viki/core";
 import {
   executePackAdd,
   readPackRegistry,
   resolvePacksDir,
 } from "./pack.js";
-import type { LLMClient } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
-import { computeEnforcement } from "@teamagent/types";
+import type { LLMClient } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import { computeEnforcement } from "@viki/types";
 import { auditOrphanShellHooks, installHook } from "./install-hook.js";
 import {
-  CHECK_TEAMAGENT_SH_CONTENT,
+  CHECK_VIKI_SH_CONTENT,
   REQUIRED_JSON_CONTENT,
 } from "./required-check.js";
-import { findTeamagentRoot } from "../lib/walk-up.js";
+import { findVikiRoot } from "../lib/walk-up.js";
 
 export interface InitOptions {
   cwd?: string;
@@ -73,14 +73,14 @@ export interface InitOptions {
   skipHook?: boolean;
   /**
    * Issue #161 — Layer 1 viral install. When `true` (default), `installHook`
-   * also writes the TeamAgent hook entries to `~/.claude/settings.json` so
+   * also writes the Viki hook entries to `~/.claude/settings.json` so
    * Claude Code launched from any cwd (including sub-directories) registers
    * the project's hooks. CLI escape hatch: `--no-user-level-hook`.
    */
   userLevelHook?: boolean;
   /**
    * Issue #161 follow-up: skip the nested-init guard. Default false. Use only
-   * when you really do want to create a child .teamagent/ inside an already-
+   * when you really do want to create a child .viki/ inside an already-
    * initialized parent (e.g. testing, monorepo subproject with intentional
    * isolation).
    */
@@ -97,7 +97,7 @@ export interface InitOptions {
    * When unset, init prints the versioned markdown prompt described by ADR 0002.
    */
   pack?: string;
-  /** Override registry directory (tests inject; production resolves via seed path walk + TEAMAGENT_PACKS_DIR). */
+  /** Override registry directory (tests inject; production resolves via seed path walk + VIKI_PACKS_DIR). */
   packsDir?: string;
   /**
    * Opt-in：装团队标配 plugins（与项目级 `.claude/settings.json:enabledPlugins` 同步）。
@@ -163,7 +163,7 @@ const MIRROR_CLAIM_STEP = `mirror-${CLAIM_TO_MERGE_SKILL_ID}-skill` as const;
  * Step key for the broader static-user-skills mirror (docs/INIT-PROPAGATION.md).
  * Distinct from MIRROR_CLAIM_STEP because this one targets the top-level
  * ~/.claude/skills/<name>/ and ~/.codex/skills/<name>/ (not the
- * ~/.claude/skills/teamagent/<name>/ namespace).
+ * ~/.claude/skills/viki/<name>/ namespace).
  */
 const STATIC_USER_SKILLS_STEP = "mirror-static-user-skills" as const;
 
@@ -186,16 +186,16 @@ function resolvePaths(opts: InitOptions) {
     home,
     cwd,
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
     claudeMdPath: opts.claudeMdPath ?? path.join(cwd, "CLAUDE.md"),
     agentsMdPath: opts.agentsMdPath ?? path.join(cwd, "AGENTS.md"),
     skillsDir:
       opts.skillsDir ??
-      process.env["TEAMAGENT_SKILLS_DIR"] ??
-      path.join(home, ".claude", "skills", "teamagent"),
-    installLogPath: path.join(home, ".teamagent", ".install-log"),
+      process.env["VIKI_SKILLS_DIR"] ??
+      path.join(home, ".claude", "skills", "viki"),
+    installLogPath: path.join(home, ".viki", ".install-log"),
   };
 }
 
@@ -231,20 +231,20 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
   const steps: InitStepResult[] = [];
 
   // Issue #161 follow-up (PR #181 /review finding #5):
-  // If an ancestor directory already has a teamagent project (.teamagent/knowledge.db
-  // + project marker), refuse to create a duplicate child .teamagent/. The user
+  // If an ancestor directory already has a viki project (.viki/knowledge.db
+  // + project marker), refuse to create a duplicate child .viki/. The user
   // almost certainly meant to operate on the existing parent project.
   //
   // Escape hatch: --force-nested-init (opts.force === true).
   if (!opts.force) {
-    const ancestor = findTeamagentRoot(paths.cwd, { homeDir: paths.home });
+    const ancestor = findVikiRoot(paths.cwd, { homeDir: paths.home });
     if (ancestor !== null && ancestor !== paths.cwd) {
       const failedStep: InitStepResult = {
         step: "nested-init-guard",
         status: "failed",
         detail:
-          `detected ancestor TeamAgent project at ${ancestor}; refusing to ` +
-          `create duplicate .teamagent/ in ${paths.cwd} — cd to the project root ` +
+          `detected ancestor Viki project at ${ancestor}; refusing to ` +
+          `create duplicate .viki/ in ${paths.cwd} — cd to the project root ` +
           `or use --force-nested-init to override.`,
       };
       return finalize(false, dryRun, [failedStep], emptySummary());
@@ -295,7 +295,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // Issue #291: Codex hooks installer. Independent of Claude installer above —
   // `target=both` runs BOTH branches; `target=codex` only runs this branch.
-  // Honors --skipHook symmetrically. Idempotent via `_teamagentTag` per entry;
+  // Honors --skipHook symmetrically. Idempotent via `_vikiTag` per entry;
   // never clobbers user-edited untagged hooks (structured merge in
   // applyCodexHooksMerge below). Grill §14 partial-success semantics: if this
   // step fails, Claude install above already succeeded → init still finalizes
@@ -304,8 +304,8 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
     steps.push(doInstallCodexHooks(paths, dryRun));
   }
 
-  // Issue #284 slice 1: write `.teamagent/required.json` and
-  // `.claude/hooks/check-teamagent.sh` for Claude targets. Independent of
+  // Issue #284 slice 1: write `.viki/required.json` and
+  // `.claude/hooks/check-viki.sh` for Claude targets. Independent of
   // --skip-hook because these are repo-committed enforcement artifacts, not
   // the compiled PreToolUse bundle that --skip-hook gates. Idempotent: a
   // re-run produces no file changes when content is byte-identical.
@@ -331,7 +331,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
     opts.skipWarmup === true ||
     dryRun ||
     process.env["NODE_ENV"] === "test" ||
-    process.env["TEAMAGENT_SKIP_WARMUP"] === "1";
+    process.env["VIKI_SKIP_WARMUP"] === "1";
   // ADR 0001 §opt-in: default install does NOT pull @xenova/transformers +
   // onnxruntime-node (npm 10 ignores --omit=optional for tarball installs, so
   // they're absent from package.json entirely). Skip warmup entirely when the
@@ -340,8 +340,8 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
   // permanently in-flight.
   const haveVectorOptionals = (() => {
     try {
-      // Same bounded resolution policy as packages/teamagent/postinstall.mjs:
-      // peer to teamagent (npm hoist) or local under teamagent/node_modules.
+      // Same bounded resolution policy as packages/viki/postinstall.mjs:
+      // peer to viki (npm hoist) or local under viki/node_modules.
       // Both @xenova/transformers AND onnxruntime-node must be present; if only
       // @xenova is found (e.g. installed globally elsewhere) warmup would spawn
       // and immediately fail because onnxruntime is the actual runtime dep.
@@ -416,15 +416,15 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
     steps.push({
       step: "warmup",
       status: "skipped",
-      detail: "vector deps 未在 node_modules 中找到 (issue #164 / PR #227 起默认进 dependencies); 重装 teamagent 恢复",
+      detail: "vector deps 未在 node_modules 中找到 (issue #164 / PR #227 起默认进 dependencies); 重装 viki 恢复",
     });
   } else {
     // Issue #91: default to detached (two-stage) warmup so init returns to
     // the shell prompt within ~30s. The legacy foreground path is preserved
-    // behind TEAMAGENT_FOREGROUND_WARMUP=1 (escape hatch for users who want
+    // behind VIKI_FOREGROUND_WARMUP=1 (escape hatch for users who want
     // PR #113's visible-progress behavior + a synchronous "model ready"
     // guarantee at end of init).
-    const useForegroundWarmup = process.env["TEAMAGENT_FOREGROUND_WARMUP"] === "1";
+    const useForegroundWarmup = process.env["VIKI_FOREGROUND_WARMUP"] === "1";
     if (useForegroundWarmup) {
       try {
         const { runWarmup } = await import("./warmup.js");
@@ -435,7 +435,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
           step: "warmup",
           status: w.ok ? "ok" : "failed",
           detail: w.ok
-            ? `模型预热 ${w.durationMs}ms (foreground; TEAMAGENT_FOREGROUND_WARMUP=1)`
+            ? `模型预热 ${w.durationMs}ms (foreground; VIKI_FOREGROUND_WARMUP=1)`
             : `预热失败：${w.error ?? "unknown"}`,
         });
       } catch (err) {
@@ -458,7 +458,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
 
   // ---------- Phase C: Pack management (ADR 0002) ----------
   // Run BEFORE appendInstallLog and totalActive computation so that:
-  //   1. load-pack / pack-prompt steps land in ~/.teamagent/.install-log
+  //   1. load-pack / pack-prompt steps land in ~/.viki/.install-log
   //      (audit trail covers pack failures too — Codex review #110 P2).
   //   2. summary.totalActiveEntries reflects pack-added rules (otherwise
   //      callers see a stale count — Codex review #110 P2).
@@ -524,7 +524,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
       steps.push(
         okStep(
           "pack-prompt",
-          "ℹ️  暂无 stack packs 可用（teamagent pack list 查看）",
+          "ℹ️  暂无 stack packs 可用（viki pack list 查看）",
         ),
       );
     } else {
@@ -638,13 +638,13 @@ function runPreChecks(
     return failStep("pre-check", `项目目录不存在: ${paths.cwd}`);
   }
   try {
-    const tDir = path.join(paths.home, ".teamagent");
+    const tDir = path.join(paths.home, ".viki");
     fs.mkdirSync(tDir, { recursive: true });
     const probe = path.join(tDir, `.probe-${process.pid}`);
     fs.writeFileSync(probe, "");
     fs.unlinkSync(probe);
   } catch {
-    return failStep("pre-check", "无法创建 ~/.teamagent 目录，请检查磁盘权限");
+    return failStep("pre-check", "无法创建 ~/.viki 目录，请检查磁盘权限");
   }
   // #445: only probe CLAUDE.md / AGENTS.md readability when --structure opts in
   // to LLM rule import. Default init does not read those files, so an unreadable
@@ -695,18 +695,18 @@ function doCreateDirs(
   }
   try {
     for (const d of toCreate) fs.mkdirSync(d, { recursive: true });
-    // Issue #161 follow-up (PR #181 round-2 finding #9): write a TeamAgent-
-    // managed `.teamagent/.project-root` marker so docs-only projects (no
-    // .git, no package.json) are still discoverable by `findTeamagentRoot`
+    // Issue #161 follow-up (PR #181 round-2 finding #9): write a Viki-
+    // managed `.viki/.project-root` marker so docs-only projects (no
+    // .git, no package.json) are still discoverable by `findVikiRoot`
     // when Claude Code is launched from a sub-directory. Idempotent —
     // best-effort, a write failure must NOT abort init.
     try {
-      const marker = path.join(paths.cwd, ".teamagent", ".project-root");
+      const marker = path.join(paths.cwd, ".viki", ".project-root");
       if (!fs.existsSync(marker)) {
         fs.writeFileSync(
           marker,
-          `# TeamAgent project marker — created by \`teamagent init\` on ${new Date().toISOString()}\n` +
-            `# This file makes the project discoverable by findTeamagentRoot from sub-directories.\n`,
+          `# Viki project marker — created by \`viki init\` on ${new Date().toISOString()}\n` +
+            `# This file makes the project discoverable by findVikiRoot from sub-directories.\n`,
           "utf-8",
         );
       }
@@ -759,9 +759,9 @@ function doLoadPresets(
 /**
  * 寻找打包时随 tarball 一起进来的 seed/rules.jsonl。
  * - Dev (source, tsx):  .../packages/cli/src/commands/init.ts
- *                       → .../packages/teamagent/seed/rules.jsonl
- * - Bundled (npm):      .../node_modules/teamagent/dist/init.js (or bin.js)
- *                       → .../node_modules/teamagent/dist/seed/rules.jsonl
+ *                       → .../packages/viki/seed/rules.jsonl
+ * - Bundled (npm):      .../node_modules/viki/dist/init.js (or bin.js)
+ *                       → .../node_modules/viki/dist/seed/rules.jsonl
  */
 function resolveSeedPath(): string | undefined {
   const here = fileURLToPath(import.meta.url);
@@ -770,11 +770,11 @@ function resolveSeedPath(): string | undefined {
     // bundled: <root>/dist/bin.js → <root>/dist/seed/rules.jsonl
     const bundled = path.join(dir, "dist", "seed", "rules.jsonl");
     if (fs.existsSync(bundled)) return bundled;
-    // dev: <root>/packages/teamagent/seed/rules.jsonl — walk up and try
-    const dev = path.join(dir, "packages", "teamagent", "seed", "rules.jsonl");
+    // dev: <root>/packages/viki/seed/rules.jsonl — walk up and try
+    const dev = path.join(dir, "packages", "viki", "seed", "rules.jsonl");
     if (fs.existsSync(dev)) return dev;
     // inside packages/cli/... path — climb to repo root
-    const siblingSeed = path.join(dir, "..", "teamagent", "seed", "rules.jsonl");
+    const siblingSeed = path.join(dir, "..", "viki", "seed", "rules.jsonl");
     if (fs.existsSync(siblingSeed)) return siblingSeed;
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -792,23 +792,23 @@ function parseJsonlEntries(filePath: string): KnowledgeEntry[] {
 }
 
 /**
- * Issue #91: locate the bundled `bin.js` so init.ts can spawn `teamagent
+ * Issue #91: locate the bundled `bin.js` so init.ts can spawn `viki
  * warmup` as a detached child. Searches:
  *   - `<this dir>/bin.js`              (bundled tarball install)
- *   - `<this dir>/.../packages/teamagent/dist/bin.js`  (dev tree)
- *   - `<this dir>/../teamagent/dist/bin.js`            (workspace lift)
+ *   - `<this dir>/.../packages/viki/dist/bin.js`  (dev tree)
+ *   - `<this dir>/../viki/dist/bin.js`            (workspace lift)
  * Returns undefined if no built bin.js exists (dev mode that has not run
  * `pnpm build`); the caller falls back to a clear failure message.
  */
-function resolveTeamAgentBinPath(): string | undefined {
+function resolveVikiBinPath(): string | undefined {
   const here = fileURLToPath(import.meta.url);
   let dir = path.dirname(here);
   for (let i = 0; i < 8; i++) {
     const sibling = path.join(dir, "bin.js");
     if (fs.existsSync(sibling)) return sibling;
-    const dev = path.join(dir, "packages", "teamagent", "dist", "bin.js");
+    const dev = path.join(dir, "packages", "viki", "dist", "bin.js");
     if (fs.existsSync(dev)) return dev;
-    const nested = path.join(dir, "..", "teamagent", "dist", "bin.js");
+    const nested = path.join(dir, "..", "viki", "dist", "bin.js");
     if (fs.existsSync(nested)) return nested;
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -818,7 +818,7 @@ function resolveTeamAgentBinPath(): string | undefined {
 }
 
 /**
- * Issue #91: spawn `teamagent warmup --write-state <state>` as a detached
+ * Issue #91: spawn `viki warmup --write-state <state>` as a detached
  * child. Writes the initial placeholder state synchronously so any reader
  * (PreToolUse, doctor) immediately sees `status="downloading"` rather than
  * the absence of the file.
@@ -826,8 +826,8 @@ function resolveTeamAgentBinPath(): string | undefined {
 async function spawnDetachedWarmup(home: string): Promise<{ ok: boolean; detail: string }> {
   const { writeInitialPlaceholder, defaultWarmupStatePath } = await import("../warmup-state.js");
   const stateFile = defaultWarmupStatePath(home);
-  const teamagentDir = path.dirname(stateFile);
-  fs.mkdirSync(teamagentDir, { recursive: true });
+  const vikiDir = path.dirname(stateFile);
+  fs.mkdirSync(vikiDir, { recursive: true });
   // 1) Placeholder ensures readers cannot observe the moment-of-no-file.
   try {
     writeInitialPlaceholder(stateFile, "Xenova/multilingual-e5-small");
@@ -835,7 +835,7 @@ async function spawnDetachedWarmup(home: string): Promise<{ ok: boolean; detail:
     return { ok: false, detail: `state-file write failed: ${String(err).slice(0, 80)}` };
   }
   // 2) Resolve bin.js.
-  const binPath = resolveTeamAgentBinPath();
+  const binPath = resolveVikiBinPath();
   if (!binPath) {
     return {
       ok: false,
@@ -845,7 +845,7 @@ async function spawnDetachedWarmup(home: string): Promise<{ ok: boolean; detail:
   }
   // 3) Spawn detached. stdio → log file so the parent can return without
   //    inheriting child fds; unref so node event loop can exit cleanly.
-  const logPath = path.join(teamagentDir, "warmup.log");
+  const logPath = path.join(vikiDir, "warmup.log");
   const { spawn } = await import("node:child_process");
   let logFd: number;
   try {
@@ -1119,7 +1119,7 @@ function doAuditOrphanShellHooks(cwd: string, dryRun: boolean): InitStepResult {
     }
     // Soft warning — surface in step detail; non-blocking.
     process.stderr.write(
-      `[teamagent init] 发现 ${orphans.length} 个未引用的 .claude/hooks/*.sh：\n`,
+      `[viki init] 发现 ${orphans.length} 个未引用的 .claude/hooks/*.sh：\n`,
     );
     for (const o of orphans) {
       process.stderr.write(`  - ${o}\n`);
@@ -1139,8 +1139,8 @@ function doAuditOrphanShellHooks(cwd: string, dryRun: boolean): InitStepResult {
 
 /**
  * Issue #284 slice 1: write the two repo-committed enforcement artifacts:
- * - `.teamagent/required.json` (schema/config consumed by `required-check`)
- * - `.claude/hooks/check-teamagent.sh` (bash hook script Claude can invoke
+ * - `.viki/required.json` (schema/config consumed by `required-check`)
+ * - `.claude/hooks/check-viki.sh` (bash hook script Claude can invoke
  *   from `.claude/settings.json`; wiring that entry into settings.json is
  *   slice 2 scope).
  * Idempotent: re-runs that find byte-identical content do not rewrite the
@@ -1153,15 +1153,15 @@ function doWriteRequiredArtifacts(
   if (dryRun) {
     return okStep(
       "write-required-artifacts",
-      "(dry-run) 会写入 .teamagent/required.json 与 .claude/hooks/check-teamagent.sh",
+      "(dry-run) 会写入 .viki/required.json 与 .claude/hooks/check-viki.sh",
     );
   }
   try {
-    const reqPath = path.join(cwd, ".teamagent", "required.json");
-    const shPath = path.join(cwd, ".claude", "hooks", "check-teamagent.sh");
+    const reqPath = path.join(cwd, ".viki", "required.json");
+    const shPath = path.join(cwd, ".claude", "hooks", "check-viki.sh");
     const reqContent =
       JSON.stringify(REQUIRED_JSON_CONTENT, null, 2) + "\n";
-    const shContent = CHECK_TEAMAGENT_SH_CONTENT;
+    const shContent = CHECK_VIKI_SH_CONTENT;
     const reqWritten = writeManagedFile(reqPath, reqContent);
     const shWritten = writeManagedFile(shPath, shContent);
     if (shWritten) {
@@ -1396,9 +1396,9 @@ function doMirrorClaimToMergeSkill(
  * Mirror the four static user-level skills (per `docs/INIT-PROPAGATION.md`)
  * to top-level `~/.claude/skills/<name>/SKILL.md` and
  * `~/.codex/skills/<name>/SKILL.md`. Distinct from
- * `doMirrorClaimToMergeSkill` (which targets a teamagent-namespaced dir).
+ * `doMirrorClaimToMergeSkill` (which targets a viki-namespaced dir).
  *
- * Plan computed by pure `planStaticUserSkillInstall` from @teamagent/core.
+ * Plan computed by pure `planStaticUserSkillInstall` from @viki/core.
  * This shell does the actual fs writes, honoring:
  * - skip-existing (don't overwrite user customizations)
  * - target filter (`--target=claude` / `--target=codex`)
@@ -1505,7 +1505,7 @@ function doLinkCodexFiles(
     {
       linkPath: path.join(paths.cwd, ".codex", "skills"),
       targetPath: paths.skillsDir,
-      label: ".codex/skills -> TeamAgent skills",
+      label: ".codex/skills -> Viki skills",
       targetType: "dir" as const,
     },
   ];
@@ -1513,7 +1513,7 @@ function doLinkCodexFiles(
   if (dryRun) {
     return okStep(
       "link-codex-files",
-      `(dry-run) 会创建软链接: ${links.map((l) => l.label).join(", ")}；会清理旧 TeamAgent AGENTS.md 软链接（如存在）`,
+      `(dry-run) 会创建软链接: ${links.map((l) => l.label).join(", ")}；会清理旧 Viki AGENTS.md 软链接（如存在）`,
     );
   }
 
@@ -1542,22 +1542,22 @@ function doLinkCodexFiles(
  * Issue #291: install project-level Codex hooks to the user's `~/.codex/`.
  *
  * Source of truth: `<project>/.codex/hooks.json` + `<project>/.codex/hooks/*.sh`
- * (committed to repo, contains TeamAgent-owned event registrations).
+ * (committed to repo, contains Viki-owned event registrations).
  *
  * What this function does:
  *   1. Read every hook block from the project `.codex/hooks.json`.
  *   2. Stage each referenced `.codex/hooks/<name>.sh` script into
- *      `~/.teamagent/hooks/codex/<name>.sh` (parallel to Claude's
- *      `~/.teamagent/hooks/bin-*.cjs` staging).
+ *      `~/.viki/hooks/codex/<name>.sh` (parallel to Claude's
+ *      `~/.viki/hooks/bin-*.cjs` staging).
  *   3. Rewrite each command in the loaded hook config to point at the
  *      staged absolute path (so the user-level hooks.json works regardless
  *      of `CODEX_PROJECT_DIR`).
- *   4. Tag each event block with `_teamagentTag: "teamagent:codex-<event>:v1"`
+ *   4. Tag each event block with `_vikiTag: "viki:codex-<event>:v1"`
  *      so re-runs can dedup our entries without touching user-authored ones.
  *   5. Merge into `~/.codex/hooks.json`:
  *      - File absent → write transformed config verbatim.
  *      - File present → for each event, strip blocks whose
- *        `_teamagentTag` starts with `teamagent:codex-`, then append fresh
+ *        `_vikiTag` starts with `viki:codex-`, then append fresh
  *        blocks; preserves all untagged user entries.
  *
  * Grill §15 verdict: idempotent + no clobber, structured merge.
@@ -1566,13 +1566,13 @@ function doLinkCodexFiles(
  * failStep, don't throw); the --strict gating lives in `finalize()`.
  *
  * Out of scope (deferred to follow-up issues, see PR notes):
- *   - `.teamagent/init-state.json` with `installer_version` + `hook_config_hash`
+ *   - `.viki/init-state.json` with `installer_version` + `hook_config_hash`
  *     (grill §15 enhancement — current per-entry tag + content-based diff is
  *     sufficient for #291 acceptance).
  *   - `--strict` exit-code wiring beyond returning step status (CLI bin entry
  *     wires that based on summary).
  *   - `--json` output formatter (CLI bin entry concern, not executeInit).
- *   - `teamagent doctor --target=codex` probe (sibling diagnostic, separate
+ *   - `viki doctor --target=codex` probe (sibling diagnostic, separate
  *     installer signal).
  */
 function doInstallCodexHooks(
@@ -1589,7 +1589,7 @@ function doInstallCodexHooks(
 
   const userCodexDir = path.join(paths.home, ".codex");
   const userCodexHooksPath = path.join(userCodexDir, "hooks.json");
-  const stagedHooksDir = path.join(paths.home, ".teamagent", "hooks", "codex");
+  const stagedHooksDir = path.join(paths.home, ".viki", "hooks", "codex");
 
   let projectConfig: CodexHooksConfig;
   try {
@@ -1650,7 +1650,7 @@ function doInstallCodexHooks(
   }
 
   // Transform: rewrite each command's bash-script path to the staged absolute
-  // path, add _teamagentTag per event block. Project script names referenced
+  // path, add _vikiTag per event block. Project script names referenced
   // via `bash "$root/.codex/hooks/<name>.sh"` get rewritten to
   // `bash "<staged>/<name>.sh"`.
   const transformed: CodexHooksConfig["hooks"] = {};
@@ -1662,7 +1662,7 @@ function doInstallCodexHooks(
         ...h,
         command: rewriteCodexHookCommand(h.command ?? "", stagedHooksDir),
       })),
-      _teamagentTag: `teamagent:codex-${event}:v1`,
+      _vikiTag: `viki:codex-${event}:v1`,
     }));
   }
 
@@ -1679,7 +1679,7 @@ function doInstallCodexHooks(
       }
     } catch (err) {
       // User file is unparseable — back it up rather than clobber. Grill §15.
-      const backup = `${userCodexHooksPath}.bak-teamagent-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+      const backup = `${userCodexHooksPath}.bak-viki-${new Date().toISOString().replace(/[:.]/g, "-")}`;
       try {
         fs.renameSync(userCodexHooksPath, backup);
       } catch {
@@ -1701,7 +1701,7 @@ function doInstallCodexHooks(
   let addedCount = 0;
   for (const event of allEvents) {
     const existing = (userConfig.hooks?.[event] ?? []).filter((b) => {
-      if (typeof b._teamagentTag === "string" && b._teamagentTag.startsWith("teamagent:codex-")) {
+      if (typeof b._vikiTag === "string" && b._vikiTag.startsWith("viki:codex-")) {
         removedCount += 1;
         return false;
       }
@@ -1735,7 +1735,7 @@ function doInstallCodexHooks(
     addedCount;
   return okStep(
     "install-codex-hook",
-    `Codex hook 已写到 ${userCodexHooksPath} (events=${Object.keys(transformed).length}, scripts=${stagedScripts.length}, replaced-old-teamagent=${removedCount}, added=${addedCount}, preserved-user=${preservedUntagged})`,
+    `Codex hook 已写到 ${userCodexHooksPath} (events=${Object.keys(transformed).length}, scripts=${stagedScripts.length}, replaced-old-viki=${removedCount}, added=${addedCount}, preserved-user=${preservedUntagged})`,
   );
 }
 
@@ -1747,7 +1747,7 @@ interface CodexHookEntryRaw {
 interface CodexHookBlock {
   matcher?: string;
   hooks?: CodexHookEntryRaw[];
-  _teamagentTag?: string;
+  _vikiTag?: string;
 }
 interface CodexHooksConfig {
   hooks?: Record<string, CodexHookBlock[]>;
@@ -1797,7 +1797,7 @@ function ensureSymlink(
       if (currentAbs === targetPath) return "already";
       fs.unlinkSync(linkPath);
     } else {
-      const backupPath = `${linkPath}.bak-teamagent-${now().toISOString().replace(/[:.]/g, "-")}`;
+      const backupPath = `${linkPath}.bak-viki-${now().toISOString().replace(/[:.]/g, "-")}`;
       fs.renameSync(linkPath, backupPath);
       fs.symlinkSync(relativeTarget, linkPath, targetType === "dir" ? "junction" : "file");
       return "backed-up";
@@ -1830,7 +1830,7 @@ function isManagedAgentsMdSymlink(paths: ReturnType<typeof resolvePaths>): boole
   if (!target) return false;
   return (
     target === paths.claudeMdPath ||
-    pathIsInsideOrEqual(target, path.join(paths.home, ".claude", "teamagent"))
+    pathIsInsideOrEqual(target, path.join(paths.home, ".claude", "viki"))
   );
 }
 
@@ -1957,7 +1957,7 @@ export function parseInitArgs(argv: string[]): InitOptions {
     } else if (a.startsWith("--home=")) {
       opts.homeDir = parsePathArg("--home", a.slice("--home=".length));
     } else if (a.startsWith("--")) {
-      process.stderr.write(`teamagent init: 忽略未知 flag ${a}\n`);
+      process.stderr.write(`viki init: 忽略未知 flag ${a}\n`);
     }
   }
   return opts;
@@ -2018,13 +2018,13 @@ export function renderInitResult(result: InitResult): string {
   if (result.ok) {
     // Issue #326 RESCOPE item 6 + 7: FIXEDFLOW banner moves BEFORE the
     // success block so the trailing block is the minimal 5-line
-    // "TeamAgent 已就绪 + Next: cd / claude" per grill-spec-acceptance.md
+    // "Viki 已就绪 + Next: cd / claude" per grill-spec-acceptance.md
     // §Implementation summary item 6. Plugin tip and post-init what's-new
-    // tail are gated behind TEAMAGENT_VERBOSE_INIT (kept in source for
+    // tail are gated behind VIKI_VERBOSE_INIT (kept in source for
     // doctor / future --verbose-init flag).
     appendFixedflowBanner(lines);
 
-    const verbose = process.env["TEAMAGENT_VERBOSE_INIT"] === "1";
+    const verbose = process.env["VIKI_VERBOSE_INIT"] === "1";
     if (verbose) {
       const hasAnyCompileTarget = result.steps.some(
         (s) => s.step === "compile-skills" || s.step === "link-codex-files",
@@ -2038,21 +2038,21 @@ export function renderInitResult(result: InitResult): string {
       let next = 1;
       if (hasClaude) lines.push(`  ${next++}. 重新打开 Claude Code（让 hook 生效）`);
       if (hasCodex) lines.push(`  ${next++}. 启动新的 Codex 会话（让 .codex/skills 生效）`);
-      lines.push(`  ${next++}. 运行 teamagent doctor 验证安装`);
-      lines.push(`  ${next++}. 运行 teamagent stats 查看知识库状态`);
+      lines.push(`  ${next++}. 运行 viki doctor 验证安装`);
+      lines.push(`  ${next++}. 运行 viki stats 查看知识库状态`);
       const pluginsInstalled = result.steps.some(
         (s) => s.step === "install-plugins",
       );
       if (hasClaude && !pluginsInstalled) {
         lines.push("");
         lines.push("💡 团队标配插件（与 .claude/settings.json:enabledPlugins 同步）默认不装");
-        lines.push("   需要时运行: teamagent install-plugins");
+        lines.push("   需要时运行: viki install-plugins");
       }
       lines.push("");
     }
 
     lines.push("━".repeat(36));
-    lines.push("✅ TeamAgent 已就绪");
+    lines.push("✅ Viki 已就绪");
     lines.push("");
     lines.push("下一步：");
     lines.push("  cd your-project");
@@ -2060,7 +2060,7 @@ export function renderInitResult(result: InitResult): string {
   } else {
     lines.push("━".repeat(36));
     lines.push("❌ 安装未完成，请修复以上问题后重试");
-    lines.push("   运行 teamagent doctor 获取诊断建议");
+    lines.push("   运行 viki doctor 获取诊断建议");
   }
 
   // Pack prompt — versioned markdown block consumed by the user's coding agent
@@ -2071,14 +2071,14 @@ export function renderInitResult(result: InitResult): string {
     lines.push(result.packPrompt);
   }
 
-  // Issue #225 — post-init "what's new" tail. Gated behind TEAMAGENT_VERBOSE_INIT
+  // Issue #225 — post-init "what's new" tail. Gated behind VIKI_VERBOSE_INIT
   // per issue #326 RESCOPE item 6: success output must be minimal. Function +
-  // helpers stay in source so a future --verbose-init flag or `teamagent doctor`
+  // helpers stay in source so a future --verbose-init flag or `viki doctor`
   // can re-surface them; default success path is the 5-line minimal block.
   if (
     result.ok &&
     !result.dryRun &&
-    process.env["TEAMAGENT_VERBOSE_INIT"] === "1"
+    process.env["VIKI_VERBOSE_INIT"] === "1"
   ) {
     const tail = buildPostInitWhatsNewTail();
     if (tail.length > 0) {
@@ -2099,7 +2099,7 @@ export function renderInitResult(result: InitResult): string {
  *   - no bullets in the range
  *
  * Lives next to renderInitResult so the post-init story stays self-contained;
- * the bullet rendering itself is a pure function in @teamagent/core.
+ * the bullet rendering itself is a pure function in @viki/core.
  */
 function buildPostInitWhatsNewTail(): string {
   let content = "";
@@ -2149,18 +2149,18 @@ function stepLabel(step: string): string {
 }
 
 function friendlyError(raw: string): string {
-  if (raw.includes("ENOENT") && raw.includes(".teamagent")) {
-    return "无法创建 ~/.teamagent 目录，请检查磁盘权限";
+  if (raw.includes("ENOENT") && raw.includes(".viki")) {
+    return "无法创建 ~/.viki 目录，请检查磁盘权限";
   }
   if (raw.includes("sqlite-vec") || raw.includes("extension")) {
-    return "sqlite-vec 扩展加载失败。运行 teamagent doctor 诊断";
+    return "sqlite-vec 扩展加载失败。运行 viki doctor 诊断";
   }
   if (raw.includes("CLAUDE.md") && (raw.includes("EACCES") || raw.includes("不可读"))) {
     return "CLAUDE.md 文件不可读，请检查权限";
   }
   // nested-init-guard detail is already user-actionable (carries ancestor path
   // + --force-nested-init hint); never truncate it.
-  if (raw.includes("ancestor TeamAgent project")) return raw;
+  if (raw.includes("ancestor Viki project")) return raw;
   // For pre-check failures that already have friendly messages, pass through
   if (raw.length < 120) return raw;
   return raw.slice(0, 100) + "...";

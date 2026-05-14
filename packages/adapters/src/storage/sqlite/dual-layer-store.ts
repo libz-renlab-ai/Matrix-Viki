@@ -1,7 +1,7 @@
 import { openDb } from "./schema.js";
 import { SqliteKnowledgeStore } from "./sqlite-knowledge-store.js";
-import type { KnowledgeEntry } from "@teamagent/types";
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { KnowledgeEntry } from "@viki/types";
+import type { RuleEmbedder } from "@viki/ports";
 
 export interface DualLayerStoreConfig {
   projectDbPath: string;
@@ -13,8 +13,8 @@ export interface DualLayerStoreConfig {
 
 /**
  * Q1 决策 C —— 混合双层：
- *   <project>/.teamagent/knowledge.db   ← scope.level=personal/team
- *   ~/.teamagent/global.db              ← scope.level=global
+ *   <project>/.viki/knowledge.db   ← scope.level=personal/team
+ *   ~/.viki/global.db              ← scope.level=global
  *
  * 查询时两层合并。team transport/sync 留到 Phase 4；本地 team scope
  * 存在 project DB 中，用 scope_level 与 personal 分开。

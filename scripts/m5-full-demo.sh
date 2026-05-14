@@ -24,7 +24,7 @@ BARE="$WORK/bare.git"
 echo "[demo] workdir=$WORK"
 
 ta() {
-  ( cd "$REPO" && pnpm teamagent "$@" 2>&1 | grep -v "ExperimentalWarning\|Use \`node --trace-warnings" || true )
+  ( cd "$REPO" && pnpm viki "$@" 2>&1 | grep -v "ExperimentalWarning\|Use \`node --trace-warnings" || true )
 }
 
 # ============ M5-A: Alice infect + push ============
@@ -33,7 +33,7 @@ echo "===== M5-A: Alice infect ====="
 mkdir -p "$ALICE"
 git init -q "$ALICE"
 ( cd "$ALICE" && git config user.name "alice" && git config user.email "alice@test" )
-ta m5-infect --project-root "$ALICE" --author alice --teamagent-version 0.9.4
+ta m5-infect --project-root "$ALICE" --author alice --viki-version 0.9.4
 
 # ============ M5-B: 共享 + 闸门 ============
 echo
@@ -59,8 +59,8 @@ ta m5-share --project-root "$ALICE" \
 
 echo
 echo "===== Alice 项目结构（应只见 R-postpr 进 L2）====="
-ls "$ALICE/.teamagent/team/" 2>/dev/null || true
-ls "$ALICE/.teamagent/team/alice/" 2>/dev/null || true
+ls "$ALICE/.viki/team/" 2>/dev/null || true
+ls "$ALICE/.viki/team/alice/" 2>/dev/null || true
 
 # ============ M5-A: commit + push ============
 echo
@@ -131,8 +131,8 @@ ta m5-share --project-root "$BOB" \
   --rule-id "R-postpr" --scope team --author bob --now "2026-05-06T13:00:00Z"
 
 # 模拟 Alice 收到 Bob 的复活
-mkdir -p "$ALICE/.teamagent/team/bob"
-cp "$BOB/.teamagent/team/bob/R-postpr.json" "$ALICE/.teamagent/team/bob/R-postpr.json"
+mkdir -p "$ALICE/.viki/team/bob"
+cp "$BOB/.viki/team/bob/R-postpr.json" "$ALICE/.viki/team/bob/R-postpr.json"
 
 echo
 echo "===== Alice 端 m5-sync：R-postpr 应该 resurrect 为 alive ====="

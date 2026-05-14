@@ -22,10 +22,10 @@
  * can spot trivial failures without reading the JSON.
  *
  * Probes:
- *   1. build_ok                                   — `pnpm --filter teamagent build` exits 0
- *   2. dist_has_tap_cjs                           — packages/teamagent/dist/bin-digital-twin-tap.cjs exists post-build
+ *   1. build_ok                                   — `pnpm --filter viki build` exits 0
+ *   2. dist_has_tap_cjs                           — packages/viki/dist/bin-digital-twin-tap.cjs exists post-build
  *   3. settings_has_tap_entry                     — fresh sandbox `install-hook` registers DIGITAL_TWIN_TAG Stop entry
- *   4. doctor_exit_code_when_missing              — after deleting tap.cjs, `teamagent doctor` exits non-zero
+ *   4. doctor_exit_code_when_missing              — after deleting tap.cjs, `viki doctor` exits non-zero
  *   5. doctor_stderr_names_file                   — same run, output contains the bundle filename
  *   6. install_exit_code_when_missing             — with tap.cjs still deleted, `install-hook` succeeds (exit 0)
  *   7. install_stderr_warn_line_present           — same run, stderr contains the exact warn line
@@ -88,7 +88,7 @@ function readSettings(homeDir) {
 function hasTagEntry(settings, channel, tag) {
   const list = settings?.hooks?.[channel];
   if (!Array.isArray(list)) return false;
-  return list.some((e) => e?._teamagentTag === tag);
+  return list.some((e) => e?._vikiTag === tag);
 }
 
 const RUN_ID = ulid();
@@ -110,7 +110,7 @@ const REPORT = {
 };
 
 // ─── Probe 1: build ──────────────────────────────────────────────────────────
-const build = runCommand("pnpm", ["--filter", "teamagent", "build"], {
+const build = runCommand("pnpm", ["--filter", "viki", "build"], {
   cwd: REPO_ROOT,
 });
 writeText(path.join(EVIDENCE_DIR, "build.stdout.log"), build.stdout);
@@ -119,7 +119,7 @@ writeText(path.join(EVIDENCE_DIR, "build.exitcode"), String(build.status));
 REPORT.build_ok = build.status === 0;
 
 // ─── Probe 2: dist has tap.cjs ───────────────────────────────────────────────
-const distDir = path.join(REPO_ROOT, "packages", "teamagent", "dist");
+const distDir = path.join(REPO_ROOT, "packages", "viki", "dist");
 const tapPath = path.join(distDir, "bin-digital-twin-tap.cjs");
 REPORT.dist_has_tap_cjs = fs.existsSync(tapPath);
 REPORT.tap_path = tapPath;
@@ -152,7 +152,7 @@ REPORT.install_positive_exit = installPos.status;
 REPORT.settings_has_tap_entry = hasTagEntry(
   settingsPos,
   "Stop",
-  "teamagent-digital-twin-tap",
+  "viki-digital-twin-tap",
 );
 if (settingsPos) {
   writeText(
@@ -203,7 +203,7 @@ writeText(path.join(EVIDENCE_DIR, "install-negative.exitcode"), String(installNe
 
 REPORT.install_exit_code_when_missing = installNeg.status;
 REPORT.install_stderr_warn_line_present =
-  installNeg.stderr.includes("teamagent: skipping channel Stop") &&
+  installNeg.stderr.includes("viki: skipping channel Stop") &&
   installNeg.stderr.includes("bin-digital-twin-tap.cjs") &&
   installNeg.stderr.includes("not found");
 
@@ -215,8 +215,8 @@ if (settingsNeg) {
   );
 }
 REPORT.other_hooks_still_installed_when_missing =
-  hasTagEntry(settingsNeg, "PreToolUse", "teamagent-pre-tool-use") ||
-  hasTagEntry(settingsNeg, "Stop", "teamagent-stop");
+  hasTagEntry(settingsNeg, "PreToolUse", "viki-pre-tool-use") ||
+  hasTagEntry(settingsNeg, "Stop", "viki-stop");
 
 // ─── Restore tap.cjs so subsequent runs / consumers find a clean dist ────────
 if (tapBackup && fs.existsSync(tapBackup)) {

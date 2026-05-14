@@ -31,9 +31,9 @@ function mkTmp(prefix: string) {
 }
 
 describe("defaultWarmupStatePath", () => {
-  it("resolves to <home>/.teamagent/.warmup-state.json", () => {
+  it("resolves to <home>/.viki/.warmup-state.json", () => {
     const p = defaultWarmupStatePath("/tmp/fakehome");
-    expect(p).toBe(path.join("/tmp/fakehome", ".teamagent", ".warmup-state.json"));
+    expect(p).toBe(path.join("/tmp/fakehome", ".viki", ".warmup-state.json"));
   });
 });
 

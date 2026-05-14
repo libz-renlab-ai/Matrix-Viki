@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { matchRules } from "../keyword-matcher.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function rule(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

@@ -8,14 +8,14 @@ import {
   SqliteEventLog,
   openDb,
   makeSkillCompiler,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   detectSensitiveText,
   runCalibrationPipeline,
   defaultCalibrator,
   runCompile,
-} from "@teamagent/core";
-import type { PersistedEvent } from "@teamagent/types";
+} from "@viki/core";
+import type { PersistedEvent } from "@viki/types";
 import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 export interface ReviewCandidatesOptions {
@@ -42,14 +42,14 @@ export async function executeReviewCandidates(
   const home = opts.homeDir ?? os.homedir();
   const cwd = opts.cwd ?? process.cwd();
   const candidatesDbPath =
-    opts.candidatesDbPath ?? path.join(home, ".teamagent", "candidates.db");
+    opts.candidatesDbPath ?? path.join(home, ".viki", "candidates.db");
   const projectDbPath =
-    opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db");
+    opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db");
   const userGlobalDbPath =
-    opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db");
+    opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db");
   const eventsDbPath =
-    opts.eventsDbPath ?? path.join(home, ".teamagent", "events.db");
-  const skillsDir = opts.skillsDir ?? path.join(home, ".claude", "skills", "teamagent");
+    opts.eventsDbPath ?? path.join(home, ".viki", "events.db");
+  const skillsDir = opts.skillsDir ?? path.join(home, ".claude", "skills", "viki");
   const now = opts.now ?? (() => new Date());
   const output = opts.output ?? process.stdout;
   const approveScope = opts.approveScope;
@@ -66,7 +66,7 @@ export async function executeReviewCandidates(
   };
 
   if (!fs.existsSync(candidatesDbPath)) {
-    return "📭 候选队列为空（candidates.db 不存在）。先运行 teamagent scan-errors。\n";
+    return "📭 候选队列为空（candidates.db 不存在）。先运行 viki scan-errors。\n";
   }
 
   const queueDb = openDb(candidatesDbPath);

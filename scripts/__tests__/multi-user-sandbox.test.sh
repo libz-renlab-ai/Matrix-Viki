@@ -11,7 +11,7 @@
 #   - add alice bob carol creates the right per-user tree
 #   - list filled shows three users
 #   - invalid user names (../etc, "a b", "")  are rejected (exit 2)
-#   - init / as both fail with exit 2 when the shared teamagent binary is missing
+#   - init / as both fail with exit 2 when the shared viki binary is missing
 #   - reset removes .sandbox/users/ but keeps .sandbox/
 #
 # Exit codes:
@@ -36,7 +36,7 @@ fi
 TMP="$(mktemp -d -t mu-sandbox-test-XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 
-mkdir -p "$TMP/scripts" "$TMP/packages/teamagent"
+mkdir -p "$TMP/scripts" "$TMP/packages/viki"
 cp "$SRC" "$TMP/scripts/multi-user-sandbox.sh"
 chmod +x "$TMP/scripts/multi-user-sandbox.sh"
 SH="$TMP/scripts/multi-user-sandbox.sh"
@@ -56,7 +56,7 @@ echo "$out" | grep -q "no users" || fail "list-empty should mention 'no users', 
 # ── add three users ──────────────────────────────────────────────────────────
 "$SH" add alice bob carol >/dev/null || fail "add alice bob carol exited non-zero"
 for u in alice bob carol; do
-  for dir in home/.claude home/.teamagent project/.claude project/.codex project/.teamagent; do
+  for dir in home/.claude home/.viki project/.claude project/.codex project/.viki; do
     [[ -d "$TMP/.sandbox/users/$u/$dir" ]] || fail "missing $TMP/.sandbox/users/$u/$dir"
   done
   [[ -f "$TMP/.sandbox/users/$u/.sandbox-user" ]] || fail "missing marker file for $u"

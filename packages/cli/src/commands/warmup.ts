@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import { duckifyText } from "@teamagent/core";
+import { duckifyText } from "@viki/core";
 import {
   writeWarmupState,
   type WarmupState,
@@ -28,7 +28,7 @@ export interface WarmupOptions {
   stateModel?: string;
   /**
    * Issue #160: detect whether @xenova/transformers + onnxruntime-node are
-   * installed alongside teamagent. Returning false triggers a graceful skip
+   * installed alongside viki. Returning false triggers a graceful skip
    * (ok=true skipped=true) instead of an exit=1 failure. Tests inject a fake
    * to exercise the skip path without filesystem mocking.
    */
@@ -52,14 +52,14 @@ export interface WarmupResult {
 /**
  * Default detector for the optional vector deps. Mirrors the AND check in
  * packages/cli/src/commands/init.ts:haveVectorOptionals and
- * packages/teamagent/postinstall.mjs:vectorOptionalsInstalled. Both
+ * packages/viki/postinstall.mjs:vectorOptionalsInstalled. Both
  * @xenova/transformers AND onnxruntime-node must be resolvable; partial
  * installs (only one present) still need the skip path because the runtime
  * fails on missing native bindings.
  */
 function defaultHaveVectorOptionals(): boolean {
-  // Strategy 1: bounded fs walk peer to teamagent (npm hoist) or under
-  // teamagent/node_modules (local install).
+  // Strategy 1: bounded fs walk peer to viki (npm hoist) or under
+  // viki/node_modules (local install).
   try {
     const here = fileURLToPath(import.meta.url);
     let dir = path.dirname(here);
@@ -131,7 +131,7 @@ function defaultHaveVectorOptionals(): boolean {
 function makeProgressRenderer(
   stderr: (msg: string) => void,
   mode: "tty" | "log" | "off",
-): (e: import("@teamagent/adapters").XenovaProgressEvent) => void {
+): (e: import("@viki/adapters").XenovaProgressEvent) => void {
   if (mode === "off") return () => {};
 
   type FileState = { loaded: number; total: number; done: boolean };
@@ -234,13 +234,13 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
   // --- Issue #160: graceful skip when optional vector deps are absent ---
   // Only check when the caller is using the real embedder path (no injection).
   // With a mock embedder (tests), the optional deps don't matter — we trust the
-  // injected behavior. Returning ok=true here lets `teamagent warmup` exit 0
+  // injected behavior. Returning ok=true here lets `viki warmup` exit 0
   // and lets postinstall log `status=skipped` instead of `exit=1`.
   if (!opts.embedder) {
     const haveOptionals = (opts.haveVectorOptionals ?? defaultHaveVectorOptionals)();
     if (!haveOptionals) {
       // Don't trample a live detached warmup: if init/postinstall just spawned
-      // a real download child and we're a manual `teamagent warmup` racing it,
+      // a real download child and we're a manual `viki warmup` racing it,
       // overwriting state="downloading" with state="skipped" would briefly tell
       // bin-pre-tool-use to fall back to legacy until the real child finishes.
       // Read existing state; if a live writer is in flight, leave it alone.
@@ -257,15 +257,15 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
         }
       }
       stderr(
-        "ℹ️  TeamAgent: 跳过向量模型预热 (@xenova/transformers + onnxruntime-node 未在 node_modules 中找到)\n",
+        "ℹ️  Viki: 跳过向量模型预热 (@xenova/transformers + onnxruntime-node 未在 node_modules 中找到)\n",
       );
       stderr(
-        "   issue #164 / PR #227 起向量包已默认进 dependencies；如果未找到说明本次安装不完整。重装即可恢复：npm install -g teamagent\n",
+        "   issue #164 / PR #227 起向量包已默认进 dependencies；如果未找到说明本次安装不完整。重装即可恢复：npm install -g viki\n",
       );
       if (liveDownloadPid === null) {
         // pid=0 (placeholder convention) instead of process.pid: the writing
         // process has already exited by the time anyone reads it, and older
-        // teamagent readers (pre-PR-213) that don't recognize "skipped" fall
+        // viki readers (pre-PR-213) that don't recognize "skipped" fall
         // through to the "downloading" branch — pid=0 is treated as alive
         // (per writeInitialPlaceholder), so they see a soft "downloading"
         // rather than a hard `stale_downloading` FAIL.
@@ -316,9 +316,9 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
 
   let embedder = opts.embedder;
   if (!embedder) {
-    const { XenovaRuleEmbedder } = await import("@teamagent/adapters");
+    const { XenovaRuleEmbedder } = await import("@viki/adapters");
     const renderer = makeProgressRenderer(stderr, mode);
-    const onProgress = (e: import("@teamagent/adapters").XenovaProgressEvent) => {
+    const onProgress = (e: import("@viki/adapters").XenovaProgressEvent) => {
       // Update aggregated counters BEFORE the renderer (renderer also tracks
       // its own state but we cannot read into it; mirroring is cheap).
       if (e.file) {
@@ -342,13 +342,13 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
     embedder = new XenovaRuleEmbedder({ progressCallback: onProgress });
   }
 
-  stderr("⏳ TeamAgent: 预热向量模型 multilingual-e5-small (~120MB)...\n");
+  stderr("⏳ Viki: 预热向量模型 multilingual-e5-small (~120MB)...\n");
   try {
     await embedder.embed(["warmup"]);
     const durationMs = Date.now() - start;
     // 进度条最后一行用 \r 留在那；done 事件后换行 + ✅
     if (mode === "tty") stderr("\n");
-    stderr(`✅ TeamAgent: 模型预热完成 (${durationMs}ms)\n`);
+    stderr(`✅ Viki: 模型预热完成 (${durationMs}ms)\n`);
     tryWriteState({
       status: "ready",
       started_at: startedAtIso,
@@ -361,7 +361,7 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
   } catch (e) {
     if (mode === "tty") stderr("\n");
     const error = (e as Error).message ?? String(e);
-    stderr(`⚠️  TeamAgent: 模型预热失败 (${error})\n`);
+    stderr(`⚠️  Viki: 模型预热失败 (${error})\n`);
     stderr("   不影响安装；首次使用时仍会按需下载。\n");
     tryWriteState({
       status: "failed",

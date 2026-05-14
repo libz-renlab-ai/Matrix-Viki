@@ -1,9 +1,9 @@
 import os from "node:os";
 import path from "node:path";
-import type { LLMClient, RuleEmbedder } from "@teamagent/ports";
-import { openDb, syncRuleVectors } from "@teamagent/adapters";
-import { buildSemanticDescriptions } from "@teamagent/core";
-import { DEFAULT_FIRE_THRESHOLD } from "@teamagent/types";
+import type { LLMClient, RuleEmbedder } from "@viki/ports";
+import { openDb, syncRuleVectors } from "@viki/adapters";
+import { buildSemanticDescriptions } from "@viki/core";
+import { DEFAULT_FIRE_THRESHOLD } from "@viki/types";
 
 export function buildMigrationPrompt(r: {
   trigger: string;
@@ -60,11 +60,11 @@ export async function executeMigrateV6(opts: {
   embedder?: RuleEmbedder;
 }): Promise<{ migrated: number; resurrected: number; skipped: number }> {
   const home = os.homedir();
-  const dbPath = opts.dbPath ?? path.join(home, ".teamagent", "global.db");
+  const dbPath = opts.dbPath ?? path.join(home, ".viki", "global.db");
 
   const db = openDb(dbPath);
 
-  const { ClaudeCodeLLMClient, XenovaRuleEmbedder } = await import("@teamagent/adapters");
+  const { ClaudeCodeLLMClient, XenovaRuleEmbedder } = await import("@viki/adapters");
   const llm: LLMClient | undefined = opts.fast
     ? undefined
     : (opts.llmClient ?? new ClaudeCodeLLMClient({ model: "haiku" }));

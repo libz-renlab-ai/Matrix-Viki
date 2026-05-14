@@ -23,13 +23,13 @@ function makeHandler(rule: any) {
 
 describe("hook block humane format (issue #86)", () => {
   beforeEach(() => {
-    delete process.env.TEAMAGENT_HOOK_ASCII_BOX;
+    delete process.env.VIKI_HOOK_ASCII_BOX;
   });
   afterEach(() => {
-    delete process.env.TEAMAGENT_HOOK_ASCII_BOX;
+    delete process.env.VIKI_HOOK_ASCII_BOX;
   });
 
-  it("default warn shape: 3 lines starting with ⚠️ TeamAgent", async () => {
+  it("default warn shape: 3 lines starting with ⚠️ Viki", async () => {
     const handler = makeHandler({ ...baseRule, enforcement: "warn" });
     const result = await handler({
       hook_event_name: "PreToolUse",
@@ -41,12 +41,12 @@ describe("hook block humane format (issue #86)", () => {
     const msg = result.systemMessage ?? "";
     const lines = msg.split("\n");
     expect(lines.length).toBe(3);
-    expect(lines[0]).toMatch(/^⚠️ TeamAgent 提醒 — /);
+    expect(lines[0]).toMatch(/^⚠️ Viki 提醒 — /);
     expect(lines[1]).toMatch(/^   复制即可: /);
     expect(lines[2]).toMatch(/^   细节: conf=0\.\d+/);
   });
 
-  it("default block shape: 3 lines starting with ⚠️ TeamAgent 拦了一下", async () => {
+  it("default block shape: 3 lines starting with ⚠️ Viki 拦了一下", async () => {
     const handler = makeHandler({ ...baseRule, enforcement: "block" });
     const result = await handler({
       hook_event_name: "PreToolUse",
@@ -58,7 +58,7 @@ describe("hook block humane format (issue #86)", () => {
     const msg = result.systemMessage ?? "";
     const lines = msg.split("\n");
     expect(lines.length).toBe(3);
-    expect(lines[0]).toMatch(/^⚠️ TeamAgent 拦了一下 — /);
+    expect(lines[0]).toMatch(/^⚠️ Viki 拦了一下 — /);
     expect(lines[2]).toMatch(/已触发 \d+ 次/);
   });
 
@@ -103,8 +103,8 @@ describe("hook block humane format (issue #86)", () => {
     expect(result.systemMessage ?? "").not.toContain("Error: ");
   });
 
-  it("TEAMAGENT_HOOK_ASCII_BOX=1 restores legacy box rendering", async () => {
-    process.env.TEAMAGENT_HOOK_ASCII_BOX = "1";
+  it("VIKI_HOOK_ASCII_BOX=1 restores legacy box rendering", async () => {
+    process.env.VIKI_HOOK_ASCII_BOX = "1";
     const handler = makeHandler({ ...baseRule, enforcement: "warn" });
     const result = await handler({
       hook_event_name: "PreToolUse",
@@ -114,7 +114,7 @@ describe("hook block humane format (issue #86)", () => {
     } as any);
 
     const msg = result.systemMessage ?? "";
-    expect(msg).toMatch(/^\+-- TeamAgent 经验提醒 -+\+/);
+    expect(msg).toMatch(/^\+-- Viki 经验提醒 -+\+/);
     expect(msg).toContain("|");
     expect(msg).toMatch(/置信度 0\.\d+/);
   });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getMetaPrinciples } from "../meta-principles.js";
-import { KnowledgeEntrySchema } from "@teamagent/types";
+import { KnowledgeEntrySchema } from "@viki/types";
 
 describe("getMetaPrinciples", () => {
   it("returns exactly 8 entries", () => {

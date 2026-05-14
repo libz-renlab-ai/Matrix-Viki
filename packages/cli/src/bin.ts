@@ -111,7 +111,7 @@ function findPackageVersion(): string {
     if (
       !workspaceRoot &&
       (fs.existsSync(path.join(dir, "pnpm-workspace.yaml")) ||
-        fs.existsSync(path.join(dir, "packages", "teamagent", "package.json")))
+        fs.existsSync(path.join(dir, "packages", "viki", "package.json")))
     ) {
       workspaceRoot = dir;
     }
@@ -123,8 +123,8 @@ function findPackageVersion(): string {
           version?: string;
           bin?: Record<string, string>;
         };
-        // Installed tarball: name=teamagent + bin.teamagent + version.
-        if (pkg.name === "teamagent" && pkg.bin?.["teamagent"] && pkg.version) {
+        // Installed tarball: name=viki + bin.viki + version.
+        if (pkg.name === "viki" && pkg.bin?.["viki"] && pkg.version) {
           return pkg.version;
         }
       } catch {
@@ -138,7 +138,7 @@ function findPackageVersion(): string {
   // Dev fallback: read the publishable package.json directly.
   if (workspaceRoot) {
     try {
-      const tpkgPath = path.join(workspaceRoot, "packages", "teamagent", "package.json");
+      const tpkgPath = path.join(workspaceRoot, "packages", "viki", "package.json");
       const tpkg = JSON.parse(fs.readFileSync(tpkgPath, "utf-8")) as { version?: string };
       if (tpkg.version) return tpkg.version;
     } catch {
@@ -154,11 +154,11 @@ async function main(): Promise<void> {
 
   // Global flags inherited by all subcommands (issue #116):
   // --explain-like-ceo-duck enables duck-mode explanations (中文 cute-duck
-  // alongside engineer jargon). Mirrors env TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK.
+  // alongside engineer jargon). Mirrors env VIKI_EXPLAIN_LIKE_CEO_DUCK.
   const duckCliFlag = "--explain-like-ceo-duck";
   if (rawRest.includes(duckCliFlag)) {
     const envObj = (globalThis as { process: { env: Record<string, string | undefined> } }).process.env;
-    envObj["TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK"] = "1";
+    envObj["VIKI_EXPLAIN_LIKE_CEO_DUCK"] = "1";
   }
   const rest = rawRest.filter((a) => a !== duckCliFlag);
 
@@ -229,21 +229,21 @@ async function main(): Promise<void> {
       process.exit(r.exitCode);
     }
     case "demo": {
-      // Legacy subcommand: teamagent demo hook <tool> <key=value>...
+      // Legacy subcommand: viki demo hook <tool> <key=value>...
       const sub = rest[0];
       if (sub === "hook") {
         const opts = parseDemoHookArgs(rest.slice(1));
         if (!opts) {
           process.stderr.write(
-            "用法: teamagent demo hook <tool> <key=value>... 例: teamagent demo hook Bash 'command=npm install moment'\n" +
-              "多字段：用空格分隔多个 'key=value' 槽位，或传单个 JSON 对象，例: teamagent demo hook Write '{\"file_path\":\"a.js\",\"content\":\"hi\"}'\n",
+            "用法: viki demo hook <tool> <key=value>... 例: viki demo hook Bash 'command=npm install moment'\n" +
+              "多字段：用空格分隔多个 'key=value' 槽位，或传单个 JSON 对象，例: viki demo hook Write '{\"file_path\":\"a.js\",\"content\":\"hi\"}'\n",
           );
           process.exit(1);
         }
         process.stdout.write(executeDemoHook(opts).output);
         return;
       }
-      // Issue #93 modes: teamagent demo / --inline / --record [path]
+      // Issue #93 modes: viki demo / --inline / --record [path]
       const { parseDemoArgs, executeDemo } = await import("./commands/demo.js");
       const demoArgs = parseDemoArgs(rest);
       const r = await executeDemo(demoArgs);
@@ -259,7 +259,7 @@ async function main(): Promise<void> {
         );
       } else {
         process.stdout.write(
-          `✅ Hook 已注册到 Claude Code: ${r.settingsPath}\n  入口: ${r.hookEntry}\n  下次开 Claude Code 时生效。可用 'teamagent demo hook ...' 离线测试。\n`,
+          `✅ Hook 已注册到 Claude Code: ${r.settingsPath}\n  入口: ${r.hookEntry}\n  下次开 Claude Code 时生效。可用 'viki demo hook ...' 离线测试。\n`,
         );
       }
       return;
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
       if (r.removed) {
         process.stdout.write(`✅ Hook 已移除: ${r.settingsPath}\n`);
       } else {
-        process.stdout.write(`未找到 TeamAgent hook 注册。无需移除。\n`);
+        process.stdout.write(`未找到 Viki hook 注册。无需移除。\n`);
       }
       return;
     }
@@ -277,8 +277,8 @@ async function main(): Promise<void> {
       if (rest.includes("--dry-run")) {
         process.stderr.write(
           `install-user-hook 不支持 --dry-run（该命令直接修改 ~/.claude/settings.json）。\n` +
-            `如需查看注册路径，先运行: teamagent install-user-hook 后用 cat ~/.claude/settings.json 查看，` +
-            `或用 teamagent uninstall-user-hook 撤销。\n`,
+            `如需查看注册路径，先运行: viki install-user-hook 后用 cat ~/.claude/settings.json 查看，` +
+            `或用 viki uninstall-user-hook 撤销。\n`,
         );
         process.exit(2);
       }
@@ -326,7 +326,7 @@ async function main(): Promise<void> {
     case "init": {
       if (rest.includes("--help") || rest.includes("-h")) {
         process.stdout.write(
-          "Usage: teamagent init [--dry-run] [--structure] [--skip-import] [--skip-hook]\n" +
+          "Usage: viki init [--dry-run] [--structure] [--skip-import] [--skip-hook]\n" +
           "                      [--skip-seed] [--skip-warmup] [--install-plugins]\n" +
           "                      [--target=claude|codex|both] [--pack <all|name1,name2>]\n" +
           "                      [--no-user-level-hook] [--force-nested-init]\n" +
@@ -350,25 +350,25 @@ async function main(): Promise<void> {
           "  --no-user-level-hook   Issue #161 escape hatch: do NOT register hooks in\n" +
           "                         ~/.claude/settings.json. Default behaviour registers\n" +
           "                         user-level hooks so cc launched from sub-directories\n" +
-          "                         still triggers TeamAgent (project DB resolved via walk-up).\n" +
+          "                         still triggers Viki (project DB resolved via walk-up).\n" +
           "  --force-nested-init    Issue #161 escape hatch: allow `init` to create a\n" +
-          "                         child .teamagent/ even when an ancestor already has\n" +
+          "                         child .viki/ even when an ancestor already has\n" +
           "                         one. Default refuses to avoid duplicate state.\n" +
           "  --cwd=<path>           Override target project dir (default: process.cwd()).\n" +
           "                         Required for third-party judge harnesses that land init\n" +
           "                         on a sandbox without `cd` (Feature ① openable-and-usable).\n" +
           "  --home=<path>          Override user home dir for state files / skills mirror\n" +
           "                         (default: os.homedir()). Use together with --cwd to fully\n" +
-          "                         isolate a fresh-repo smoke run from existing TeamAgent state.\n" +
+          "                         isolate a fresh-repo smoke run from existing Viki state.\n" +
           "\n" +
-          "Scaffolds TeamAgent config in the current project:\n" +
-          "  - Creates .teamagent/ directory and initializes knowledge DB\n" +
+          "Scaffolds Viki config in the current project:\n" +
+          "  - Creates .viki/ directory and initializes knowledge DB\n" +
           "  - Injects meta-principles into global store\n" +
           "  - Imports rules from CLAUDE.md / AGENTS.md / .cursorrules (only with --structure)\n" +
           "  - Registers Claude Code hook (PreToolUse) at project AND user level\n" +
           "  - Exports compiled Skills\n" +
           "\n" +
-          "Run teamagent doctor after init to verify the installation.\n",
+          "Run viki doctor after init to verify the installation.\n",
         );
         return;
       }
@@ -403,9 +403,9 @@ async function main(): Promise<void> {
     case "disable": {
       const r = disable();
       if (r.removed) {
-        process.stdout.write(`✓ Hook 已禁用: ${r.settingsPath}\n  数据保留；用 'teamagent enable' 恢复\n`);
+        process.stdout.write(`✓ Hook 已禁用: ${r.settingsPath}\n  数据保留；用 'viki enable' 恢复\n`);
       } else {
-        process.stdout.write(`未找到已注册的 TeamAgent hook，无需禁用\n`);
+        process.stdout.write(`未找到已注册的 Viki hook，无需禁用\n`);
       }
       return;
     }
@@ -513,10 +513,10 @@ async function main(): Promise<void> {
     case "bug-report": {
       if (rest.includes("--help") || rest.includes("-h")) {
         process.stdout.write(
-          "Usage: teamagent bug-report [--out=path] [--stdout]\n" +
+          "Usage: viki bug-report [--out=path] [--stdout]\n" +
           "\n" +
           "Options:\n" +
-          "  --out=PATH       Write report to PATH (default: ~/.teamagent/bug-reports/...md)\n" +
+          "  --out=PATH       Write report to PATH (default: ~/.viki/bug-reports/...md)\n" +
           "  --stdout         Print report to stdout instead of writing to file\n" +
           "\n" +
           "Generates a diagnostic bug report with system info, tool versions,\n" +
@@ -531,7 +531,7 @@ async function main(): Promise<void> {
       const result = await executeBugReport({
         ...opts,
         cwd: process.cwd(),
-        teamagentVersion: findPackageVersion(),
+        vikiVersion: findPackageVersion(),
       });
       if (opts.stdout) {
         process.stdout.write(result.markdown);
@@ -547,12 +547,12 @@ async function main(): Promise<void> {
       if (rest.length === 0 || rest.includes("--help") || rest.includes("-h")) {
         process.stdout.write(
           "Usage:\n" +
-            "  teamagent pack list [--json]\n" +
-            "  teamagent pack add <names>      e.g. pack add frontend-js,ops-safety\n" +
-            "  teamagent pack remove <names>\n" +
+            "  viki pack list [--json]\n" +
+            "  viki pack add <names>      e.g. pack add frontend-js,ops-safety\n" +
+            "  viki pack remove <names>\n" +
             "\n" +
             "Manages stack packs (per ADR 0002 — agent-driven detection).\n" +
-            "Pack rules are written to ~/.teamagent/global.db with tag pack:<name>.\n",
+            "Pack rules are written to ~/.viki/global.db with tag pack:<name>.\n",
         );
         return;
       }
@@ -644,8 +644,8 @@ async function main(): Promise<void> {
       const sub = rest[0];
       const val = rest[1];
       if (!sub || (sub !== "show" && sub !== "stop-mode")) {
-        console.error('Usage: teamagent config stop-mode <sync|async>');
-        console.error('       teamagent config show');
+        console.error('Usage: viki config stop-mode <sync|async>');
+        console.error('       viki config show');
         process.exit(1);
       }
       try {
@@ -739,7 +739,7 @@ async function main(): Promise<void> {
       return;
     }
     case "doctor": {
-      // Issue #172: `teamagent doctor --help` previously executed doctor
+      // Issue #172: `viki doctor --help` previously executed doctor
       // (because parseDoctorArgs ignored unknown flags). Make `--help`/`-h`
       // print subcommand-specific help and return without running diagnostics.
       if (rest.includes("--help") || rest.includes("-h")) {
@@ -812,8 +812,8 @@ async function main(): Promise<void> {
       if (rest.includes("--help") || rest.includes("-h") || rest[0] === "--help" || rest[0] === "-h") {
         process.stdout.write(
           "Usage:\n" +
-          "  teamagent reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n" +
-          "  teamagent reclassify rollback --audit <audit-id>\n" +
+          "  viki reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n" +
+          "  viki reclassify rollback --audit <audit-id>\n" +
           "\n" +
           "Subcommands:\n" +
           "  apply      Apply a reclassification plan to rule channel/enforcement in knowledge.db\n" +
@@ -838,7 +838,7 @@ async function main(): Promise<void> {
         const planIdx = subArgs.findIndex((a) => a === "--plan");
         const planFile = planIdx >= 0 ? subArgs[planIdx + 1] : undefined;
         if (!planFile) {
-          process.stderr.write("Usage: teamagent reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n");
+          process.stderr.write("Usage: viki reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n");
           process.exit(1);
         }
         const dryRun = subArgs.includes("--dry-run");
@@ -851,7 +851,7 @@ async function main(): Promise<void> {
         const auditIdx = subArgs.findIndex((a) => a === "--audit");
         const auditId = auditIdx >= 0 ? subArgs[auditIdx + 1] : undefined;
         if (!auditId) {
-          process.stderr.write("Usage: teamagent reclassify rollback --audit <audit-id>\n");
+          process.stderr.write("Usage: viki reclassify rollback --audit <audit-id>\n");
           process.exit(1);
         }
         runReclassifyRollback({ auditId });
@@ -859,8 +859,8 @@ async function main(): Promise<void> {
       }
       process.stderr.write(
         "Usage:\n" +
-          "  teamagent reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n" +
-          "  teamagent reclassify rollback --audit <audit-id>\n",
+          "  viki reclassify apply --plan <path> [--dry-run] [--min-conf=0.7]\n" +
+          "  viki reclassify rollback --audit <audit-id>\n",
       );
       process.exit(1);
       return;
@@ -875,94 +875,94 @@ async function main(): Promise<void> {
     case "help": {
       process.stdout.write(
         [
-          "teamagent — TeamAgent CLI",
+          "viki — Viki CLI",
           "",
           "用法:",
-          "  teamagent try                    30 秒一键体验：依次播放 5 个经典 hook 拦截场景（首次安装推荐入口）",
-          "  teamagent skeleton-demo          M0 Walking Skeleton 演示",
-          "  teamagent pitfall                手动记录一条踩坑经验 (交互)",
-          "  teamagent pitfall --non-interactive --trigger=... --wrong=... --correct=... --reason=...",
+          "  viki try                    30 秒一键体验：依次播放 5 个经典 hook 拦截场景（首次安装推荐入口）",
+          "  viki skeleton-demo          M0 Walking Skeleton 演示",
+          "  viki pitfall                手动记录一条踩坑经验 (交互)",
+          "  viki pitfall --non-interactive --trigger=... --wrong=... --correct=... --reason=...",
           "                                   非交互模式 (可选: --category=C|E|S|K --tags=a,b --level=personal|team|global --nature=objective|subjective)",
-          "  teamagent stats [--stuck-in-promotion] [--stuck-days=N] [--explain=<id>]",
+          "  viki stats [--stuck-in-promotion] [--stuck-days=N] [--explain=<id>]",
           "                                   展示知识库统计；--stuck-in-promotion 列出卡在 probation 超 N 天的规则",
-          "  teamagent demo hook <tool> <k=v>...    [advanced] 离线模拟 PreToolUse hook（多字段请用空格分隔多个 slot，或传单个 JSON：'{\"file_path\":\"a\",\"content\":\"b\"}'）",
-          "                                   例：teamagent demo hook Bash 'command=npm install moment'",
-          "                                   例：teamagent demo hook Write file_path=a.js content='console.log(1)'",
-          "  teamagent install-hook           把 PreToolUse hook 注册到当前项目 .claude/settings.local.json",
-          "  teamagent uninstall-hook         移除 PreToolUse hook 注册",
-          "  teamagent install-user-hook      把 SessionStart hook 注册到 ~/.claude/settings.json",
+          "  viki demo hook <tool> <k=v>...    [advanced] 离线模拟 PreToolUse hook（多字段请用空格分隔多个 slot，或传单个 JSON：'{\"file_path\":\"a\",\"content\":\"b\"}'）",
+          "                                   例：viki demo hook Bash 'command=npm install moment'",
+          "                                   例：viki demo hook Write file_path=a.js content='console.log(1)'",
+          "  viki install-hook           把 PreToolUse hook 注册到当前项目 .claude/settings.local.json",
+          "  viki uninstall-hook         移除 PreToolUse hook 注册",
+          "  viki install-user-hook      把 SessionStart hook 注册到 ~/.claude/settings.json",
           "                                   (打开任何新项目时自动 init, 一次装永久生效)",
-          "  teamagent uninstall-user-hook    移除用户级 SessionStart hook 注册",
-          "  teamagent analyze [--session=<id|path>] [--verbose] [--commit]",
+          "  viki uninstall-user-hook    移除用户级 SessionStart hook 注册",
+          "  viki analyze [--session=<id|path>] [--verbose] [--commit]",
           "                                   分析 Claude Code 会话日志，识别纠正时刻+成功信号",
           "                                   --commit: 通过 LLM 提取成知识条目并写入知识库 + 更新 Skills + 调度 docs propagation",
-          "  teamagent review [N] [--scope=personal|team|global]",
+          "  viki review [N] [--scope=personal|team|global]",
           "                                   列出最近 N 条知识（默认 10），供人工复核",
-          "  teamagent init [--dry-run] [--structure] [--skip-hook] [--install-plugins] [--target=claude|codex|both]",
+          "  viki init [--dry-run] [--structure] [--skip-hook] [--install-plugins] [--target=claude|codex|both]",
           "                                   一键安装到当前项目：建目录 + 注入元原则 + 注册集成 + 导出 Skills",
           "                                   默认 target=claude；codex 会创建 .codex/skills 软链接且不注册 Claude hook",
           "                                   --structure: opt-in，从 CLAUDE.md/AGENTS.md/.cursorrules 跑 LLM 结构化导入（消耗订阅额度）；默认不导入",
           "                                   --install-plugins: 同时注册团队标配插件（opt-in，改写用户全局 settings）",
-          "                                   TEAMAGENT_VERBOSE_INIT=1: 在成功输出中恢复 4-step 下一步列表 + plugin tip + 🆕 本次新增 tail",
-          "  teamagent install-codex [--dry-run] [--structure]",
+          "                                   VIKI_VERBOSE_INIT=1: 在成功输出中恢复 4-step 下一步列表 + plugin tip + 🆕 本次新增 tail",
+          "  viki install-codex [--dry-run] [--structure]",
           "                                   Codex 快捷安装：导出 Skills，并创建 .codex/skills 软链接",
           "                                   --structure: 同 init，opt-in LLM 结构化导入；默认不导入、不消耗订阅额度",
-          "  teamagent doctor [--fix [--dry-run]] [--json] [--cwd=<path>] [--help]",
+          "  viki doctor [--fix [--dry-run]] [--json] [--cwd=<path>] [--help]",
           "                                   诊断安装环境（Node版本/Claude Code/sqlite-vec/Hook/CLAUDE.md）",
-          "                                   --fix: 自动修复能修的项；写 CLAUDE.md 前先备份到 ~/.teamagent/backups/",
-          "                                          - 旧版 TEAMAGENT:START 生成块（剥离）",
-          "                                          - 知识库未初始化（teamagent init）",
-          "                                          - hook 未注册（teamagent install-hook）",
-          "                                          配 --dry-run 预览 unified diff，不写入；详细帮助见 `teamagent doctor --help`",
+          "                                   --fix: 自动修复能修的项；写 CLAUDE.md 前先备份到 ~/.viki/backups/",
+          "                                          - 旧版 VIKI:START 生成块（剥离）",
+          "                                          - 知识库未初始化（viki init）",
+          "                                          - hook 未注册（viki install-hook）",
+          "                                          配 --dry-run 预览 unified diff，不写入；详细帮助见 `viki doctor --help`",
           "                                   --json: 输出机器可读 JSON（含 fixOutcomes 与 dryRun 字段）",
-          "  teamagent install-plugins [--dry-run] [--only=a,b] [--scope=user|project|local]",
+          "  viki install-plugins [--dry-run] [--only=a,b] [--scope=user|project|local]",
           "                                   注册团队标配 plugins（与 .claude/settings.json:enabledPlugins 同步）",
           "                                   通过 'claude plugin marketplace add' + 'claude plugin install' 调 CC CLI",
           "                                   默认装全部；--only 限定子集；--dry-run 只预览",
-          "  teamagent disable                临时禁用 Hook（保留数据）",
-          "  teamagent enable                 重新启用 Hook",
-          "  teamagent uninstall [--delete-data] [--dry-run]",
+          "  viki disable                临时禁用 Hook（保留数据）",
+          "  viki enable                 重新启用 Hook",
+          "  viki uninstall [--delete-data] [--dry-run]",
           "                                   完全卸载：移除 Hook 注册 + 清掉 CLAUDE.md 区块；加 --delete-data 同时清数据",
-          "  teamagent calibrate [--days=7] [--dry-run]",
+          "  viki calibrate [--days=7] [--dry-run]",
           "                                   根据 events.jsonl 重算 confidence + 自动归档低分条目",
-          "  teamagent verify [--report=path]",
-          "  teamagent verify-anchors [--claude-md=<path>] [--docs-root=<path>] [--json]",
+          "  viki verify [--report=path]",
+          "  viki verify-anchors [--claude-md=<path>] [--docs-root=<path>] [--json]",
           "                                   静态校验 CLAUDE.md canned-answer anchor 卡的结构完整性",
           "                                   (a) 声明的 grep substring 是否真出现在 anchor sentence；",
           "                                   (b) 全部 N 个锚点 的 N 是否对得上；",
           "                                   (c) 引用的 docs/*.md 路径是否存在；",
           "                                   (d) anchor sentence 是否唯一不重复。",
           "                                   跑 5 个验证场景（踩坑→学习→避坑），输出 PRR/KP 指标",
-          "  teamagent daily [--projects-root=PATH] [--archive] [--format=json|context] [--help]",
+          "  viki daily [--projects-root=PATH] [--archive] [--format=json|context] [--help]",
           "                                   [issue-371] 跨项目扫 ~/.claude/projects 今天活动，输出 member×project 一句话日报骨架",
-          "  teamagent bug-report [--out=path] [--stdout]",
+          "  viki bug-report [--out=path] [--stdout]",
           "                                   生成可附到 issue 的诊断报告：系统信息 + hook 配置 + 原始日志（自动脱敏）",
-          "  teamagent compile [--dry-run] [--skills-only] [--markdown-only] [--force] [--legacy-claude-md] [--target=claude|codex|both]",
+          "  viki compile [--dry-run] [--skills-only] [--markdown-only] [--force] [--legacy-claude-md] [--target=claude|codex|both]",
           "                                   编译 Agent Skills (stable+)；CLAUDE.md 规则块输出已禁用",
           "                                   --legacy-claude-md: 显式恢复旧 CLAUDE.md managed block 输出",
           "                                   --dry-run: 预览将写/删哪些文件，不实际写入",
           "                                   --skills-only / --markdown-only: legacy flags",
-          "  teamagent config stop-mode <sync|async>  切换 Stop hook 运行模式（默认 sync）",
-          "  teamagent config show                    查看当前配置",
-          "  teamagent scan-errors [--mode=efficient|full] [--since=<duration|ISO>] [--min-freq=N] [--dry-run] [--quiet]",
+          "  viki config stop-mode <sync|async>  切换 Stop hook 运行模式（默认 sync）",
+          "  viki config show                    查看当前配置",
+          "  viki scan-errors [--mode=efficient|full] [--since=<duration|ISO>] [--min-freq=N] [--dry-run] [--quiet]",
           "                                   自动采集错误信号 → 提取候选规则 → 写入候选队列",
-          "  teamagent review-candidates [--limit=N] [--approve-scope=personal|team|global]",
+          "  viki review-candidates [--limit=N] [--approve-scope=personal|team|global]",
           "                                   交互式审核候选规则：[a]批准 [r]拒绝 [s]跳过 [q]退出；可把批准项提升为本地 team scope",
-          "  teamagent migrate-v6 [--dry-run] [--limit=N] [--db=<path>]",
+          "  viki migrate-v6 [--dry-run] [--limit=N] [--db=<path>]",
           "                                   迁移旧规则（trigger_description 为空）通过 LLM 生成双描述，并写入 vec0 和 FTS5",
-          "  teamagent migrate-v7 [--dry-run] [--limit=N] [--db=<path>]",
+          "  viki migrate-v7 [--dry-run] [--limit=N] [--db=<path>]",
           "                                   批量为存量规则生成 tool_context_description，并写入 knowledge_tool_vec",
-          "  teamagent pack list [--json]",
+          "  viki pack list [--json]",
           "                                   列出已安装 / 可用的 stack packs（ADR 0002 — agent 决定装哪些）",
-          "  teamagent pack add <names>       例 pack add frontend-js,ops-safety；从 seed/packs/<name>.{jsonl,meta.json} 读取并注入用户全局 store",
-          "  teamagent pack remove <names>    按 tag pack:<name> 过滤删除全局 store 中对应规则",
-          "  teamagent ingest --from-insights <path> | --from-audit | --from-pr <n>",
+          "  viki pack add <names>       例 pack add frontend-js,ops-safety；从 seed/packs/<name>.{jsonl,meta.json} 读取并注入用户全局 store",
+          "  viki pack remove <names>    按 tag pack:<name> 过滤删除全局 store 中对应规则",
+          "  viki ingest --from-insights <path> | --from-audit | --from-pr <n>",
           "                   | --from-git [--since=30d] | --from-ci [--since=30d] | --from-candidates <path>",
           "                                   多源摄入：Claude /insights / npm audit / PR review / git hotspot / CI failure",
           "                                   半自动源加 --dry-run 只产出候选 md 供人工勾选",
           "",
           "环境变量:",
-          "  TEAMAGENT_VISIBILITY=silent|smart|verbose    归因渲染模式（默认 verbose）",
+          "  VIKI_VISIBILITY=silent|smart|verbose    归因渲染模式（默认 verbose）",
           "",
         ].join("\n"),
       );

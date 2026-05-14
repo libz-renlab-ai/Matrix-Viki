@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
  * Out of scope (covered by sibling issues):
  *   - Running the adapter or invoking Codex itself — install-hook
  *     idempotency lives in #292.
- *   - `teamagent init --target=codex/both` parameterization — #291.
+ *   - `viki init --target=codex/both` parameterization — #291.
  *   - hook parity ASCII diagram in hooks-status.md — #293.
  */
 
@@ -105,7 +105,7 @@ describe(".codex/hooks.json (issue #290)", () => {
       "utf8",
     );
     // Issue #290 Acceptance: "no Claude script is mutated". The adapter is
-    // allowed to mention paths into ~/.teamagent/ and dist/, but must not
+    // allowed to mention paths into ~/.viki/ and dist/, but must not
     // poke into the user's .claude/ tree.
     expect(adapter).not.toMatch(/\.claude\//);
   });

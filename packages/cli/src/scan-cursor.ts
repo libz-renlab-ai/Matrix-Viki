@@ -2,16 +2,16 @@
  * Incremental scan cursor for Stop hook pipeline.
  *
  * Persists per-session last_scanned_turn so each Stop only processes new turns.
- * File: .teamagent/scan-cursor.json under project cwd.
+ * File: .viki/scan-cursor.json under project cwd.
  *
  * Shape:
  *   { "sessions": { "<session_id>": { "last_scanned_turn": N, "updated_at": ISO } } }
  */
 import fs from "node:fs";
 import path from "node:path";
-import { findTeamagentRoot } from "./find-teamagent-root.js";
+import { findVikiRoot } from "./find-viki-root.js";
 
-export const CURSOR_FILE_RELATIVE = path.join(".teamagent", "scan-cursor.json");
+export const CURSOR_FILE_RELATIVE = path.join(".viki", "scan-cursor.json");
 
 interface CursorEntry {
   last_scanned_turn: number;
@@ -27,7 +27,7 @@ interface CursorFile {
 const MAX_SEEN_PER_SESSION = 500;
 
 export function getCursorFilePath(cwd: string): string {
-  const root = findTeamagentRoot(cwd);
+  const root = findVikiRoot(cwd);
   return path.join(root, CURSOR_FILE_RELATIVE);
 }
 

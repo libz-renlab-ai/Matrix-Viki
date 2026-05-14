@@ -6,7 +6,7 @@ if [ "${1:-}" = "--dry-run" ]; then
   dry_run=1
 fi
 
-baseline_ms="${TEAMAGENT_INSTALL_BASELINE_MS:-12000}"
+baseline_ms="${VIKI_INSTALL_BASELINE_MS:-12000}"
 
 if [ "$dry_run" -eq 1 ]; then
   node - "$baseline_ms" <<'NODE'
@@ -26,7 +26,7 @@ NODE
 fi
 
 start_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
-pnpm vitest run packages/cli/src/__tests__/install-merge.test.ts --reporter=dot >/tmp/teamagent-ci-install-v4.log
+pnpm vitest run packages/cli/src/__tests__/install-merge.test.ts --reporter=dot >/tmp/viki-ci-install-v4.log
 end_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
 measured_ms=$((end_ms - start_ms))
 
@@ -44,7 +44,7 @@ console.log(JSON.stringify({
   v4_delta_pct: Math.round(delta * 10) / 10,
   v4_ux_noise_deferred: true,
   mode: "vitest",
-  stdout_path: "/tmp/teamagent-ci-install-v4.log"
+  stdout_path: "/tmp/viki-ci-install-v4.log"
 }));
 process.exit(pass ? 0 : 1);
 NODE

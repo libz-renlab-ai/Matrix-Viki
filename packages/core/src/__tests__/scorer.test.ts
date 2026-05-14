@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { scoreEntry } from "../scorer.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeEntry(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

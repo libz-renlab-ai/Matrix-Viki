@@ -1,4 +1,4 @@
-import type { ParsedSession } from "@teamagent/types";
+import type { ParsedSession } from "@viki/types";
 
 /** 成功信号类型。对应 spec v5.2 成功信号表。 */
 export type SuccessSignalType =

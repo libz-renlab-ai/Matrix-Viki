@@ -3,8 +3,8 @@ import type {
   Calibrator,
   KnowledgeStore,
   AttributionBus,
-} from "@teamagent/ports";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 /**
  * 校准 Pipeline 的依赖。所有 IO（store / bus）通过注入；events 列表

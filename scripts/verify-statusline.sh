@@ -3,7 +3,7 @@
 #
 # Inputs (env vars):
 #   RUN_ID      — unique identifier for this harness run (required)
-#   HOMEDIR     — tmp HOME dir with .claude/ wired by teamagent init (required)
+#   HOMEDIR     — tmp HOME dir with .claude/ wired by viki init (required)
 #   PROJECT_DIR — fresh tmp project dir (required)
 #   WAIT_SECS   — seconds to wait for UI to fully render (optional, default: 8)
 #
@@ -43,7 +43,7 @@ mkdir -p "${EVIDENCE_DIR}"
 SNAPSHOT_FILE="${EVIDENCE_DIR}/tmux-statusline.snapshot"
 
 # ── Session name: unique per RUN_ID ──────────────────────────────────────────
-SESSION="teamagent-verify-${RUN_ID}"
+SESSION="viki-verify-${RUN_ID}"
 
 # ── Trap: always kill tmux session on exit (prevents leaks on abort) ─────────
 cleanup() {

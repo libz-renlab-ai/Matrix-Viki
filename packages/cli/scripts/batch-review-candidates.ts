@@ -14,8 +14,8 @@ import {
   SqliteCandidateQueue,
   openDb,
   makeSkillCompiler,
-} from "@teamagent/adapters";
-import { runCalibrationPipeline, defaultCalibrator, runCompile } from "@teamagent/core";
+} from "@viki/adapters";
+import { runCalibrationPipeline, defaultCalibrator, runCompile } from "@viki/core";
 import { scheduleDocsPropagation } from "../src/commands/docs-propagate.js";
 
 function parseCsv(arg: string | undefined): Set<string> {
@@ -43,10 +43,10 @@ async function main(): Promise<void> {
 
   const home = os.homedir();
   const cwd = process.cwd();
-  const candidatesDbPath = path.join(home, ".teamagent", "candidates.db");
-  const projectDbPath = path.join(cwd, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(home, ".teamagent", "global.db");
-  const skillsDir = path.join(home, ".claude", "skills", "teamagent");
+  const candidatesDbPath = path.join(home, ".viki", "candidates.db");
+  const projectDbPath = path.join(cwd, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(home, ".viki", "global.db");
+  const skillsDir = path.join(home, ".claude", "skills", "viki");
 
   const queueDb = openDb(candidatesDbPath);
   const queue = new SqliteCandidateQueue(queueDb);

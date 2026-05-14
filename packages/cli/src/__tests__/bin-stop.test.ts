@@ -22,10 +22,10 @@ vi.mock("../commands/scan-errors.js", () => ({
 vi.mock("../commands/recent-entries.js", () => ({
   getRecentEntries: vi.fn(),
 }));
-// Prevent tests from writing to the real project's .teamagent/last-harvest.md
+// Prevent tests from writing to the real project's .viki/last-harvest.md
 vi.mock("../harvest-writer.js", () => ({
   appendHarvest: vi.fn(),
-  getHarvestPath: vi.fn((cwd: string) => `${cwd}/.teamagent/last-harvest.md`),
+  getHarvestPath: vi.fn((cwd: string) => `${cwd}/.viki/last-harvest.md`),
 }));
 // Prevent tests from touching real scan-cursor.json
 vi.mock("../scan-cursor.js", () => ({
@@ -46,23 +46,23 @@ describe("runStopPipeline", () => {
   // Tests that need analyze to run use this real (empty) transcript file.
   let transcriptPath: string;
   // B-085: redirect logError destination to a tmp dir so test runs don't
-  // append to the developer's real ~/.teamagent/stop-errors.log.
-  let testTeamagentHome: string;
-  let originalTeamagentHome: string | undefined;
+  // append to the developer's real ~/.viki/stop-errors.log.
+  let testVikiHome: string;
+  let originalVikiHome: string | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
     transcriptPath = path.join(os.tmpdir(), `bin-stop-test-${Date.now()}-${Math.random().toString(36).slice(2)}.jsonl`);
     fs.writeFileSync(transcriptPath, "", "utf-8");
-    testTeamagentHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-home-"));
-    originalTeamagentHome = process.env.TEAMAGENT_HOME;
-    process.env.TEAMAGENT_HOME = testTeamagentHome;
+    testVikiHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-home-"));
+    originalVikiHome = process.env.VIKI_HOME;
+    process.env.VIKI_HOME = testVikiHome;
   });
   afterEach(() => {
     try { fs.unlinkSync(transcriptPath); } catch { /* ignore */ }
-    if (originalTeamagentHome === undefined) delete process.env.TEAMAGENT_HOME;
-    else process.env.TEAMAGENT_HOME = originalTeamagentHome;
-    fs.rmSync(testTeamagentHome, { recursive: true, force: true });
+    if (originalVikiHome === undefined) delete process.env.VIKI_HOME;
+    else process.env.VIKI_HOME = originalVikiHome;
+    fs.rmSync(testVikiHome, { recursive: true, force: true });
   });
 
   it("calls analyze with transcript_path and commit=true", async () => {
@@ -73,7 +73,7 @@ describe("runStopPipeline", () => {
       hook_event_name: "Stop",
     };
     await runStopPipeline(input);
-    // issue #243: bin-stop walks up cwd via findTeamagentRoot to locate the
+    // issue #243: bin-stop walks up cwd via findVikiRoot to locate the
     // ancestor knowledge.db (issue #161 fix). Tests run in worktrees nested
     // under the real project root, so the cwd passed to executeAnalyze is
     // the resolved project root, not process.cwd(). Assert structural shape
@@ -101,9 +101,9 @@ describe("runStopPipeline", () => {
   });
 
   // issue #100: Stop hook must never write CLAUDE.md, even if env says legacy=1
-  it("issue #100: passes legacyClaudeMd:false to executeCompile even when TEAMAGENT_LEGACY_CLAUDE_MD=1", async () => {
-    const originalLegacyEnv = process.env.TEAMAGENT_LEGACY_CLAUDE_MD;
-    process.env.TEAMAGENT_LEGACY_CLAUDE_MD = "1";
+  it("issue #100: passes legacyClaudeMd:false to executeCompile even when VIKI_LEGACY_CLAUDE_MD=1", async () => {
+    const originalLegacyEnv = process.env.VIKI_LEGACY_CLAUDE_MD;
+    process.env.VIKI_LEGACY_CLAUDE_MD = "1";
     try {
       const input: StopHookInput = {
         session_id: "issue100-regression",
@@ -116,8 +116,8 @@ describe("runStopPipeline", () => {
         expect.objectContaining({ legacyClaudeMd: false }),
       );
     } finally {
-      if (originalLegacyEnv === undefined) delete process.env.TEAMAGENT_LEGACY_CLAUDE_MD;
-      else process.env.TEAMAGENT_LEGACY_CLAUDE_MD = originalLegacyEnv;
+      if (originalLegacyEnv === undefined) delete process.env.VIKI_LEGACY_CLAUDE_MD;
+      else process.env.VIKI_LEGACY_CLAUDE_MD = originalLegacyEnv;
     }
   });
 
@@ -134,11 +134,11 @@ describe("runStopPipeline", () => {
     expect(executeCompile).toHaveBeenCalled();
   });
 
-  // B-085: logError must respect TEAMAGENT_HOME so that test runs don't
-  // pollute the developer's real ~/.teamagent/stop-errors.log. Failing this
+  // B-085: logError must respect VIKI_HOME so that test runs don't
+  // pollute the developer's real ~/.viki/stop-errors.log. Failing this
   // test means the production log file accumulates ~16 fake entries per
   // bin-stop test run.
-  it("logError writes to TEAMAGENT_HOME, not real ~/.teamagent/", async () => {
+  it("logError writes to VIKI_HOME, not real ~/.viki/", async () => {
     vi.mocked(executeAnalyze).mockRejectedValueOnce(new Error("isolated-analyze-fail"));
     const input: StopHookInput = {
       session_id: "iso-1",
@@ -147,7 +147,7 @@ describe("runStopPipeline", () => {
       hook_event_name: "Stop",
     };
     await runStopPipeline(input);
-    const isolatedLog = path.join(testTeamagentHome, ".teamagent", "stop-errors.log");
+    const isolatedLog = path.join(testVikiHome, ".viki", "stop-errors.log");
     expect(fs.existsSync(isolatedLog)).toBe(true);
     const content = fs.readFileSync(isolatedLog, "utf-8");
     expect(content).toContain("step=analyze");
@@ -265,7 +265,7 @@ describe("runStopPipeline", () => {
     };
     await runStopPipeline(input);
     const combined = stdoutWrites.join("");
-    expect(combined).toContain("✦ TeamAgent 本会话学到 2 条新经验");
+    expect(combined).toContain("✦ Viki 本会话学到 2 条新经验");
     expect(combined).toContain("dayjs");
     expect(combined).toContain("0.92");
     stdoutSpy.mockRestore();
@@ -286,7 +286,7 @@ describe("runStopPipeline", () => {
     };
     await runStopPipeline(input);
     const combined = stdoutWrites.join("");
-    expect(combined).not.toContain("✦ TeamAgent");
+    expect(combined).not.toContain("✦ Viki");
     stdoutSpy.mockRestore();
   });
 });
@@ -302,7 +302,7 @@ describe("isDetachedPipelineInvocation (B-068 env-leak resilience)", () => {
   });
 
   it("returns true when env=1 AND argv[2] is an existing file", () => {
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" };
+    const env = { VIKI_STOP_PIPELINE: "1" };
     const argv = ["/path/to/node", "/path/to/bin-stop.cjs", tmpFile];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(true);
   });
@@ -314,42 +314,42 @@ describe("isDetachedPipelineInvocation (B-068 env-leak resilience)", () => {
   });
 
   it("returns false when env=1 but argv[2] is missing — env was leaked", () => {
-    // This is the real-world bug: TEAMAGENT_STOP_PIPELINE leaks into Claude
+    // This is the real-world bug: VIKI_STOP_PIPELINE leaks into Claude
     // Code's hook spawn, so the foreground hook (no argv[2]) sees env=1 and
     // previously crashed by trying to read argv[2]. Must fall through instead.
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" };
+    const env = { VIKI_STOP_PIPELINE: "1" };
     const argv = ["/path/to/node", "/path/to/bin-stop.cjs"];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(false);
   });
 
   it("returns false when env=1 but argv[2] points to a non-existent file", () => {
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" };
+    const env = { VIKI_STOP_PIPELINE: "1" };
     const ghostPath = path.join(os.tmpdir(), `does-not-exist-${Date.now()}.json`);
     const argv = ["/path/to/node", "/path/to/bin-stop.cjs", ghostPath];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(false);
   });
 
   it("supports custom env key for SessionEnd binary", () => {
-    const env = { TEAMAGENT_SESSION_END_PIPELINE: "1" };
+    const env = { VIKI_SESSION_END_PIPELINE: "1" };
     const argv = ["/path/to/node", "/path/to/bin-session-end.cjs", tmpFile];
-    expect(isDetachedPipelineInvocation(env, argv, "TEAMAGENT_SESSION_END_PIPELINE")).toBe(true);
+    expect(isDetachedPipelineInvocation(env, argv, "VIKI_SESSION_END_PIPELINE")).toBe(true);
     // wrong env key → false
     expect(isDetachedPipelineInvocation(env, argv)).toBe(false);
   });
 
   it("returns false when env value is not exactly '1'", () => {
-    expect(isDetachedPipelineInvocation({ TEAMAGENT_STOP_PIPELINE: "true" }, ["", "", tmpFile])).toBe(false);
-    expect(isDetachedPipelineInvocation({ TEAMAGENT_STOP_PIPELINE: "" }, ["", "", tmpFile])).toBe(false);
-    expect(isDetachedPipelineInvocation({ TEAMAGENT_STOP_PIPELINE: "0" }, ["", "", tmpFile])).toBe(false);
+    expect(isDetachedPipelineInvocation({ VIKI_STOP_PIPELINE: "true" }, ["", "", tmpFile])).toBe(false);
+    expect(isDetachedPipelineInvocation({ VIKI_STOP_PIPELINE: "" }, ["", "", tmpFile])).toBe(false);
+    expect(isDetachedPipelineInvocation({ VIKI_STOP_PIPELINE: "0" }, ["", "", tmpFile])).toBe(false);
   });
 });
 
 describe("runStopPipeline lock file", () => {
   let tmpCwd: string;
   let lockTranscriptPath: string;
-  // B-085: redirect logError destination away from real ~/.teamagent.
-  let lockTestTeamagentHome: string;
-  let lockOriginalTeamagentHome: string | undefined;
+  // B-085: redirect logError destination away from real ~/.viki.
+  let lockTestVikiHome: string;
+  let lockOriginalVikiHome: string | undefined;
   beforeEach(() => {
     vi.clearAllMocks();
     // Restore baseline resolving mocks (earlier describe's mockRejectedValueOnce
@@ -364,19 +364,19 @@ describe("runStopPipeline lock file", () => {
     // B-070: analyze fast-skips when transcript missing; create a real one.
     lockTranscriptPath = path.join(tmpCwd, "transcript.jsonl");
     fs.writeFileSync(lockTranscriptPath, "", "utf-8");
-    lockTestTeamagentHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-home-"));
-    lockOriginalTeamagentHome = process.env.TEAMAGENT_HOME;
-    process.env.TEAMAGENT_HOME = lockTestTeamagentHome;
+    lockTestVikiHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-home-"));
+    lockOriginalVikiHome = process.env.VIKI_HOME;
+    process.env.VIKI_HOME = lockTestVikiHome;
   });
   afterEach(() => {
     fs.rmSync(tmpCwd, { recursive: true, force: true });
-    if (lockOriginalTeamagentHome === undefined) delete process.env.TEAMAGENT_HOME;
-    else process.env.TEAMAGENT_HOME = lockOriginalTeamagentHome;
-    fs.rmSync(lockTestTeamagentHome, { recursive: true, force: true });
+    if (lockOriginalVikiHome === undefined) delete process.env.VIKI_HOME;
+    else process.env.VIKI_HOME = lockOriginalVikiHome;
+    fs.rmSync(lockTestVikiHome, { recursive: true, force: true });
   });
 
   it("writes and deletes lock file during pipeline run", async () => {
-    const lockPath = path.join(tmpCwd, ".teamagent", ".stop-running.lock");
+    const lockPath = path.join(tmpCwd, ".viki", ".stop-running.lock");
     let lockSeenDuringAnalyze = false;
     let lockPayload: { pid?: number; started_at?: string } | null = null;
 
@@ -403,7 +403,7 @@ describe("runStopPipeline lock file", () => {
   });
 
   it("removes lock even if pipeline throws", async () => {
-    const lockPath = path.join(tmpCwd, ".teamagent", ".stop-running.lock");
+    const lockPath = path.join(tmpCwd, ".viki", ".stop-running.lock");
     vi.mocked(executeAnalyze).mockRejectedValueOnce(new Error("boom"));
     vi.mocked(executeCalibrate).mockRejectedValueOnce(new Error("boom2"));
     vi.mocked(executeCompile).mockRejectedValueOnce(new Error("boom3"));

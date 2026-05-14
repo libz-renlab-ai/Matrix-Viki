@@ -15,7 +15,7 @@
  *
  * Core MUST NOT import `node:fs`, `node:child_process`, or read `process.env`.
  */
-import { sanitizeUserFacingText } from "@teamagent/types";
+import { sanitizeUserFacingText } from "@viki/types";
 import { detectCompliedSignals, type OverrideSignalEvent } from "../pipeline/override-signal.js";
 
 /**
@@ -121,7 +121,7 @@ export function createPreToolUseHandler(deps: PreToolUseDeps) {
         const n = typeof deps.ruleCount === "number" ? deps.ruleCount : 0;
         const hits = semanticHits ?? [];
         const hitSummary = hits.length > 0 ? `, 语义命中 ${hits.length} 条` : "";
-        const lines = [`◈ TeamAgent: ✓ ${tool_name} 放行 (检查 ${n} 条规则${hitSummary})`];
+        const lines = [`◈ Viki: ✓ ${tool_name} 放行 (检查 ${n} 条规则${hitSummary})`];
         for (const h of hits) {
           lines.push(`  · [${h.id}] ${sanitizeUserFacingText(h.trigger).slice(0, 40)} (score ${h.score.toFixed(2)})`);
         }
@@ -204,7 +204,7 @@ function relativeTime(dateStr: string, now: Date): string {
 // trigger count / age / rule id into a details suffix.
 //
 // Legacy ASCII-box rendering preserved behind `formatStyle === "ascii-box"`
-// (caller routes from `TEAMAGENT_HOOK_ASCII_BOX=1`) so engineer dogfooders
+// (caller routes from `VIKI_HOOK_ASCII_BOX=1`) so engineer dogfooders
 // who liked the old shape can opt back in.
 function formatWarnMessage(rule: any, now: Date, style: HookFormatStyle): string {
   if (style === "ascii-box") {
@@ -229,7 +229,7 @@ function formatHumaneBlock(rule: any, now: Date, severity: "warn" | "block"): st
   const summary: string = sanitizeUserFacingText(
     rule.summary ?? rule.trigger ?? rule.wrong_pattern ?? "需要注意",
   );
-  const prefix = severity === "block" ? "⚠️ TeamAgent 拦了一下" : "⚠️ TeamAgent 提醒";
+  const prefix = severity === "block" ? "⚠️ Viki 拦了一下" : "⚠️ Viki 提醒";
 
   const firstLine = trimAt(`${prefix} — ${summary}`, 80);
   const suggestionLine = correct
@@ -242,7 +242,7 @@ function formatHumaneBlock(rule: any, now: Date, severity: "warn" | "block"): st
 }
 
 // Local sanitizeRuleText removed in favor of the shared `sanitizeUserFacingText`
-// from `@teamagent/types` (per security-specialist /review on PR #152). Same
+// from `@viki/types` (per security-specialist /review on PR #152). Same
 // behavior; centralizing avoids drift between this systemMessage path and the
 // StdoutRenderer's user-facing event render path.
 
@@ -256,7 +256,7 @@ function formatLegacyWarnBox(rule: any, now: Date): string {
   if (wrong) lines.push(...formatRuleField("避免", wrong));
   if (correct) lines.push(...formatRuleField("使用", correct));
   if (reasoning) lines.push(...formatRuleField("理由", reasoning));
-  return formatAsciiRuleBlock("TeamAgent 经验提醒", lines);
+  return formatAsciiRuleBlock("Viki 经验提醒", lines);
 }
 
 function formatLegacyBlockBox(rule: any, now: Date): string {
@@ -270,7 +270,7 @@ function formatLegacyBlockBox(rule: any, now: Date): string {
   if (wrong) lines.push(...formatRuleField("避免", wrong));
   if (correct) lines.push(...formatRuleField("使用", correct));
   if (reasoning) lines.push(...formatRuleField("理由", reasoning));
-  return formatAsciiRuleBlock("TeamAgent 强烈提醒", lines);
+  return formatAsciiRuleBlock("Viki 强烈提醒", lines);
 }
 
 function trimAt(s: string, max: number): string {

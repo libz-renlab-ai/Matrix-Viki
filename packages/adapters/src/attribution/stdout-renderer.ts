@@ -1,8 +1,8 @@
-import { sanitizeUserFacingText, type AttributionEvent, type VisibilityMode } from "@teamagent/types";
-import type { Renderer } from "@teamagent/ports";
+import { sanitizeUserFacingText, type AttributionEvent, type VisibilityMode } from "@viki/types";
+import type { Renderer } from "@viki/ports";
 
 const DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-const HEADER = "✨ TeamAgent · 本次操作归因";
+const HEADER = "✨ Viki · 本次操作归因";
 
 /**
  * 把 kind 翻译成给用户看的"做了什么"短语。
@@ -179,7 +179,7 @@ export class StdoutRenderer implements Renderer {
         lines.push(`▸ 下次体验: ${sanitizeUserFacingText(e.userFacingValue)}`);
       }
       if (mode === "verbose" && e.counterfactual) {
-        lines.push(`▸ 如果没有 TeamAgent: ${sanitizeUserFacingText(e.counterfactual)}`);
+        lines.push(`▸ 如果没有 Viki: ${sanitizeUserFacingText(e.counterfactual)}`);
       }
     }
 

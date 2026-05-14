@@ -1,5 +1,5 @@
 /**
- * 归因事件——"TeamAgent 帮你做了什么"的结构化表达。
+ * 归因事件——"Viki 帮你做了什么"的结构化表达。
  *
  * 自 PR `teamwork/hookshell-attribution-fused` commit 4 起，AttributionEvent
  * 是按 `kind` 区分的 discriminated union（之前是 `{ source, action: string, ... }`
@@ -14,7 +14,7 @@
  * 按 source 分组）。每个 kind 自己的 payload 字段是 typed，不再用泛 `target`。
  *
  * 可选字段：`userFacingValue`（人话："下次遇到 X 会改用 Y"）、
- * `counterfactual`（反事实："没有 TeamAgent 你会 Z"，仅 verbose 显示）和
+ * `counterfactual`（反事实："没有 Viki 你会 Z"，仅 verbose 显示）和
  * `delivery`（audience+blocking 标签，per ADR-0009，metadata only 不映射
  * 退码）都保持 optional——不是每条 kind 都有人话/不是每条都需要明示
  * audience 意图。
@@ -31,7 +31,7 @@ interface AttributionEventBase {
   timestamp: string;
   /** 对用户有感知价值的一句话："下次遇到 X 会改用 Y" */
   userFacingValue?: string;
-  /** 反事实："没有 TeamAgent 你会 Z"，仅 verbose 模式显示 */
+  /** 反事实："没有 Viki 你会 Z"，仅 verbose 模式显示 */
   counterfactual?: string;
   /**
    * audience+blocking 复合标签 (metadata only, per ADR-0009)：
@@ -49,7 +49,7 @@ interface AttributionEventBase {
 // pitfall channel
 // ──────────────────────────────────────────────────────────────────────────
 
-/** `teamagent pitfall` 录入一条踩坑经验后的归因。 */
+/** `viki pitfall` 录入一条踩坑经验后的归因。 */
 export interface PitfallAddedEvent extends AttributionEventBase {
   kind: "pitfall.added";
   source: "pitfall";
@@ -63,7 +63,7 @@ export interface PitfallAddedEvent extends AttributionEventBase {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// skeleton channel —— `teamagent skeleton-demo` 用
+// skeleton channel —— `viki skeleton-demo` 用
 // ──────────────────────────────────────────────────────────────────────────
 
 export interface SkeletonKnowledgeAddedEvent extends AttributionEventBase {
@@ -377,11 +377,11 @@ export interface UserPromptFlaggedEvent extends AttributionEventBase {
 //
 // 升级流程的 4 个生命周期事件，对应 grill plan 的 4 个 emit 点：
 //   - update-prompt-shown : SessionStart hook 弹 soft-force banner 时
-//   - update-snoozed      : `teamagent update --snooze`
-//   - update-never-set    : `teamagent update --never`
+//   - update-snoozed      : `viki update --snooze`
+//   - update-never-set    : `viki update --never`
 //   - update-installed    : runUpdater 写入新 last_installed_sha 时
 //
-// payload 字段保持小、扁平，便于 `teamagent stats` 与第三方 telemetry 聚合。
+// payload 字段保持小、扁平，便于 `viki stats` 与第三方 telemetry 聚合。
 // 详见 docs/plans/2026-05-10-issue-245/research.md。
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -486,8 +486,8 @@ export type AttributionEventKind = AttributionEvent["kind"];
 export type VisibilityMode = "silent" | "smart" | "verbose";
 
 // Default changed from "smart" → "verbose" (2026-04-21): users want all
-// attribution events visible by default so they can see what TeamAgent did.
-// Opt out: TEAMAGENT_VISIBILITY=smart 或 =silent
+// attribution events visible by default so they can see what Viki did.
+// Opt out: VIKI_VISIBILITY=smart 或 =silent
 export const DEFAULT_VISIBILITY: VisibilityMode = "verbose";
 
 /** 从环境变量解析 visibility mode。无效值回退到默认。 */

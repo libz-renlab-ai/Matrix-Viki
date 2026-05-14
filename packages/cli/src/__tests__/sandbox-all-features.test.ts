@@ -1,5 +1,5 @@
 /**
- * Sandbox integration tests for all TeamAgent CLI features.
+ * Sandbox integration tests for all Viki CLI features.
  * Tests non-interactive, non-destructive paths only.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -89,7 +89,7 @@ describe("Feature: scan-errors --since duration parsing", () => {
   });
 
   it("uses saved lastScanAt state when sinceRaw is undefined", () => {
-    const stateDir = path.join(home, ".teamagent");
+    const stateDir = path.join(home, ".viki");
     fs.mkdirSync(stateDir, { recursive: true });
     const savedAt = "2026-04-28T00:00:00.000Z";
     fs.writeFileSync(path.join(stateDir, "scan-state.json"), JSON.stringify({ lastScanAt: savedAt }));

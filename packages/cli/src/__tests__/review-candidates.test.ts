@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable, Writable } from "node:stream";
-import { SqliteCandidateQueue, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { SqliteCandidateQueue, openDb } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 import {
   executeReviewCandidates,
   parseReviewCandidatesArgs,
@@ -105,7 +105,7 @@ describe("executeReviewCandidates", () => {
     fs.mkdirSync(tmp.cwd, { recursive: true });
     fs.mkdirSync(tmp.home, { recursive: true });
 
-    const candidatesDbPath = path.join(tmp.home, ".teamagent", "candidates.db");
+    const candidatesDbPath = path.join(tmp.home, ".viki", "candidates.db");
     fs.mkdirSync(path.dirname(candidatesDbPath), { recursive: true });
     const queueDb = openDb(candidatesDbPath);
     const queue = new SqliteCandidateQueue(queueDb);
@@ -123,10 +123,10 @@ describe("executeReviewCandidates", () => {
       cwd: tmp.cwd,
       homeDir: tmp.home,
       candidatesDbPath,
-      projectDbPath: path.join(tmp.cwd, ".teamagent", "knowledge.db"),
-      userGlobalDbPath: path.join(tmp.home, ".teamagent", "global.db"),
-      eventsDbPath: path.join(tmp.home, ".teamagent", "events.db"),
-      skillsDir: path.join(tmp.home, ".claude", "skills", "teamagent"),
+      projectDbPath: path.join(tmp.cwd, ".viki", "knowledge.db"),
+      userGlobalDbPath: path.join(tmp.home, ".viki", "global.db"),
+      eventsDbPath: path.join(tmp.home, ".viki", "events.db"),
+      skillsDir: path.join(tmp.home, ".claude", "skills", "viki"),
       approveScope: "team",
       input: Readable.from(["a\n"]),
       output,
@@ -137,7 +137,7 @@ describe("executeReviewCandidates", () => {
     expect(text()).toContain("scope: team");
     expect(summary).toContain("✓批准 1");
 
-    const projectDb = openDb(path.join(tmp.cwd, ".teamagent", "knowledge.db"));
+    const projectDb = openDb(path.join(tmp.cwd, ".viki", "knowledge.db"));
     const row = projectDb
       .prepare("SELECT id, scope_level FROM knowledge WHERE id = ?")
       .get("team-approved-rule") as any;
@@ -157,7 +157,7 @@ describe("executeReviewCandidates", () => {
     fs.mkdirSync(tmp.cwd, { recursive: true });
     fs.mkdirSync(tmp.home, { recursive: true });
 
-    const candidatesDbPath = path.join(tmp.home, ".teamagent", "candidates.db");
+    const candidatesDbPath = path.join(tmp.home, ".viki", "candidates.db");
     fs.mkdirSync(path.dirname(candidatesDbPath), { recursive: true });
     const queueDb = openDb(candidatesDbPath);
     const queue = new SqliteCandidateQueue(queueDb);
@@ -179,8 +179,8 @@ describe("executeReviewCandidates", () => {
       cwd: tmp.cwd,
       homeDir: tmp.home,
       candidatesDbPath,
-      projectDbPath: path.join(tmp.cwd, ".teamagent", "knowledge.db"),
-      userGlobalDbPath: path.join(tmp.home, ".teamagent", "global.db"),
+      projectDbPath: path.join(tmp.cwd, ".viki", "knowledge.db"),
+      userGlobalDbPath: path.join(tmp.home, ".viki", "global.db"),
       approveScope: "team",
       input: Readable.from(["a\n"]),
       output,
@@ -191,7 +191,7 @@ describe("executeReviewCandidates", () => {
     expect(text()).toContain("隐私守门拦截");
     expect(summary).toContain("✓批准 0");
 
-    const projectDb = openDb(path.join(tmp.cwd, ".teamagent", "knowledge.db"));
+    const projectDb = openDb(path.join(tmp.cwd, ".viki", "knowledge.db"));
     const row = projectDb
       .prepare("SELECT id FROM knowledge WHERE id = ?")
       .get("sensitive-team-rule") as any;

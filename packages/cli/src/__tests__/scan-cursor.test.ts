@@ -20,7 +20,7 @@ function makeTmpCwd(): string {
 
 describe("scan-cursor", () => {
   describe("getCursorFilePath", () => {
-    it("resolves to .teamagent/scan-cursor.json under cwd", () => {
+    it("resolves to .viki/scan-cursor.json under cwd", () => {
       const cwd = makeTmpCwd();
       expect(getCursorFilePath(cwd)).toBe(path.join(cwd, CURSOR_FILE_RELATIVE));
     });
@@ -112,7 +112,7 @@ describe("walk-up (#161): scan-cursor resolves from subfolder", () => {
     const sub = path.join(root, "sub");
     fs.mkdirSync(sub, { recursive: true });
     // Create knowledge.db AND project marker at root so hardened walk-up matches
-    fs.writeFileSync(path.join(root, ".teamagent", "knowledge.db"), "");
+    fs.writeFileSync(path.join(root, ".viki", "knowledge.db"), "");
     fs.writeFileSync(path.join(root, "package.json"), "{}");
     expect(readCursor(sub, "sess-161")).toBe(42);
   });

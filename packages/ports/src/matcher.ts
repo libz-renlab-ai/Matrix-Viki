@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** Hook 拦截时的工具调用上下文。 */
 export interface ToolCallContext {

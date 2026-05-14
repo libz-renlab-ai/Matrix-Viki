@@ -8,20 +8,20 @@ import {
   readUpdateState,
   writeUpdateState,
 } from "../session-start-logic.js";
-import { defaultUpdateState } from "@teamagent/core";
+import { defaultUpdateState } from "@viki/core";
 
 let homeBak: string | undefined;
 let tmpHome: string;
 
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "tg-update-"));
-  homeBak = process.env["TEAMAGENT_HOME"];
-  process.env["TEAMAGENT_HOME"] = tmpHome;
+  homeBak = process.env["VIKI_HOME"];
+  process.env["VIKI_HOME"] = tmpHome;
 });
 
 afterEach(() => {
-  if (homeBak === undefined) delete process.env["TEAMAGENT_HOME"];
-  else process.env["TEAMAGENT_HOME"] = homeBak;
+  if (homeBak === undefined) delete process.env["VIKI_HOME"];
+  else process.env["VIKI_HOME"] = homeBak;
   fs.rmSync(tmpHome, { recursive: true, force: true });
 });
 
@@ -30,12 +30,12 @@ describe("session-start update helpers", () => {
     expect(shouldSpawnUpdater()).toBe(true);
   });
 
-  it("respects TEAMAGENT_AUTO_UPDATE=0", () => {
-    process.env["TEAMAGENT_AUTO_UPDATE"] = "0";
+  it("respects VIKI_AUTO_UPDATE=0", () => {
+    process.env["VIKI_AUTO_UPDATE"] = "0";
     try {
       expect(shouldSpawnUpdater()).toBe(false);
     } finally {
-      delete process.env["TEAMAGENT_AUTO_UPDATE"];
+      delete process.env["VIKI_AUTO_UPDATE"];
     }
   });
 

@@ -49,11 +49,11 @@ export default defineConfig([
     bundle: true,
     splitting: true,
     noExternal: [
-      "@teamagent/types",
-      "@teamagent/ports",
-      "@teamagent/core",
-      "@teamagent/adapters",
-      "@teamagent/cli",
+      "@viki/types",
+      "@viki/ports",
+      "@viki/core",
+      "@viki/adapters",
+      "@viki/cli",
       "zod",
     ],
     external: NATIVE_EXTERNAL,
@@ -112,17 +112,17 @@ export default defineConfig([
     bundle: true,
     splitting: false,
     noExternal: [
-      "@teamagent/types",
-      "@teamagent/ports",
-      "@teamagent/core",
-      "@teamagent/adapters",
-      "@teamagent/cli",
+      "@viki/types",
+      "@viki/ports",
+      "@viki/core",
+      "@viki/adapters",
+      "@viki/cli",
       "zod",
       "@xenova/transformers",
       // Issue #368 (v0.11.1) — uploader CJS bundle must inline `ulid`.
-      // `ulid` is in `teamagent/package.json` dependencies, so tsup's
+      // `ulid` is in `viki/package.json` dependencies, so tsup's
       // default auto-externalizes it. The staged `bin-uploader.cjs` runs
-      // from `~/.teamagent/digital-twin/` which has no node_modules, so a
+      // from `~/.viki/digital-twin/` which has no node_modules, so a
       // bare `require("ulid")` MODULE_NOT_FOUND-crashes the daemon →
       // silent zero uploads. Force-bundling here mirrors the digital-twin
       // package's own `tsup.config.ts` (commit 559fce0 / #381). Note: ESM
@@ -137,8 +137,8 @@ export default defineConfig([
     // statusline is intentionally NOT bundled — tsup CJS rewrites require("node:sqlite")
     // to require("sqlite"), breaking the builtin. Copy raw source instead.
     async onSuccess() {
-      const src = path.resolve(__dirname, "../../scripts/teamagent-statusline.cjs");
-      const dst = path.resolve(__dirname, "dist/teamagent-statusline.cjs");
+      const src = path.resolve(__dirname, "../../scripts/viki-statusline.cjs");
+      const dst = path.resolve(__dirname, "dist/viki-statusline.cjs");
       fs.copyFileSync(src, dst);
     },
   },

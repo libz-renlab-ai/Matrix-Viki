@@ -20,11 +20,11 @@ import { Readable } from "node:stream";
 
 import { runHook } from "../index.js";
 import type { DefaultHookContext } from "../types.js";
-import * as adapters from "@teamagent/adapters";
+import * as adapters from "@viki/adapters";
 
 let tmpHome: string;
 let tmpCwd: string;
-let origTeamagentHome: string | undefined;
+let origVikiHome: string | undefined;
 let origClaudeProjectDir: string | undefined;
 let origExit: typeof process.exit;
 let origStdin: NodeJS.ReadStream;
@@ -43,15 +43,15 @@ function feedStdin(text: string): void {
 }
 
 beforeEach(() => {
-  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-hook-shell-home-"));
-  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-hook-shell-cwd-"));
+  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-hook-shell-home-"));
+  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "viki-hook-shell-cwd-"));
 
-  // TEAMAGENT_HOME is the production-honored override for "where TeamAgent
+  // VIKI_HOME is the production-honored override for "where Viki
   // keeps its state directories". Setting it redirects the shell's home
   // without monkey-patching `node:os` (whose `homedir()` ignores
   // `process.env.HOME` in worker threads due to libuv caching).
-  origTeamagentHome = process.env.TEAMAGENT_HOME;
-  process.env.TEAMAGENT_HOME = tmpHome;
+  origVikiHome = process.env.VIKI_HOME;
+  process.env.VIKI_HOME = tmpHome;
 
   // Save and clear CLAUDE_PROJECT_DIR so cwd-priority tests start clean.
   origClaudeProjectDir = process.env.CLAUDE_PROJECT_DIR;
@@ -80,8 +80,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (origTeamagentHome === undefined) delete process.env.TEAMAGENT_HOME;
-  else process.env.TEAMAGENT_HOME = origTeamagentHome;
+  if (origVikiHome === undefined) delete process.env.VIKI_HOME;
+  else process.env.VIKI_HOME = origVikiHome;
   if (origClaudeProjectDir === undefined) delete process.env.CLAUDE_PROJECT_DIR;
   else process.env.CLAUDE_PROJECT_DIR = origClaudeProjectDir;
   process.exit = origExit;
@@ -234,7 +234,7 @@ describe("runHook lifecycle (default layer)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("creates .teamagent dirs when handler accesses ctx.store", async () => {
+  it("creates .viki dirs when handler accesses ctx.store", async () => {
     feedStdin(JSON.stringify({ x: 1, cwd: tmpCwd }));
 
     await runUntilExit(() =>
@@ -249,8 +249,8 @@ describe("runHook lifecycle (default layer)", () => {
       }),
     );
 
-    expect(fs.existsSync(path.join(tmpCwd, ".teamagent"))).toBe(true);
-    expect(fs.existsSync(path.join(tmpHome, ".teamagent"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpCwd, ".viki"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpHome, ".viki"))).toBe(true);
   });
 
   it("does NOT open DualLayerStore if handler skips ctx.store", async () => {
@@ -288,8 +288,8 @@ describe("runHook lifecycle (default layer)", () => {
     // the OS level. If ensureDirsOnce is ever decoupled from the DualLayerStore
     // constructor path (e.g. called eagerly by the bus), the spy still passes
     // but these fs assertions would catch the regression.
-    expect(fs.existsSync(path.join(tmpCwd, ".teamagent"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpHome, ".teamagent"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpCwd, ".viki"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpHome, ".viki"))).toBe(false);
   });
 
   it("does NOT open DualLayerStore via {...ctx} spread", async () => {
@@ -414,7 +414,7 @@ describe("runHook lifecycle (default layer)", () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// Issue #174 W3: TEAMAGENT_HOOK_VERBOSE gates the renderer's verbose tail
+// Issue #174 W3: VIKI_HOOK_VERBOSE gates the renderer's verbose tail
 // ────────────────────────────────────────────────────────────────────────────
 //
 // Default visibility for hook channels is "verbose", which makes
@@ -422,25 +422,25 @@ describe("runHook lifecycle (default layer)", () => {
 // rendered event on stderr. End users only need the three-line
 // highlight/warning summary that `smart` mode produces — the dump is
 // noise. The shell now downgrades the renderer mode from "verbose" to
-// "smart" unless `TEAMAGENT_HOOK_VERBOSE=1` is set.
+// "smart" unless `VIKI_HOOK_VERBOSE=1` is set.
 //
 // The JSON envelope written to stdout (returned to Claude Code) is
 // independent: `writeStdout(wrapped)` runs unconditionally regardless of
 // either env var, so Claude Code's hook protocol parsing is unaffected.
-describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
+describe("runHook VIKI_HOOK_VERBOSE gating (issue #174 W3)", () => {
   let origHookVerbose: string | undefined;
 
   beforeEach(() => {
-    origHookVerbose = process.env.TEAMAGENT_HOOK_VERBOSE;
-    delete process.env.TEAMAGENT_HOOK_VERBOSE;
+    origHookVerbose = process.env.VIKI_HOOK_VERBOSE;
+    delete process.env.VIKI_HOOK_VERBOSE;
   });
 
   afterEach(() => {
-    if (origHookVerbose === undefined) delete process.env.TEAMAGENT_HOOK_VERBOSE;
-    else process.env.TEAMAGENT_HOOK_VERBOSE = origHookVerbose;
+    if (origHookVerbose === undefined) delete process.env.VIKI_HOOK_VERBOSE;
+    else process.env.VIKI_HOOK_VERBOSE = origHookVerbose;
   });
 
-  it("TEAMAGENT_HOOK_VERBOSE unset (default): stderr has no `--- raw events ---` block", async () => {
+  it("VIKI_HOOK_VERBOSE unset (default): stderr has no `--- raw events ---` block", async () => {
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
     // Default visibility (env unset) is "verbose" via parseVisibility — exactly
     // the case the gate has to suppress.
@@ -459,7 +459,7 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
             timestamp: "2026-05-09T00:00:00.000Z",
             ruleId: "test-rule",
             permissionDecision: "deny",
-            counterfactual: "without-teamagent-cf-line",
+            counterfactual: "without-viki-cf-line",
           });
           return { decision: "deny" };
         },
@@ -478,8 +478,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(stderr).toContain("test-rule");
     // But the verbose tail is gated.
     expect(stderr).not.toContain("--- raw events ---");
-    expect(stderr).not.toContain("如果没有 TeamAgent");
-    expect(stderr).not.toContain("without-teamagent-cf-line");
+    expect(stderr).not.toContain("如果没有 Viki");
+    expect(stderr).not.toContain("without-viki-cf-line");
     // JSON envelope on stdout is unchanged regardless of gate.
     const envelope = JSON.parse(stdoutBuf.join(""));
     expect(envelope).toEqual({
@@ -491,8 +491,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("TEAMAGENT_HOOK_VERBOSE=1: stderr DOES contain `--- raw events ---` block", async () => {
-    process.env.TEAMAGENT_HOOK_VERBOSE = "1";
+  it("VIKI_HOOK_VERBOSE=1: stderr DOES contain `--- raw events ---` block", async () => {
+    process.env.VIKI_HOOK_VERBOSE = "1";
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
 
     await runUntilExit(() =>
@@ -507,7 +507,7 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
             timestamp: "2026-05-09T00:00:00.000Z",
             ruleId: "test-rule",
             permissionDecision: "deny",
-            counterfactual: "without-teamagent-cf-line",
+            counterfactual: "without-viki-cf-line",
           });
           return { decision: "deny" };
         },
@@ -525,8 +525,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(stderr).toContain("test-rule");
     // Opt-in restores the verbose tail.
     expect(stderr).toContain("--- raw events ---");
-    expect(stderr).toContain("如果没有 TeamAgent");
-    expect(stderr).toContain("without-teamagent-cf-line");
+    expect(stderr).toContain("如果没有 Viki");
+    expect(stderr).toContain("without-viki-cf-line");
     // JSON envelope on stdout still unchanged.
     const envelope = JSON.parse(stdoutBuf.join(""));
     expect(envelope).toEqual({
@@ -538,7 +538,7 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("JSON envelope on stdout is identical with/without TEAMAGENT_HOOK_VERBOSE", async () => {
+  it("JSON envelope on stdout is identical with/without VIKI_HOOK_VERBOSE", async () => {
     // Run twice — once gated (default), once verbose — and assert the
     // stdout envelope is byte-identical. Only the human-prose stderr
     // trailer differs. This pins the contract that Claude Code's hook
@@ -576,9 +576,9 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     };
 
     const stdoutGated = await captureStdoutOnce();
-    process.env.TEAMAGENT_HOOK_VERBOSE = "1";
+    process.env.VIKI_HOOK_VERBOSE = "1";
     const stdoutVerbose = await captureStdoutOnce();
-    delete process.env.TEAMAGENT_HOOK_VERBOSE;
+    delete process.env.VIKI_HOOK_VERBOSE;
 
     // Byte-equal stdout — same JSON envelope returned to Claude Code.
     expect(stdoutGated).toBe(stdoutVerbose);
@@ -586,8 +586,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(JSON.parse(stdoutGated)).toEqual(JSON.parse(stdoutVerbose));
   });
 
-  it("TEAMAGENT_HOOK_VERBOSE accepts `true` as well as `1`", async () => {
-    process.env.TEAMAGENT_HOOK_VERBOSE = "true";
+  it("VIKI_HOOK_VERBOSE accepts `true` as well as `1`", async () => {
+    process.env.VIKI_HOOK_VERBOSE = "true";
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
 
     await runUntilExit(() =>
@@ -618,8 +618,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("TEAMAGENT_HOOK_VERBOSE=0 (or any non-truthy): tail still suppressed", async () => {
-    process.env.TEAMAGENT_HOOK_VERBOSE = "0";
+  it("VIKI_HOOK_VERBOSE=0 (or any non-truthy): tail still suppressed", async () => {
+    process.env.VIKI_HOOK_VERBOSE = "0";
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
 
     await runUntilExit(() =>
@@ -653,11 +653,11 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
   // PR #183 fix: the W3 commit only gated the StdoutRenderer's mode (stderr
   // human-prose). It did NOT downgrade `ctx.visibility`, so handlers like
   // pre-tool-use-handler.ts:120 still saw "verbose" and wrote
-  // `◈ TeamAgent: ✓ <tool> 放行` into the stdout JSON envelope's
+  // `◈ Viki: ✓ <tool> 放行` into the stdout JSON envelope's
   // systemMessage on every clean pass — the user-visible "noisy by default"
   // problem leaked through stdout. This regression test pins the contract
   // that ctx.visibility seen by handlers IS the downgraded value.
-  it("ctx.visibility is downgraded to `smart` when TEAMAGENT_HOOK_VERBOSE unset (PR #183 #2 regression)", async () => {
+  it("ctx.visibility is downgraded to `smart` when VIKI_HOOK_VERBOSE unset (PR #183 #2 regression)", async () => {
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
     let observedVisibility: string | undefined;
     await runUntilExit(() =>
@@ -681,8 +681,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("ctx.visibility stays `verbose` when TEAMAGENT_HOOK_VERBOSE=1 (PR #183 #2 opt-in)", async () => {
-    process.env.TEAMAGENT_HOOK_VERBOSE = "1";
+  it("ctx.visibility stays `verbose` when VIKI_HOOK_VERBOSE=1 (PR #183 #2 opt-in)", async () => {
+    process.env.VIKI_HOOK_VERBOSE = "1";
     feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
     let observedVisibility: string | undefined;
     await runUntilExit(() =>
@@ -706,12 +706,12 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("TEAMAGENT_VISIBILITY=smart still works (no upgrade): no `--- raw events ---` regardless of HOOK_VERBOSE", async () => {
+  it("VIKI_VISIBILITY=smart still works (no upgrade): no `--- raw events ---` regardless of HOOK_VERBOSE", async () => {
     // Smart mode never produces the verbose tail in StdoutRenderer, and the
     // gate only downgrades verbose→smart — it must NOT upgrade smart→verbose.
-    process.env.TEAMAGENT_HOOK_VERBOSE = "1";
-    const origVis = process.env.TEAMAGENT_VISIBILITY;
-    process.env.TEAMAGENT_VISIBILITY = "smart";
+    process.env.VIKI_HOOK_VERBOSE = "1";
+    const origVis = process.env.VIKI_VISIBILITY;
+    process.env.VIKI_VISIBILITY = "smart";
     try {
       feedStdin(JSON.stringify({ tool_name: "Bash", cwd: tmpCwd }));
       await runUntilExit(() =>
@@ -741,8 +741,8 @@ describe("runHook TEAMAGENT_HOOK_VERBOSE gating (issue #174 W3)", () => {
       expect(stderrBuf.join("")).not.toContain("--- raw events ---");
       expect(exitCode).toBe(0);
     } finally {
-      if (origVis === undefined) delete process.env.TEAMAGENT_VISIBILITY;
-      else process.env.TEAMAGENT_VISIBILITY = origVis;
+      if (origVis === undefined) delete process.env.VIKI_VISIBILITY;
+      else process.env.VIKI_VISIBILITY = origVis;
     }
   });
 });

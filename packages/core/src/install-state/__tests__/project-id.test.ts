@@ -60,8 +60,8 @@ describe("resolveProjectId", () => {
   it("treats different absolute paths as distinct (no fs canonicalization)", () => {
     // /private/var/x and /var/x point to the same directory on macOS but the
     // pure helper deliberately does NOT resolve symlinks — that requires fs.
-    const a = resolveProjectId("/private/var/teamagent");
-    const b = resolveProjectId("/var/teamagent");
+    const a = resolveProjectId("/private/var/viki");
+    const b = resolveProjectId("/var/viki");
     expect(a).not.toBe(b);
   });
 });

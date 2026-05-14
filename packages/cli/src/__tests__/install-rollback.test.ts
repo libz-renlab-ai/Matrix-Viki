@@ -18,9 +18,9 @@ let logFile: string;
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "install-rollback-"));
   homeDir = path.join(tmp, "home");
-  installDir = path.join(tmp, "lib", "teamagent");
-  backupDir = path.join(homeDir, ".teamagent", "backups");
-  logFile = path.join(homeDir, ".teamagent", "postinstall.log");
+  installDir = path.join(tmp, "lib", "viki");
+  backupDir = path.join(homeDir, ".viki", "backups");
+  logFile = path.join(homeDir, ".viki", "postinstall.log");
   fs.mkdirSync(homeDir, { recursive: true });
 });
 

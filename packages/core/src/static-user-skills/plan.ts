@@ -21,7 +21,7 @@ export interface StaticUserSkillPlanOptions {
   /**
    * Filter — only plan entries for these targets. Defaults to all of
    * `STATIC_USER_SKILL_TARGETS`. Caller passes a subset to honor
-   * `teamagent init --target=claude` / `--target=codex`.
+   * `viki init --target=claude` / `--target=codex`.
    */
   targets?: readonly StaticUserSkillTarget[];
   /**

@@ -6,13 +6,13 @@
  *   - readiness state files written by hand to drive code paths
  *   - real loopback HTTP server for happy-path daemon hit
  *
- * Critical: `XenovaRuleEmbedder` is mocked at the @teamagent/adapters
+ * Critical: `XenovaRuleEmbedder` is mocked at the @viki/adapters
  * boundary so the fallback path never loads the real 115MB ONNX model.
  * Without this mock, fallback tests would balloon to multi-second model
  * downloads on first run and could time out in CI.
  *
  * The daemon respawn machinery is exercised by pointing
- * `TEAMAGENT_EMBEDDER_BIN` at a non-existent file (resolveEmbedderBin
+ * `VIKI_EMBEDDER_BIN` at a non-existent file (resolveEmbedderBin
  * returns null → spawn never runs) so no detached child process leaks
  * out of the test suite.
  */
@@ -23,14 +23,14 @@ import os from "node:os";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 
-// ── mock @teamagent/adapters BEFORE importing the SUT ─────────────────────
+// ── mock @viki/adapters BEFORE importing the SUT ─────────────────────
 // Counter + last-call-args live at module scope so the vi.mock factory can
 // reference them. Each test resets via beforeEach.
 
 let xenovaConstructCount = 0;
 let xenovaEmbedCalls: string[][] = [];
 
-vi.mock("@teamagent/adapters", () => {
+vi.mock("@viki/adapters", () => {
   class MockXenovaRuleEmbedder {
     readonly modelId: string;
     readonly dim: number;
@@ -49,7 +49,7 @@ vi.mock("@teamagent/adapters", () => {
   }
   return {
     XenovaRuleEmbedder: MockXenovaRuleEmbedder,
-  } as unknown as Partial<typeof import("@teamagent/adapters")>;
+  } as unknown as Partial<typeof import("@viki/adapters")>;
 });
 
 import { DaemonFirstEmbedder, tryDetachedSpawn } from "../daemon-first-embedder.js";
@@ -139,18 +139,18 @@ beforeEach(() => {
   xenovaEmbedCalls = [];
   // Force resolveEmbedderBin → null so tryDetachedSpawn is a no-op during
   // tests, even when DaemonFirstEmbedder hits the fallback path.
-  origEmbedderBin = process.env["TEAMAGENT_EMBEDDER_BIN"];
-  process.env["TEAMAGENT_EMBEDDER_BIN"] = path.join(
+  origEmbedderBin = process.env["VIKI_EMBEDDER_BIN"];
+  process.env["VIKI_EMBEDDER_BIN"] = path.join(
     os.tmpdir(),
-    `teamagent-embedder-bin-does-not-exist-${process.pid}-${Date.now()}.cjs`,
+    `viki-embedder-bin-does-not-exist-${process.pid}-${Date.now()}.cjs`,
   );
 });
 
 afterEach(() => {
   if (origEmbedderBin === undefined) {
-    delete process.env["TEAMAGENT_EMBEDDER_BIN"];
+    delete process.env["VIKI_EMBEDDER_BIN"];
   } else {
-    process.env["TEAMAGENT_EMBEDDER_BIN"] = origEmbedderBin;
+    process.env["VIKI_EMBEDDER_BIN"] = origEmbedderBin;
   }
 });
 

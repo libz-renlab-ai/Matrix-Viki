@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import type {
   SemanticRetriever,
   SemanticCandidate,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import {
   deserializeRow,
   type KnowledgeRow,
@@ -73,8 +73,8 @@ export class SqliteSemanticRetriever implements SemanticRetriever {
         bm25Rows.forEach((r, i) => addRRF(r.id, i + 1, { bm25: r.bm25_rank }));
       }
     } catch (err) {
-      if (process.env.TEAMAGENT_HOOK_DEBUG === "1") {
-        process.stderr.write(`[teamagent-retriever] BM25 stage failed: ${(err as Error).message}\n`);
+      if (process.env.VIKI_HOOK_DEBUG === "1") {
+        process.stderr.write(`[viki-retriever] BM25 stage failed: ${(err as Error).message}\n`);
       }
     }
 
@@ -96,8 +96,8 @@ export class SqliteSemanticRetriever implements SemanticRetriever {
         addRRF(r.id, i + 1, { triggerSim: 1 - r.distance }),
       );
     } catch (err) {
-      if (process.env.TEAMAGENT_HOOK_DEBUG === "1") {
-        process.stderr.write(`[teamagent-retriever] dense stage failed: ${(err as Error).message}\n`);
+      if (process.env.VIKI_HOOK_DEBUG === "1") {
+        process.stderr.write(`[viki-retriever] dense stage failed: ${(err as Error).message}\n`);
       }
     }
 
@@ -119,15 +119,15 @@ export class SqliteSemanticRetriever implements SemanticRetriever {
         addRRF(r.id, i + 1, { patternSim: 1 - r.distance }),
       );
     } catch (err) {
-      if (process.env.TEAMAGENT_HOOK_DEBUG === "1") {
-        process.stderr.write(`[teamagent-retriever] dense stage failed: ${(err as Error).message}\n`);
+      if (process.env.VIKI_HOOK_DEBUG === "1") {
+        process.stderr.write(`[viki-retriever] dense stage failed: ${(err as Error).message}\n`);
       }
     }
 
-    const debug = process.env.TEAMAGENT_HOOK_DEBUG === "1";
+    const debug = process.env.VIKI_HOOK_DEBUG === "1";
     if (debug) {
       process.stderr.write(
-        `[teamagent-retriever] scope=${args.scope.level} stage1+2+3 → ${scores.size} candidates\n`,
+        `[viki-retriever] scope=${args.scope.level} stage1+2+3 → ${scores.size} candidates\n`,
       );
     }
 
@@ -147,7 +147,7 @@ export class SqliteSemanticRetriever implements SemanticRetriever {
 
     if (debug) {
       process.stderr.write(
-        `[teamagent-retriever] scope=${args.scope.level} after scope filter → ${rows.length} rows\n`,
+        `[viki-retriever] scope=${args.scope.level} after scope filter → ${rows.length} rows\n`,
       );
     }
 
@@ -168,7 +168,7 @@ export class SqliteSemanticRetriever implements SemanticRetriever {
     if (debug && out.length > 0) {
       for (const c of out.slice(0, 3)) {
         process.stderr.write(
-          `[teamagent-retriever]   ${c.rule.id} bm25=${c.bm25Score.toFixed(3)} ` +
+          `[viki-retriever]   ${c.rule.id} bm25=${c.bm25Score.toFixed(3)} ` +
           `triggerSim=${c.triggerSim.toFixed(3)} patternSim=${c.patternSim.toFixed(3)} ` +
           `rrf=${c.rrfScore.toFixed(4)}\n`,
         );

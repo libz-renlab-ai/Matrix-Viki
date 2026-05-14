@@ -14,7 +14,7 @@
     "smoke:hook": "tsx scripts/hook-smoke-test.ts",
     "verify": "tsx packages/cli/src/bin.ts verify",
     "build:publish": "pnpm --filter viki build",
-    "prepublish:viki": "pnpm build:publish && cd packages/teamagent && npm pack --dry-run",
+    "prepublish:viki": "pnpm build:publish && cd packages/viki && npm pack --dry-run",
     "regen-static-user-skills": "node scripts/regen-static-user-skills.cjs",
     "install:from-md": "tsx scripts/install-from-md.ts"
   },

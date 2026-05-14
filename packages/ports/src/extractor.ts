@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** 提取 Extractor 支持的输入来源类型。M2.3 扩至 8 类以覆盖 6 源摄入。 */
 export type ExtractionKind =

@@ -1,12 +1,12 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import { scoreEntry } from "../scorer.js";
 
 /**
- * CLAUDE.md 的 TEAMAGENT 标记。
+ * CLAUDE.md 的 VIKI 标记。
  * 用户在标记之外的内容永远不会被动到。
  */
-export const BLOCK_START = "<!-- TEAMAGENT:START - 自动管理，请勿手动编辑 -->";
-export const BLOCK_END = "<!-- TEAMAGENT:END -->";
+export const BLOCK_START = "<!-- VIKI:START - 自动管理，请勿手动编辑 -->";
+export const BLOCK_END = "<!-- VIKI:END -->";
 
 /** 默认总行数上限（含 START + header + END 标记行）。对齐 spec v5.2。 */
 const DEFAULT_MAX_LINES = 50;
@@ -57,7 +57,7 @@ export interface CompileMarkdownOptions {
 
   /**
    * 只编译 source='preset' 的条目（元原则模式）。
-   * 启用时输出 "TeamAgent 元原则" 头，忽略 limit/tokenBudget/tierFilter。
+   * 启用时输出 "Viki 元原则" 头，忽略 limit/tokenBudget/tierFilter。
    */
   presetOnly?: boolean;
 }
@@ -85,15 +85,15 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 }
 
 /**
- * B-062: escape TEAMAGENT block marker sequences in user-supplied entry text.
+ * B-062: escape VIKI block marker sequences in user-supplied entry text.
  * Prevents an entry whose trigger/correct_pattern/reasoning contains
- * "<!-- TEAMAGENT:END -->" from creating a false block-end marker in CLAUDE.md,
+ * "<!-- VIKI:END -->" from creating a false block-end marker in CLAUDE.md,
  * which would corrupt the document structure on the next compile pass.
  *
  * Uses a zero-width space (U+200B) to break the pattern invisibly.
  */
 function sanitizeBlockMarkers(text: string): string {
-  return text.replace(/TEAMAGENT:(START|END)/g, "TEAMAGENT​:$1");
+  return text.replace(/VIKI:(START|END)/g, "VIKI​:$1");
 }
 
 /**
@@ -104,7 +104,7 @@ function formatEntry(entry: KnowledgeEntry): string {
   const hits = entry.hit_count > 0 ? `, ${entry.hit_count}次命中` : "";
   const sourceTag =
     entry.source === "team-shared" ? " [团队]" : entry.source === "preset" ? " [预置]" : "";
-  // B-062: sanitize all user-controlled text fields to prevent TEAMAGENT block-marker injection
+  // B-062: sanitize all user-controlled text fields to prevent VIKI block-marker injection
   const correct = sanitizeBlockMarkers(entry.correct_pattern);
   const wrong = sanitizeBlockMarkers(entry.wrong_pattern ?? "");
   const reason = sanitizeBlockMarkers(entry.reasoning);
@@ -132,10 +132,10 @@ export function compileMarkdownBlock(
   if (options.presetOnly) {
     const presets = active.filter((e) => e.source === "preset");
     if (presets.length === 0) {
-      return [BLOCK_START, "## TeamAgent 元原则", "（无元原则）", BLOCK_END].join("\n");
+      return [BLOCK_START, "## Viki 元原则", "（无元原则）", BLOCK_END].join("\n");
     }
     const lines = presets.map((e) => formatEntry(e));
-    return [BLOCK_START, "## TeamAgent 元原则", ...lines, BLOCK_END].join("\n");
+    return [BLOCK_START, "## Viki 元原则", ...lines, BLOCK_END].join("\n");
   }
 
   const tierFiltered = options.tierFilter
@@ -143,7 +143,7 @@ export function compileMarkdownBlock(
     : active;
 
   if (tierFiltered.length === 0) {
-    return [BLOCK_START, "## TeamAgent 经验", "暂无经验，使用过程中会自动积累。", BLOCK_END].join("\n");
+    return [BLOCK_START, "## Viki 经验", "暂无经验，使用过程中会自动积累。", BLOCK_END].join("\n");
   }
 
   // 按综合分数排序（block 优先通过 enforcement 权重体现）
@@ -201,20 +201,20 @@ export function compileMarkdownBlock(
   let header: string;
   if (options.tokenBudget !== undefined) {
     if (truncatedCount > 0) {
-      header = `## TeamAgent 经验（${total}条活跃知识，为你编译了 ${shown} 条（token 预算 ${options.tokenBudget}）)`;
+      header = `## Viki 经验（${total}条活跃知识，为你编译了 ${shown} 条（token 预算 ${options.tokenBudget}）)`;
     } else {
-      header = `## TeamAgent 经验（${total}条活跃知识）`;
+      header = `## Viki 经验（${total}条活跃知识）`;
     }
   } else {
     header =
       total > shown
-        ? `## TeamAgent 经验（${total}条活跃知识，为你编译了Top ${shown}）`
-        : `## TeamAgent 经验（${total}条活跃知识）`;
+        ? `## Viki 经验（${total}条活跃知识，为你编译了Top ${shown}）`
+        : `## Viki 经验（${total}条活跃知识）`;
   }
 
   const parts = [BLOCK_START, header, ...lines];
   if (truncatedCount > 0 && options.tokenBudget !== undefined) {
-    parts.push(`> 还有 ${truncatedCount} 条 canonical+ 规则因 token 预算未显示（teamagent compile --dry-run 查看）`);
+    parts.push(`> 还有 ${truncatedCount} 条 canonical+ 规则因 token 预算未显示（viki compile --dry-run 查看）`);
   }
   if (droppedByDiversity > 0) {
     parts.push(`> 另有 ${droppedByDiversity} 条因与已选条目近义（Jaccard ≥ ${threshold}）被多样性过滤`);
@@ -226,13 +226,13 @@ export function compileMarkdownBlock(
 /**
  * 把 block 注入到已有文档（CLAUDE.md）中。纯函数。
  *
- * - 文档已有 TEAMAGENT 标记（任何变体，只要含 "TEAMAGENT:START" / "TEAMAGENT:END"）：替换其中内容
+ * - 文档已有 VIKI 标记（任何变体，只要含 "VIKI:START" / "VIKI:END"）：替换其中内容
  * - 文档没有标记：追加到末尾，前加空行分隔
  * - 空文档：只返回 block，末尾保证一个换行
  */
 export function injectBlockIntoDoc(existing: string, block: string): string {
-  const startTagRegex = /<!--\s*TEAMAGENT:START[^>]*-->/;
-  const endTagRegex = /<!--\s*TEAMAGENT:END[^>]*-->/;
+  const startTagRegex = /<!--\s*VIKI:START[^>]*-->/;
+  const endTagRegex = /<!--\s*VIKI:END[^>]*-->/;
 
   const startMatch = existing.match(startTagRegex);
   const endMatch = existing.match(endTagRegex);
@@ -258,23 +258,23 @@ export function injectBlockIntoDoc(existing: string, block: string): string {
 }
 
 /**
- * B-109: strip the legacy TEAMAGENT:START..END managed block from a doc.
+ * B-109: strip the legacy VIKI:START..END managed block from a doc.
  *
  * Background: PR #63 (2026-04-29) replaced the in-file CLAUDE.md rule dump
  * with skills/docs propagation. The new compile path no longer writes the
  * block, but any project that ran `compile` before #63 still has the block
- * sitting in CLAUDE.md, and `teamagent doctor` flags it. There was no
+ * sitting in CLAUDE.md, and `viki doctor` flags it. There was no
  * migration to remove it. This helper does that.
  *
  * Behavior:
- * - If no TEAMAGENT:START/END markers are present → returns input unchanged.
+ * - If no VIKI:START/END markers are present → returns input unchanged.
  * - If a well-formed block is present → removes the block and surrounding
  *   blank-line padding so the doc reads cleanly afterwards.
  * - Multiple blocks are removed (defensive — should not occur in practice).
  */
-export function stripLegacyTeamagentBlock(existing: string): string {
-  const startTagRegex = /<!--\s*TEAMAGENT:START[^>]*-->/;
-  const endTagRegex = /<!--\s*TEAMAGENT:END[^>]*-->/;
+export function stripLegacyVikiBlock(existing: string): string {
+  const startTagRegex = /<!--\s*VIKI:START[^>]*-->/;
+  const endTagRegex = /<!--\s*VIKI:END[^>]*-->/;
 
   let out = existing;
   // Loop in case there is more than one block (legacy bug).

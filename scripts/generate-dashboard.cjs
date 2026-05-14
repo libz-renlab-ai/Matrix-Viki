@@ -15,9 +15,9 @@ function queryDb(dbPath, sql) {
   } catch (e) { return []; }
 }
 
-const personalDbPath = path.join(cwd, '.teamagent', 'knowledge.db');
-const globalDbPath = path.join(home, '.teamagent', 'global.db');
-const eventsDbPath = path.join(home, '.teamagent', 'events.db');
+const personalDbPath = path.join(cwd, '.viki', 'knowledge.db');
+const globalDbPath = path.join(home, '.viki', 'global.db');
+const eventsDbPath = path.join(home, '.viki', 'events.db');
 
 const personalRules = queryDb(personalDbPath, 'SELECT * FROM knowledge ORDER BY hit_count DESC');
 const globalRules = queryDb(globalDbPath, 'SELECT * FROM knowledge ORDER BY hit_count DESC');
@@ -27,7 +27,7 @@ const allRules = [
 ];
 
 const recentEvents = queryDb(eventsDbPath, "SELECT kind, knowledge_id, timestamp FROM events ORDER BY timestamp DESC LIMIT 2000");
-const recordingMetricsPath = path.join(cwd, '.teamagent', 'recording-memory', 'metrics.jsonl');
+const recordingMetricsPath = path.join(cwd, '.viki', 'recording-memory', 'metrics.jsonl');
 
 function readJsonl(filePath) {
   try {
@@ -140,7 +140,7 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TeamAgent 知识库看板</title>
+<title>Viki 知识库看板</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
@@ -287,7 +287,7 @@ const html = `<!DOCTYPE html>
     <div class="logo">
       <div class="logo-icon">🤖</div>
       <div class="logo-text">
-        <h1>TeamAgent 知识库看板</h1>
+        <h1>Viki 知识库看板</h1>
         <p>自进化 AI 规则引擎 · 实时状态</p>
       </div>
     </div>
@@ -674,7 +674,7 @@ const html = `<!DOCTYPE html>
   </div>
 
   <div class="footer">
-    TeamAgent · 自进化 AI 规则引擎 · 生成时间 ${now} · ${allRules.length} 条规则 · ${totalChecks} 次拦截
+    Viki · 自进化 AI 规则引擎 · 生成时间 ${now} · ${allRules.length} 条规则 · ${totalChecks} 次拦截
   </div>
 </div>
 </body>

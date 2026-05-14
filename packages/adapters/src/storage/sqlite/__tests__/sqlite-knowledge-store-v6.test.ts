@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { openDb } from "../schema.js";
 import { SqliteKnowledgeStore } from "../sqlite-knowledge-store.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 describe("SqliteKnowledgeStore v6 fields", () => {
   let store: SqliteKnowledgeStore;

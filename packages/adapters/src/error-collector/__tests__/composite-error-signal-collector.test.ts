@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { CompositeErrorSignalCollector } from "../composite-error-signal-collector.js";
-import { runErrorSignalCollectorContract } from "@teamagent/ports/contracts";
-import type { PersistedEvent } from "@teamagent/types";
-import type { RawErrorSignal } from "@teamagent/core";
+import { runErrorSignalCollectorContract } from "@viki/ports/contracts";
+import type { PersistedEvent } from "@viki/types";
+import type { RawErrorSignal } from "@viki/core";
 
 function makeEvent(
   kind: PersistedEvent["kind"],

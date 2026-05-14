@@ -83,7 +83,7 @@ export function runSecretScanPortContract(
       },
       {
         name: "absolute path /etc/",
-        text: "config in /etc/teamagent/secrets.conf",
+        text: "config in /etc/viki/secrets.conf",
         kind: "absolute_path",
       },
       {

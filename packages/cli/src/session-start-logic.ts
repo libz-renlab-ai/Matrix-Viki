@@ -14,10 +14,10 @@ import {
   renderUpgradePrompt,
   makeUpdatePromptShownEvent,
   type UpdateState,
-} from "@teamagent/core";
+} from "@viki/core";
 import { loadBundledChangelog } from "./changelog-loader.js";
 import { rotateIfTooLarge } from "./log-rotate.js";
-import { findTeamagentRoot } from "./lib/walk-up.js";
+import { findVikiRoot } from "./lib/walk-up.js";
 import { hasProjectMarker } from "./lib/project-markers.js";
 import { withUpdateStateLock } from "./lib/update-state-lock.js";
 import {
@@ -47,15 +47,15 @@ function autoInitDisabled(cwd: string): boolean {
   // Issue #161 follow-up (PR #181 finding #8): walk up to honor an ancestor
   // project's `auto-init.disabled` marker so a SessionStart from a child cwd
   // of an opted-out parent doesn't auto-init regardless. This walk-up is
-  // INDEPENDENT of `findTeamagentRoot` (which requires `knowledge.db`)
+  // INDEPENDENT of `findVikiRoot` (which requires `knowledge.db`)
   // because a user can opt out BEFORE ever initializing — the ancestor may
-  // have `.teamagent/auto-init.disabled` but no `knowledge.db` yet.
+  // have `.viki/auto-init.disabled` but no `knowledge.db` yet.
   //
-  // Mirrors `findTeamagentRoot`'s security guards: home-directory cap +
+  // Mirrors `findVikiRoot`'s security guards: home-directory cap +
   // project-marker requirement, both as defense-in-depth against attacker-
   // planted markers in /tmp or similar.
-  if (existsSync(join(cwd, ".teamagent", "auto-init.disabled"))) return true;
-  if (existsSync(join(os.homedir(), ".teamagent", "auto-init.disabled"))) return true;
+  if (existsSync(join(cwd, ".viki", "auto-init.disabled"))) return true;
+  if (existsSync(join(os.homedir(), ".viki", "auto-init.disabled"))) return true;
   if (ancestorHasAutoInitDisabled(cwd)) return true;
   return false;
 }
@@ -63,21 +63,21 @@ function autoInitDisabled(cwd: string): boolean {
 function ancestorHasAutoInitDisabled(start: string): boolean {
   // Walks from `start`'s parent up to (but not including) `os.homedir()`
   // and the filesystem root. Returns true if ANY ancestor that has a
-  // project-marker carries a `.teamagent/auto-init.disabled` file.
+  // project-marker carries a `.viki/auto-init.disabled` file.
   //
-  // Defense-in-depth, mirroring `findTeamagentRoot`:
+  // Defense-in-depth, mirroring `findVikiRoot`:
   //   - project-marker requirement rejects bare markers planted in
-  //     non-project directories (e.g. /tmp/.teamagent/auto-init.disabled);
+  //     non-project directories (e.g. /tmp/.viki/auto-init.disabled);
   //   - the home-directory boundary stops the walk at `~` (we don't honor
   //     a marker on `~` itself — the global opt-out path is already
-  //     checked separately as `~/.teamagent/auto-init.disabled`).
+  //     checked separately as `~/.viki/auto-init.disabled`).
   const homeDir = os.homedir();
   if (start === homeDir) return false;
   let cur = dirname(start);
   while (true) {
     if (cur === homeDir) return false; // do not match `~` itself
     if (isProjectDir(cur)) {
-      if (existsSync(join(cur, ".teamagent", "auto-init.disabled"))) return true;
+      if (existsSync(join(cur, ".viki", "auto-init.disabled"))) return true;
     }
     const parent = dirname(cur);
     if (parent === cur) return false; // fs root
@@ -86,10 +86,10 @@ function ancestorHasAutoInitDisabled(start: string): boolean {
 }
 
 export function decideAction(cwd: string, _now?: Date, _debounceHours?: number): Action {
-  // Issue #161: walk up to honor an ancestor's .teamagent/knowledge.db.
+  // Issue #161: walk up to honor an ancestor's .viki/knowledge.db.
   // SessionStart from a sub-directory of an already-initialized project
-  // must NOT auto-init a duplicate child .teamagent/.
-  const ancestorRoot = findTeamagentRoot(cwd);
+  // must NOT auto-init a duplicate child .viki/.
+  const ancestorRoot = findVikiRoot(cwd);
   if (ancestorRoot !== null) return "skip-already-initialized";
 
   // No ancestor has a DB. Apply the existing per-cwd logic for new projects.
@@ -104,13 +104,13 @@ export function findMainBin(): string {
 }
 
 /**
- * Spawn `teamagent init --skip-import --skip-hook=false` asynchronously.
+ * Spawn `viki init --skip-import --skip-hook=false` asynchronously.
  * Detached so SessionStart hook itself returns fast.
  * Result shown via stderr on next interactive turn; subprocess writes its own
- * progress to a log file under ~/.teamagent/auto-init.log.
+ * progress to a log file under ~/.viki/auto-init.log.
  */
 export function spawnAutoInit(cwd: string): void {
-  const logPath = join(os.homedir(), ".teamagent", "auto-init.log");
+  const logPath = join(os.homedir(), ".viki", "auto-init.log");
   try {
     appendFileSync(
       logPath,
@@ -125,7 +125,7 @@ export function spawnAutoInit(cwd: string): void {
       detached: true,
       stdio: "ignore",
       cwd,
-      env: { ...process.env, TEAMAGENT_AUTO_INIT: "1" },
+      env: { ...process.env, VIKI_AUTO_INIT: "1" },
       windowsHide: true,
     },
   );
@@ -134,7 +134,7 @@ export function spawnAutoInit(cwd: string): void {
 
 export function logError(kind: string, err: unknown): void {
   try {
-    const logPath = join(os.homedir(), ".teamagent", "session-start-errors.log");
+    const logPath = join(os.homedir(), ".viki", "session-start-errors.log");
     // B-093: bound the log so it does not grow unbounded across sessions.
     rotateIfTooLarge(logPath);
     appendFileSync(logPath, `[${new Date().toISOString()}] session-start:${kind} ${String(err)}\n`, "utf-8");
@@ -143,11 +143,11 @@ export function logError(kind: string, err: unknown): void {
 
 // ─── auto-update integration ─────────────────────────────────────────────
 
-function teamagentHome(): string {
-  return process.env["TEAMAGENT_HOME"] ?? join(os.homedir(), ".teamagent");
+function vikiHome(): string {
+  return process.env["VIKI_HOME"] ?? join(os.homedir(), ".viki");
 }
-function updateStatePath(): string { return join(teamagentHome(), "update-state.json"); }
-function updateDisabledPath(): string { return join(teamagentHome(), "auto-update.disabled"); }
+function updateStatePath(): string { return join(vikiHome(), "update-state.json"); }
+function updateDisabledPath(): string { return join(vikiHome(), "auto-update.disabled"); }
 
 export function readUpdateState(): UpdateState {
   try {
@@ -165,7 +165,7 @@ export function writeUpdateState(s: UpdateState): void {
   // upgrades the write to atomic tmp+rename too. Caller passes a fully formed
   // state, so the mutator is a no-op replacement returning `s`.
   try {
-    withUpdateStateLock(teamagentHome(), () => s);
+    withUpdateStateLock(vikiHome(), () => s);
   } catch { /* silent — same fail-soft semantic as before */ }
 }
 
@@ -217,12 +217,12 @@ export function maybeShowPendingBanner(
     const prTag =
       typeof pr_number === "number" ? `PR #${pr_number}` : "你刚 merge 的 PR";
     stderr(
-      `🎯 TeamAgent: 你的 ${prTag} 已 merge — 自动更新到 ${toShort} (强制刷新)\n`,
+      `🎯 Viki: 你的 ${prTag} 已 merge — 自动更新到 ${toShort} (强制刷新)\n`,
     );
-    stderr(`   本次会话生效。详情: teamagent update --status\n`);
+    stderr(`   本次会话生效。详情: viki update --status\n`);
   } else {
-    stderr(`✨ TeamAgent: 已自动更新 ${fromShort} → ${toShort}\n`);
-    stderr(`   本次会话生效。详情: teamagent update --status\n`);
+    stderr(`✨ Viki: 已自动更新 ${fromShort} → ${toShort}\n`);
+    stderr(`   本次会话生效。详情: viki update --status\n`);
   }
   state.pending_banner.shown = true;
   writeUpdateState(state);
@@ -264,11 +264,11 @@ export function maybeShowReinstallBanner(
   if (sinceLast < REINSTALL_BANNER_THROTTLE_MS) return;
 
   stderr(
-    `⚠️  TeamAgent: 自动更新已连续失败 ${state.consecutive_install_failures} 次（旧 SSH 安装地址不可用）。\n`,
+    `⚠️  Viki: 自动更新已连续失败 ${state.consecutive_install_failures} 次（旧 SSH 安装地址不可用）。\n`,
   );
   stderr(`   手动重装一次即可恢复:\n`);
   stderr(`   npm install -g ${RELEASE_TARBALL_URL}\n`);
-  stderr(`   重装后会自动恢复后台更新；详情: teamagent update --status\n`);
+  stderr(`   重装后会自动恢复后台更新；详情: viki update --status\n`);
 
   state.reinstall_banner_shown_at = now();
   writeUpdateState(state);
@@ -304,12 +304,12 @@ export function maybeShowVersionCheckBanner(
   const err = state.last_install_error ?? "";
   if (!err.startsWith("version-check failed:")) return;
 
-  stderr("⚠️  TeamAgent: 暂时查不到新版本\n");
+  stderr("⚠️  Viki: 暂时查不到新版本\n");
   stderr(`   ${err}\n`);
   stderr("   建议:\n");
-  stderr("     • 手动: npm i -g teamagent@latest\n");
+  stderr("     • 手动: npm i -g viki@latest\n");
   stderr("     • 或等下次启动 (我们会重试)\n");
-  stderr("     • 高级用户: 设 TEAMAGENT_GITHUB_TOKEN 走认证通道\n");
+  stderr("     • 高级用户: 设 VIKI_GITHUB_TOKEN 走认证通道\n");
 }
 
 // ─── issue #225: soft-force upgrade prompt ───────────────────────────────
@@ -320,7 +320,7 @@ export function maybeShowVersionCheckBanner(
  * Renders the multi-line stderr banner with version line, what's-new bullets,
  * and three CLI choices (--now / --snooze / --never) when:
  *   - state.never_prompt is false
- *   - TEAMAGENT_NEVER_PROMPT env var is not "1"
+ *   - VIKI_NEVER_PROMPT env var is not "1"
  *   - state.snooze_until_ts has elapsed
  *   - state has a pending_banner (set by background updater on successful
  *     install) OR the caller passes an explicit pendingToVersion

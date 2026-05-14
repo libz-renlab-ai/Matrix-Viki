@@ -4,7 +4,7 @@
  *
  * Long-running process that owns one `XenovaRuleEmbedder` and serves
  * embedding requests over HTTP on `127.0.0.1:<random-port>`. Hooks
- * (PreToolUse, Stop) discover the port via `~/.teamagent/.embedder-state.json`
+ * (PreToolUse, Stop) discover the port via `~/.viki/.embedder-state.json`
  * and POST /embed instead of loading the 115MB ONNX model fresh per call.
  *
  * Solves the "卡爆" problem identified in issue #164:
@@ -29,7 +29,7 @@ import http from "node:http";
 import process from "node:process";
 import {
   XenovaRuleEmbedder,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   defaultEmbedderStatePath,
   isDaemonPidAlive,
@@ -80,12 +80,12 @@ export function parseArgv(argv: string[]): Partial<DaemonOpts> {
  * Windows pid-recycling defense: process.kill(pid, 0) returns true for ANY
  * existing pid on Windows. If the recorded pid was recycled into an
  * unrelated process (svchost.exe etc.) after a reboot, we'd refuse to
- * spawn forever. Caller can set TEAMAGENT_EMBEDDER_FORCE_SPAWN=1 to
+ * spawn forever. Caller can set VIKI_EMBEDDER_FORCE_SPAWN=1 to
  * bypass; better long-term, the runtime path also performs an HTTP
  * /health probe (added in startup) to catch this case automatically.
  */
 export function tryAcquireLock(statePath: string): boolean {
-  if (process.env["TEAMAGENT_EMBEDDER_FORCE_SPAWN"] === "1") return true;
+  if (process.env["VIKI_EMBEDDER_FORCE_SPAWN"] === "1") return true;
   const existing = readEmbedderState(statePath);
   if (!existing) return true;
   if (existing.status === "exiting") return true;
@@ -424,12 +424,12 @@ async function main(): Promise<void> {
 // imported by tests. tsup bundles to CJS where require.main === module is
 // the canonical entry-point check; under vitest+tsx the source is loaded
 // as a module (require.main !== module), so main() doesn't fire on import.
-// `TEAMAGENT_EMBEDDER_NO_AUTOSTART=1` provides an explicit override for
+// `VIKI_EMBEDDER_NO_AUTOSTART=1` provides an explicit override for
 // tests that want to import even when require shim treats it as entry.
 const _isEntry =
   typeof require !== "undefined" &&
   typeof (require as { main?: unknown }).main !== "undefined" &&
   (require as { main?: unknown }).main === module;
-if (_isEntry && process.env["TEAMAGENT_EMBEDDER_NO_AUTOSTART"] !== "1") {
+if (_isEntry && process.env["VIKI_EMBEDDER_NO_AUTOSTART"] !== "1") {
   void main();
 }

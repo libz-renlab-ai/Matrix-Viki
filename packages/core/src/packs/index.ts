@@ -11,8 +11,8 @@
 import { z } from "zod";
 
 export const PROMPT_VERSION = 1 as const;
-export const PROMPT_OPEN_MARKER = `<!-- teamagent-pack-prompt v${PROMPT_VERSION} -->`;
-export const PROMPT_CLOSE_MARKER = `<!-- /teamagent-pack-prompt v${PROMPT_VERSION} -->`;
+export const PROMPT_OPEN_MARKER = `<!-- viki-pack-prompt v${PROMPT_VERSION} -->`;
+export const PROMPT_CLOSE_MARKER = `<!-- /viki-pack-prompt v${PROMPT_VERSION} -->`;
 
 /**
  * Frozen v1 ordered list of well-known files surfaced in the prompt's
@@ -113,22 +113,22 @@ export interface RenderPackPromptInput {
 }
 
 /**
- * Render the versioned markdown prompt block injected into `teamagent init`
+ * Render the versioned markdown prompt block injected into `viki init`
  * stdout. Anchors used by the judge harness in
  * docs/features/pack-cli/run-judge.sh:
  *   - PROMPT_OPEN_MARKER, PROMPT_CLOSE_MARKER
  *   - "Observed" header + 6 fixed rows in OBSERVED_FILE_LIST order
  *   - Per-pack row format: **<name>** [tags: a, b, c] — <description>. file_hints: `f1`, `f2`
- *   - Literal "teamagent pack add" in the recommended-action line
+ *   - Literal "viki pack add" in the recommended-action line
  *   - Literal "--pack all" and "--pack X,Y" in the power-user section
  */
 export function renderPackPromptBody(input: RenderPackPromptInput): string {
   const lines: string[] = [];
   lines.push(PROMPT_OPEN_MARKER);
-  lines.push("## TeamAgent: select stack packs");
+  lines.push("## Viki: select stack packs");
   lines.push("");
   lines.push(
-    "Observed in your project (file presence only — TeamAgent does not infer stack):",
+    "Observed in your project (file presence only — Viki does not infer stack):",
   );
   lines.push("");
   for (const f of OBSERVED_FILE_LIST) {
@@ -142,8 +142,8 @@ export function renderPackPromptBody(input: RenderPackPromptInput): string {
     lines.push("Available packs: (no packs shipped in this version)");
     lines.push("");
     lines.push(
-      "**Recommended action**: this teamagent build ships no stack packs yet. " +
-        "Run `teamagent doctor` to check for an updated build, or run `teamagent pack add <name>` " +
+      "**Recommended action**: this viki build ships no stack packs yet. " +
+        "Run `viki doctor` to check for an updated build, or run `viki pack add <name>` " +
         "once packs are available.",
     );
   } else {
@@ -175,13 +175,13 @@ export function renderPackPromptBody(input: RenderPackPromptInput): string {
       "**Recommended action** (read by your coding agent): if any of the file_hints above match observed files, pick the relevant pack(s) and run, e.g.",
     );
     lines.push("");
-    lines.push(`\`teamagent pack add ${sample}\``);
+    lines.push(`\`viki pack add ${sample}\``);
   }
 
   lines.push("");
   lines.push("Power-user paths (skip this prompt next time):");
   lines.push("");
-  lines.push("- `teamagent init --pack all` — install every available pack");
+  lines.push("- `viki init --pack all` — install every available pack");
   const powerSample =
     input.available.length >= 2
       ? `${input.available[0]!.name},${input.available[1]!.name}`
@@ -189,7 +189,7 @@ export function renderPackPromptBody(input: RenderPackPromptInput): string {
         ? input.available[0]!.name
         : "X,Y";
   lines.push(
-    `- \`teamagent init --pack ${powerSample}\` — explicit comma-separated list (--pack X,Y form)`,
+    `- \`viki init --pack ${powerSample}\` — explicit comma-separated list (--pack X,Y form)`,
   );
   lines.push("");
   lines.push(PROMPT_CLOSE_MARKER);

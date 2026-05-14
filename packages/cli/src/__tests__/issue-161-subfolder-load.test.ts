@@ -1,15 +1,15 @@
 /**
- * Regression test for issue #161 — subfolder cwd can't load teamagent.
+ * Regression test for issue #161 — subfolder cwd can't load viki.
  *
  * Verifies that when a user runs Claude Code from a subdirectory,
- * the walk-up resolution correctly finds the parent's .teamagent/knowledge.db
+ * the walk-up resolution correctly finds the parent's .viki/knowledge.db
  * instead of looking for a non-existent one in the subdirectory.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it, expect, afterEach } from "vitest";
-import { findTeamagentRoot } from "../find-teamagent-root.js";
+import { findVikiRoot } from "../find-viki-root.js";
 
 const tmpdirs: string[] = [];
 
@@ -30,15 +30,15 @@ afterEach(() => {
 });
 
 describe("issue #161 subfolder walk-up regression", () => {
-  it("resolves db path to parent .teamagent when cwd is a subfolder", () => {
+  it("resolves db path to parent .viki when cwd is a subfolder", () => {
     const tmpRoot = makeTmpDir();
 
-    // Set up: dir/.teamagent/knowledge.db exists AND dir has a project marker
+    // Set up: dir/.viki/knowledge.db exists AND dir has a project marker
     // (hardened walk-up requires both)
     const dir = path.join(tmpRoot, "dir");
-    const teamagentDir = path.join(dir, ".teamagent");
-    fs.mkdirSync(teamagentDir, { recursive: true });
-    fs.writeFileSync(path.join(teamagentDir, "knowledge.db"), ""); // empty file
+    const vikiDir = path.join(dir, ".viki");
+    fs.mkdirSync(vikiDir, { recursive: true });
+    fs.writeFileSync(path.join(vikiDir, "knowledge.db"), ""); // empty file
     fs.writeFileSync(path.join(dir, "package.json"), "{}");
 
     // Set up: dir/sub/ is the user's actual cwd (subfolder of the project root)
@@ -46,14 +46,14 @@ describe("issue #161 subfolder walk-up regression", () => {
     fs.mkdirSync(sub, { recursive: true });
 
     // Simulate what a hook would do: find project root from cwd = dir/sub
-    const resolvedRoot = findTeamagentRoot(sub);
+    const resolvedRoot = findVikiRoot(sub);
 
-    // The resolved db path should point to dir/.teamagent/knowledge.db,
-    // NOT dir/sub/.teamagent/knowledge.db
-    const resolvedDbPath = path.join(resolvedRoot, ".teamagent", "knowledge.db");
-    const subDbPath = path.join(sub, ".teamagent", "knowledge.db");
+    // The resolved db path should point to dir/.viki/knowledge.db,
+    // NOT dir/sub/.viki/knowledge.db
+    const resolvedDbPath = path.join(resolvedRoot, ".viki", "knowledge.db");
+    const subDbPath = path.join(sub, ".viki", "knowledge.db");
 
-    expect(path.resolve(resolvedDbPath)).toBe(path.resolve(path.join(dir, ".teamagent", "knowledge.db")));
+    expect(path.resolve(resolvedDbPath)).toBe(path.resolve(path.join(dir, ".viki", "knowledge.db")));
     expect(path.resolve(resolvedDbPath)).not.toBe(path.resolve(subDbPath));
   });
 });

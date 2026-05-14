@@ -18,8 +18,8 @@ import type { KnowledgeEntry } from "../packages/types/src/index.js";
 
 const dryRun = process.argv.includes("--dry-run");
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const projectDbPath = path.join(repoRoot, ".teamagent", "knowledge.db");
-const userGlobalDbPath = path.join(os.homedir(), ".teamagent", "global.db");
+const projectDbPath = path.join(repoRoot, ".viki", "knowledge.db");
+const userGlobalDbPath = path.join(os.homedir(), ".viki", "global.db");
 
 const store = new DualLayerStore({ projectDbPath, userGlobalDbPath });
 const all = store.findActive();
@@ -55,7 +55,7 @@ const INTERNAL_CODE_PATTERNS = [
   /hysteresis/i,
   /AttributionEvent\.source/i,
   /adapters subpath/i,
-  /@teamagent\/(cli|core|adapters|ports|types)/i,
+  /@viki\/(cli|core|adapters|ports|types)/i,
   /packages\/adapters\/package\.json/i,
   /exports 字段/i,
 ];
@@ -134,4 +134,4 @@ for (const id of toArchive) {
 store.close();
 
 console.log(`✓ 已归档 ${archived} 条规则`);
-console.log(`\n下一步: pnpm teamagent compile --force 重新编译 CLAUDE.md`);
+console.log(`\n下一步: pnpm viki compile --force 重新编译 CLAUDE.md`);

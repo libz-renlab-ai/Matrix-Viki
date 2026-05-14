@@ -12,7 +12,7 @@ describe("harvest-writer", () => {
   let cwd: string;
   beforeEach(() => { cwd = mkTmp(); });
 
-  it("creates .teamagent/last-harvest.md on first call", () => {
+  it("creates .viki/last-harvest.md on first call", () => {
     appendHarvest(cwd, {
       sessionId: "s1",
       mode: "incremental",
@@ -77,8 +77,8 @@ describe("harvest-writer", () => {
 
   it("walk-up (#161): appendHarvest writes to parent harvest file when cwd is a subfolder", () => {
     // Create knowledge.db AND project marker at root so hardened walk-up matches
-    fs.mkdirSync(path.join(cwd, ".teamagent"), { recursive: true });
-    fs.writeFileSync(path.join(cwd, ".teamagent", "knowledge.db"), "");
+    fs.mkdirSync(path.join(cwd, ".viki"), { recursive: true });
+    fs.writeFileSync(path.join(cwd, ".viki", "knowledge.db"), "");
     fs.writeFileSync(path.join(cwd, "package.json"), "{}");
     const sub = path.join(cwd, "sub");
     fs.mkdirSync(sub, { recursive: true });
@@ -88,7 +88,7 @@ describe("harvest-writer", () => {
       rejected: 0, deduped: 0, newEntries: [],
     });
     // Harvest should be at root, not sub
-    expect(fs.existsSync(path.join(cwd, ".teamagent", "last-harvest.md"))).toBe(true);
-    expect(fs.existsSync(path.join(sub, ".teamagent", "last-harvest.md"))).toBe(false);
+    expect(fs.existsSync(path.join(cwd, ".viki", "last-harvest.md"))).toBe(true);
+    expect(fs.existsSync(path.join(sub, ".viki", "last-harvest.md"))).toBe(false);
   });
 });

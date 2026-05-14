@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { SkillCompiler } from "../skill-compiler.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";

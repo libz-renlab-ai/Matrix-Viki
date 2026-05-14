@@ -10,7 +10,7 @@ import type {
   AttributionBus,
   Validator,
   ValidationL0Result,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import type {
   CorrectionDetector,
   CorrectionMoment,
@@ -20,7 +20,7 @@ import type {
   KnowledgeEntry,
   ParsedSession,
   Scope,
-} from "@teamagent/types";
+} from "@viki/types";
 
 // ---------- Test doubles ----------
 

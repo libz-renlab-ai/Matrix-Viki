@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { runCalibratorV2Contract } from "@teamagent/ports/contracts";
+import { runCalibratorV2Contract } from "@viki/ports/contracts";
 import { v2Calibrator } from "../index.js";
-import type { CalibratorV2Input, Observation } from "@teamagent/ports";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { CalibratorV2Input, Observation } from "@viki/ports";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 describe("v2Calibrator", () => {
   runCalibratorV2Contract(() => v2Calibrator);

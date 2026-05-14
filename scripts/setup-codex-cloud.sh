@@ -31,7 +31,7 @@ esac
 if [ -f "$PROFILE_FILE" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$PROFILE_FILE"; then
   {
     echo ''
-    echo '# Added by TeamAgent setup: ensure claudefast shim is on PATH.'
+    echo '# Added by Viki setup: ensure claudefast shim is on PATH.'
     echo 'export PATH="$HOME/.local/bin:$PATH"'
   } >> "$PROFILE_FILE"
 fi

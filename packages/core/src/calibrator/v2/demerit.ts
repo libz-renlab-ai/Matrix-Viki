@@ -1,4 +1,4 @@
-import type { Tier, DeltaStep } from "@teamagent/ports";
+import type { Tier, DeltaStep } from "@viki/ports";
 
 const DAY_MS = 24 * 3600 * 1000;
 

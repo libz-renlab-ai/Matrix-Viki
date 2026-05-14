@@ -32,19 +32,19 @@ function sleepSync(ms: number): void {
   }
 }
 
-const HOOK_TAG = "teamagent-pre-tool-use";
-const POST_HOOK_TAG = "teamagent-post-tool-use";
-const USER_PROMPT_TAG = "teamagent-user-prompt-submit";
-const STOP_HOOK_TAG   = "teamagent-stop";
-const STATUS_LINE_TAG = "teamagent-statusline";
+const HOOK_TAG = "viki-pre-tool-use";
+const POST_HOOK_TAG = "viki-post-tool-use";
+const USER_PROMPT_TAG = "viki-user-prompt-submit";
+const STOP_HOOK_TAG   = "viki-stop";
+const STATUS_LINE_TAG = "viki-statusline";
 // B+C scope (2026-05-09): four new channels folded into installHook.
 // SessionStart and DigitalTwinTap are user-level only (see channelOps and
 // `installHook` body for rationale); SessionEnd / PreCompact write to both
 // project and user-level settings like the existing four.
-const SESSION_START_TAG = "teamagent-session-start";
-const SESSION_END_TAG   = "teamagent-session-end";
-const PRE_COMPACT_TAG   = "teamagent-pre-compact";
-const DIGITAL_TWIN_TAG  = "teamagent-digital-twin-tap";
+const SESSION_START_TAG = "viki-session-start";
+const SESSION_END_TAG   = "viki-session-end";
+const PRE_COMPACT_TAG   = "viki-pre-compact";
+const DIGITAL_TWIN_TAG  = "viki-digital-twin-tap";
 
 export interface InstallHookOptions {
   cwd?: string;
@@ -70,7 +70,7 @@ export interface InstallHookOptions {
    * Issue #146 install-hook TODO — 显式指定 digital-twin daemon 二进制
    * `bin-uploader.cjs` 的源路径。Default: `<cliRoot>/../digital-twin/dist/
    * bin-uploader.cjs` (monorepo 布局，与 `resolveDaemonBin` 一致)。install-hook
-   * 把它复制到 `<homeDir>/.teamagent/digital-twin/bin-uploader.cjs`，承担起
+   * 把它复制到 `<homeDir>/.viki/digital-twin/bin-uploader.cjs`，承担起
    * 之前由 Stop hook 首次启动时 `resolveDaemonBin` self-install 兜底的 upgrade
    * 路径。
    */
@@ -79,7 +79,7 @@ export interface InstallHookOptions {
   homeDir?: string;
   /**
    * Issue #161 — Layer 1 viral install. When `true` (default), additionally
-   * write the same TeamAgent hook entries (PreToolUse / PostToolUse /
+   * write the same Viki hook entries (PreToolUse / PostToolUse /
    * UserPromptSubmit / Stop) into `<homeDir>/.claude/settings.json` so
    * Claude Code launched from any cwd (including sub-directories of an
    * already-initialized project) registers the project's hooks. The
@@ -100,13 +100,13 @@ interface ClaudeSettings {
   statusLine?: {
     type?: string;
     command?: string;
-    _teamagentTag?: string;
+    _vikiTag?: string;
     /** 用户原 statusLine.command 字面值（issue #104：chain wrap 备份用） */
-    _teamagentOriginalCommand?: string;
+    _vikiOriginalCommand?: string;
     /** 用户原 statusLine.type（默认 "command"） */
-    _teamagentOriginalType?: string;
+    _vikiOriginalType?: string;
     /** 备份来源：user = ~/.claude/settings.json；project = 当前 settings.local.json */
-    _teamagentOriginalScope?: "user" | "project";
+    _vikiOriginalScope?: "user" | "project";
     [k: string]: unknown;
   };
   [k: string]: unknown;
@@ -115,8 +115,8 @@ interface ClaudeSettings {
 interface HookEntry {
   matcher?: string;
   hooks: HookCommand[];
-  /** TeamAgent 标签，用于卸载识别（自定义字段，settings.json 不要求）*/
-  _teamagentTag?: string;
+  /** Viki 标签，用于卸载识别（自定义字段，settings.json 不要求）*/
+  _vikiTag?: string;
 }
 
 interface HookCommand {
@@ -126,15 +126,15 @@ interface HookCommand {
 }
 
 /**
- * Issue #299: exported so `teamagent doctor` can resolve the same dist root
+ * Issue #299: exported so `viki doctor` can resolve the same dist root
  * the install pipeline uses when walking the install table. Behaviour unchanged.
  */
 export function cliRoot(): string {
   // 从当前文件位置向上走，找到包含 dist/bin-pre-tool-use.cjs 的目录。
   // - Dev (source, tsx):  .../packages/cli/src/commands/install-hook.ts
   //                       → .../packages/cli/
-  // - Bundled (npm):      .../node_modules/teamagent/dist/bin.js
-  //                       → .../node_modules/teamagent/
+  // - Bundled (npm):      .../node_modules/viki/dist/bin.js
+  //                       → .../node_modules/viki/
   // 旧实现硬编码"退 3 层"，在 bundle 模式退到 node_modules/，
   // 再拼 "dist/bin-stop.cjs" 得到 node_modules/dist/bin-stop.cjs（不存在）。
   const here = fileURLToPath(import.meta.url);
@@ -194,8 +194,8 @@ function defaultDigitalTwinEntry(): string {
  * every curl-installed machine: zero uploads, no error.
  *
  * Fix flow:
- *   1. teamagent tsup.config (release tarball) builds bin-uploader.cjs into
- *      packages/teamagent/dist → tarball ships it at <install>/dist/.
+ *   1. viki tsup.config (release tarball) builds bin-uploader.cjs into
+ *      packages/viki/dist → tarball ships it at <install>/dist/.
  *   2. cli tsup.hook.config (monorepo dev) builds bin-uploader.cjs into
  *      packages/cli/dist → matches cliRoot() walk-up in dev.
  *   3. defaultDaemonBinaryEntry returns <cliRoot>/dist/bin-uploader.cjs;
@@ -215,18 +215,18 @@ function toForwardSlash(p: string): string {
 }
 
 /**
- * B-091: stage a bundle from `<srcDistPath>` (e.g. node_modules/teamagent/dist/bin-*.cjs)
- * to a stable user-owned location at `<homeDir>/.teamagent/hooks/<basename>`.
+ * B-091: stage a bundle from `<srcDistPath>` (e.g. node_modules/viki/dist/bin-*.cjs)
+ * to a stable user-owned location at `<homeDir>/.viki/hooks/<basename>`.
  *
  * Why: the user-level `~/.claude/settings.json` is shared across every project
  * on the machine. If we wrote the literal `node_modules/.../dist/bin-*.cjs`
  * absolute path into it, then nvm version switches, npm reinstalls, worktree
  * cleanups (e.g. `/private/tmp/<repo>` deleted), or "last init from a
- * different project replaces my command" all silently brick TeamAgent hooks
+ * different project replaces my command" all silently brick Viki hooks
  * for every project on the machine.
  *
  * Pattern mirrors `installUserHook` (sibling B-091 implementation):
- * 1. compute dest = <homeDir>/.teamagent/hooks/<basename(srcDistPath)>
+ * 1. compute dest = <homeDir>/.viki/hooks/<basename(srcDistPath)>
  * 2. mkdir -p the parent dir
  * 3. copyFileSync the bundle (overwrite existing — fresh bundle on each install)
  * 4. return dest
@@ -234,9 +234,9 @@ function toForwardSlash(p: string): string {
 /**
  * Issue #146 install-hook TODO — stage `bin-uploader.cjs` to the
  * user-level digital-twin location managed by `resolveDaemonBin`. Pattern
- * mirrors `stageBundleToUserTeamagent` (skip-if-newer + atomic tmp+rename)
- * but writes to `<homeDir>/.teamagent/digital-twin/bin-uploader.cjs`
- * instead of `<homeDir>/.teamagent/hooks/<bundle>`.
+ * mirrors `stageBundleToUserViki` (skip-if-newer + atomic tmp+rename)
+ * but writes to `<homeDir>/.viki/digital-twin/bin-uploader.cjs`
+ * instead of `<homeDir>/.viki/hooks/<bundle>`.
  *
  * Best-effort:
  * - Source missing (digital-twin not built in this worktree) → no-op,
@@ -259,17 +259,17 @@ export function stageDaemonBinaryToUser(
   srcDistPath: string,
   homeDir: string,
 ): DaemonStagingResult {
-  const dest = path.join(homeDir, ".teamagent", "digital-twin", "bin-uploader.cjs");
+  const dest = path.join(homeDir, ".viki", "digital-twin", "bin-uploader.cjs");
   if (!fs.existsSync(srcDistPath)) {
     return {
       staged: false,
       destPath: dest,
-      reason: `daemon binary source missing: ${srcDistPath} (build with pnpm --filter @teamagent/digital-twin build)`,
+      reason: `daemon binary source missing: ${srcDistPath} (build with pnpm --filter @viki/digital-twin build)`,
     };
   }
   fs.mkdirSync(path.dirname(dest), { recursive: true });
 
-  // Skip-if-newer: same heuristic as stageBundleToUserTeamagent — avoids
+  // Skip-if-newer: same heuristic as stageBundleToUserViki — avoids
   // pointless I/O on every install AND avoids racing concurrent daemon
   // processes that already loaded the staged binary.
   try {
@@ -304,8 +304,8 @@ export function stageDaemonBinaryToUser(
   }
 }
 
-function stageBundleToUserTeamagent(srcDistPath: string, homeDir: string): string {
-  const dest = path.join(homeDir, ".teamagent", "hooks", path.basename(srcDistPath));
+function stageBundleToUserViki(srcDistPath: string, homeDir: string): string {
+  const dest = path.join(homeDir, ".viki", "hooks", path.basename(srcDistPath));
   fs.mkdirSync(path.dirname(dest), { recursive: true });
 
   // Round-2 F3: skip the copy if the destination already contains the same
@@ -342,17 +342,17 @@ function stageBundleToUserTeamagent(srcDistPath: string, homeDir: string): strin
 }
 
 /**
- * B-086: judge whether a hook entry belongs to TeamAgent for a given channel.
+ * B-086: judge whether a hook entry belongs to Viki for a given channel.
  *
- * Dual signal — mirrors `install-user-hook.ts:isTeamagentSessionStartEntry`:
- * - Strong: `_teamagentTag` is present (any TeamAgent-tagged entry, covers
+ * Dual signal — mirrors `install-user-hook.ts:isVikiSessionStartEntry`:
+ * - Strong: `_vikiTag` is present (any Viki-tagged entry, covers
  *   both old and new tagging schemes).
  * - Heuristic: `entry.hooks[*].command` contains the channel's bundle
- *   filename (e.g. `bin-pre-tool-use.cjs`). These filenames are TeamAgent-
+ *   filename (e.g. `bin-pre-tool-use.cjs`). These filenames are Viki-
  *   specific and unlikely to collide with foreign hooks.
  *
  * Used in `applyChannelOps` so re-installing on top of an upgraded user
- * who already has untagged-legacy TeamAgent entries doesn't double-fire.
+ * who already has untagged-legacy Viki entries doesn't double-fire.
  */
 type HookChannel =
   | "PreToolUse"
@@ -364,7 +364,7 @@ type HookChannel =
   | "PreCompact";
 
 // Bundle filenames for each channel. Stop has TWO bundles (bin-stop +
-// bin-digital-twin-tap); the heuristic detects either as TeamAgent-owned so
+// bin-digital-twin-tap); the heuristic detects either as Viki-owned so
 // re-install dedup catches both flavours. New bundles added 2026-05-09 (B+C).
 const CHANNEL_BUNDLE_FILENAMES: Record<HookChannel, readonly string[]> = {
   PreToolUse: ["bin-pre-tool-use.cjs"],
@@ -376,15 +376,15 @@ const CHANNEL_BUNDLE_FILENAMES: Record<HookChannel, readonly string[]> = {
   PreCompact: ["bin-pre-compact.cjs"],
 };
 
-function isTeamagentEntry(entry: HookEntry, channel: HookChannel): boolean {
-  if (entry._teamagentTag) return true;
+function isVikiEntry(entry: HookEntry, channel: HookChannel): boolean {
+  if (entry._vikiTag) return true;
   const filenames = CHANNEL_BUNDLE_FILENAMES[channel];
   const cmds = entry.hooks?.map((c) => c.command ?? "") ?? [];
   return cmds.some((c) => filenames.some((f) => c.includes(f)));
 }
 
 /**
- * v0.11.0 channelOps unification — declarative source for every TeamAgent
+ * v0.11.0 channelOps unification — declarative source for every Viki
  * hook channel write. Both project-level (`installHook`'s body) and user-level
  * (`applyUserLevelChannelOps`) consume this list via `applyChannelOps` so the
  * registration logic lives in exactly one place.
@@ -410,7 +410,7 @@ type ChannelDef = {
   readonly scopes: ReadonlyArray<"project" | "user">;
 };
 
-// Issue #299: exported so `teamagent doctor` (and unit tests asserting tsup
+// Issue #299: exported so `viki doctor` (and unit tests asserting tsup
 // build entries) can iterate the install table without duplicating the
 // channel definitions. Treat as read-only.
 export const ALL_CHANNELS: ReadonlyArray<ChannelDef> = [
@@ -430,7 +430,7 @@ export const ALL_CHANNELS: ReadonlyArray<ChannelDef> = [
 
 /**
  * Issue #299: each install-table entry resolved to its expected absolute
- * dist path. `teamagent doctor` walks this and `existsSync`s each `absPath`
+ * dist path. `viki doctor` walks this and `existsSync`s each `absPath`
  * to verify the released tarball actually shipped every bundle declared by
  * `ALL_CHANNELS`. The silent-skip branch in `applyChannelOps` used to
  * swallow missing bundles entirely, leaving `doctor` and the install command
@@ -473,11 +473,11 @@ const ALL_HOOK_CHANNELS: ReadonlyArray<HookChannel> = [
  * and whose `channel` is in `channelFilter` (if provided):
  *
  * 1. Strip from `settings.hooks[channel]`:
- *    - any entry whose `_teamagentTag === def.tag` (idempotent re-install of OUR op)
- *    - any UNTAGGED entry that `isTeamagentEntry()` flags for this channel —
+ *    - any entry whose `_vikiTag === def.tag` (idempotent re-install of OUR op)
+ *    - any UNTAGGED entry that `isVikiEntry()` flags for this channel —
  *      B-086 dedup, mirrors the pre-v0.11 user-level behaviour. Project-level
  *      gains this for free; previously project-level only stripped tag-matches.
- *    - PRESERVE entries with a DIFFERENT teamagent tag for the same channel
+ *    - PRESERVE entries with a DIFFERENT viki tag for the same channel
  *      (Stop hosts both bin-stop and digital-twin-tap; they must coexist).
  *
  * 2. Resolve the bundle path via `resolveBundle(def.bundleFilename)`. An empty
@@ -487,8 +487,8 @@ const ALL_HOOK_CHANNELS: ReadonlyArray<HookChannel> = [
  * 3. Build the on-disk command:
  *    - scope=project → `node <forwardSlashPath>` (direct dist path; no staging)
  *    - scope=user    → `buildUserLevelHookCommand(stagedPath)` where the bundle
- *                       has been atomically copied to `<homeDir>/.teamagent/hooks/`
- *                       via `stageBundleToUserTeamagent` (with EBUSY fallback to
+ *                       has been atomically copied to `<homeDir>/.viki/hooks/`
+ *                       via `stageBundleToUserViki` (with EBUSY fallback to
  *                       the original path).
  *
  * 4. Push the new entry; matchers are added when `def.matcher` is set.
@@ -525,12 +525,12 @@ function applyChannelOps(opts: {
     if (channelFilter && !channelFilter.has(def.channel)) continue;
 
     // Strip our-tag entries + untagged-legacy entries. Preserve foreign hooks
-    // and entries with a different teamagent tag for the same channel.
+    // and entries with a different viki tag for the same channel.
     if (settings.hooks[def.channel]) {
       const list = settings.hooks[def.channel] as HookEntry[];
       settings.hooks[def.channel] = list.filter((h) => {
-        if (h._teamagentTag === def.tag) return false;
-        if (!h._teamagentTag && isTeamagentEntry(h, def.channel)) return false;
+        if (h._vikiTag === def.tag) return false;
+        if (!h._vikiTag && isVikiEntry(h, def.channel)) return false;
         return true;
       });
     }
@@ -544,24 +544,24 @@ function applyChannelOps(opts: {
       // still continues — partial install is better than a hard failure for
       // the cross-version-compat case the silent skip originally guarded
       // against (older dist missing a newer bundle).
-      // The strict gate moved to `teamagent doctor` (checkInstallTableBundles),
+      // The strict gate moved to `viki doctor` (checkInstallTableBundles),
       // which fails-loud with exit non-zero on any missing install-table bundle.
       process.stderr.write(
-        `teamagent: skipping channel ${def.channel} — bundle ${def.bundleFilename} not found\n`,
+        `viki: skipping channel ${def.channel} — bundle ${def.bundleFilename} not found\n`,
       );
       continue;
     }
 
     let command: string;
     if (scope === "user") {
-      // Stage to ~/.teamagent/hooks/<filename>; on EBUSY fall back to the
+      // Stage to ~/.viki/hooks/<filename>; on EBUSY fall back to the
       // in-place dist path so install never breaks the hook entirely.
       let pathForCommand: string;
       try {
-        pathForCommand = stageBundleToUserTeamagent(bundlePath, homeDir);
+        pathForCommand = stageBundleToUserViki(bundlePath, homeDir);
       } catch (err: any) {
         process.stderr.write(
-          `teamagent install-hook: failed to stage ${path.basename(bundlePath)} ` +
+          `viki install-hook: failed to stage ${path.basename(bundlePath)} ` +
             `(${err?.code ?? err?.message ?? err}) — falling back to in-place dist path\n`,
         );
         pathForCommand = bundlePath;
@@ -573,7 +573,7 @@ function applyChannelOps(opts: {
 
     if (!settings.hooks[def.channel]) settings.hooks[def.channel] = [];
     const newEntry: HookEntry = {
-      _teamagentTag: def.tag,
+      _vikiTag: def.tag,
       hooks: [{ type: "command", command, timeout: def.timeout }],
     };
     if (def.matcher) newEntry.matcher = def.matcher;
@@ -592,7 +592,7 @@ function applyChannelOps(opts: {
 }
 
 /**
- * Inspect `settings` for a TeamAgent-owned entry on `channel` matching `tag`,
+ * Inspect `settings` for a Viki-owned entry on `channel` matching `tag`,
  * including untagged-legacy entries that point at the channel's bundle
  * filename. Used to derive `alreadyInstalled` BEFORE `applyChannelOps`
  * strips and re-pushes the entry.
@@ -601,7 +601,7 @@ function applyChannelOps(opts: {
  * that needs the same "did we already register this channel?" predicate)
  * can reuse the exact same dual-signal logic without redefining it locally.
  */
-export function hasTeamagentChannelEntry(
+export function hasVikiChannelEntry(
   settings: ClaudeSettings,
   channel: HookChannel,
   tag: string,
@@ -609,8 +609,8 @@ export function hasTeamagentChannelEntry(
   const list = settings.hooks?.[channel] as HookEntry[] | undefined;
   if (!Array.isArray(list)) return false;
   return list.some((h) => {
-    if (h._teamagentTag === tag) return true;
-    if (!h._teamagentTag && isTeamagentEntry(h, channel)) return true;
+    if (h._vikiTag === tag) return true;
+    if (!h._vikiTag && isVikiEntry(h, channel)) return true;
     return false;
   });
 }
@@ -690,7 +690,7 @@ function readSettings(file: string): ClaudeSettings {
       // best-effort backup; if even copy fails we still proceed with {}
     }
     process.stderr.write(
-      `teamagent install-hook: ${file} malformed; backed up to ${bak}; starting fresh\n`,
+      `viki install-hook: ${file} malformed; backed up to ${bak}; starting fresh\n`,
     );
     return {};
   }
@@ -698,7 +698,7 @@ function readSettings(file: string): ClaudeSettings {
 
 /**
  * Round-2 F5: cap the number of `<file>.bak-<ts>` siblings on disk so 100
- * `teamagent init` runs don't leave 200 stale backups (each potentially
+ * `viki init` runs don't leave 200 stale backups (each potentially
  * containing user secrets / paths) lying around forever. We keep the newest
  * `RETENTION_BACKUPS` per file and prune everything older.
  */
@@ -794,7 +794,7 @@ function writeSettings(file: string, settings: ClaudeSettings): void {
 /**
  * Concurrent-init advisory lock for user-level `~/.claude/settings.json`.
  *
- * Two `teamagent init` runs from different projects can race on the
+ * Two `viki init` runs from different projects can race on the
  * read-modify-write window and lose one's write. Default `userLevel:true`
  * raises the collision rate.
  *
@@ -822,7 +822,7 @@ function acquireSettingsLock(homeDir: string): { fd: number | null; lockPath: st
       if (err?.code !== "EEXIST") {
         // Unexpected — degrade and proceed
         process.stderr.write(
-          `teamagent install-hook: settings lock open failed (${err?.code ?? err}); proceeding without lock\n`,
+          `viki install-hook: settings lock open failed (${err?.code ?? err}); proceeding without lock\n`,
         );
         return { fd: null, lockPath };
       }
@@ -844,7 +844,7 @@ function acquireSettingsLock(homeDir: string): { fd: number | null; lockPath: st
       }
       if (attempt === MAX_RETRIES) {
         process.stderr.write(
-          `teamagent install-hook: settings lock contention at ${lockPath} after ${MAX_RETRIES} retries; proceeding without lock\n`,
+          `viki install-hook: settings lock contention at ${lockPath} after ${MAX_RETRIES} retries; proceeding without lock\n`,
         );
         return { fd: null, lockPath };
       }
@@ -876,7 +876,7 @@ function releaseSettingsLock(fd: number | null, lockPath: string): void {
 }
 
 /**
- * 把 TeamAgent PreToolUse hook 注册到 .claude/settings.local.json。
+ * 把 Viki PreToolUse hook 注册到 .claude/settings.local.json。
  * 用 settings.local.json 而非 settings.json 是因为：
  * - settings.local.json 是用户机器本地配置（Claude Code 约定不入 git）
  * - 入 git 的话每次提交都会带上 hook 引用，跨开发者不一致
@@ -897,7 +897,7 @@ export function installHook(opts: InstallHookOptions = {}): {
   statusLineMergedScope: "user" | "project" | null;
   /**
    * Issue #146 install-hook TODO — outcome of staging `bin-uploader.cjs`
-   * into `<homeDir>/.teamagent/digital-twin/`. Best-effort: when staging
+   * into `<homeDir>/.viki/digital-twin/`. Best-effort: when staging
    * fails (source missing / copy error), `staged=false` and `reason`
    * explains why, but installHook itself does NOT throw — the Stop hook's
    * runtime `resolveDaemonBin` self-install path still serves as a safety
@@ -921,13 +921,13 @@ export function installHook(opts: InstallHookOptions = {}): {
   const sessionEndEntry    = opts.sessionEndEntry    ?? defaultSessionEndEntry();
   const preCompactEntry    = opts.preCompactEntry    ?? defaultPreCompactEntry();
   const digitalTwinEntry   = opts.digitalTwinEntry   ?? defaultDigitalTwinEntry();
-  const statusLineEntry    = opts.statusLineEntry    ?? path.join(cliRoot(), "dist", "teamagent-statusline.cjs");
+  const statusLineEntry    = opts.statusLineEntry    ?? path.join(cliRoot(), "dist", "viki-statusline.cjs");
 
   // 确认 PreToolUse bundled .cjs 存在
   if (!fs.existsSync(hookEntry)) {
     throw new Error(
       `Hook bundle not found: ${hookEntry}\n` +
-        `请先运行: pnpm --filter @teamagent/cli build:hook`,
+        `请先运行: pnpm --filter @viki/cli build:hook`,
     );
   }
 
@@ -937,8 +937,8 @@ export function installHook(opts: InstallHookOptions = {}): {
   // `postAlreadyInstalled` flags. After v0.11.0 channelOps unification,
   // applyChannelOps strips and re-pushes idempotently — flag detection MUST
   // happen before the call.
-  const alreadyInstalled     = hasTeamagentChannelEntry(settings, "PreToolUse",  HOOK_TAG);
-  const postAlreadyInstalled = hasTeamagentChannelEntry(settings, "PostToolUse", POST_HOOK_TAG);
+  const alreadyInstalled     = hasVikiChannelEntry(settings, "PreToolUse",  HOOK_TAG);
+  const postAlreadyInstalled = hasVikiChannelEntry(settings, "PostToolUse", POST_HOOK_TAG);
 
   // Single declarative loop replaces the six pre-v0.11 inline blocks
   // (PreToolUse / PostToolUse / UserPromptSubmit / Stop / SessionEnd / PreCompact).
@@ -963,9 +963,9 @@ export function installHook(opts: InstallHookOptions = {}): {
   // statusLine 注册。CC 只有一个 statusLine 槽位 — 若用户已有 statusLine（user
   // level `~/.claude/settings.json` 或 project level `.claude/settings.local.json`），
   // 把用户 cmd 与 TeamBrain cmd chain 起来：
-  //   bash -c '<user_cmd>; echo; <teamagent_cmd>'
+  //   bash -c '<user_cmd>; echo; <viki_cmd>'
   // 中间 echo 让两段输出换行（issue #104）。用户原 cmd 字面值备份到
-  // _teamagentOriginalCommand / Type / Scope，便于 uninstall 还原。
+  // _vikiOriginalCommand / Type / Scope，便于 uninstall 还原。
   // statusLine is NOT a hook channel — it stays outside applyChannelOps.
   const hasStatusLineBundle = fs.existsSync(statusLineEntry);
   let statusLineSkipped = false;
@@ -973,7 +973,7 @@ export function installHook(opts: InstallHookOptions = {}): {
   if (hasStatusLineBundle) {
     const teamCmd = `node ${shellQuote(toForwardSlash(statusLineEntry))}`;
     const existing = settings.statusLine;
-    const existingIsTagged = existing?._teamagentTag === STATUS_LINE_TAG;
+    const existingIsTagged = existing?._vikiTag === STATUS_LINE_TAG;
     const existingIsEmpty = !existing || Object.keys(existing).length === 0;
 
     let userCmd: string | null = null;
@@ -981,10 +981,10 @@ export function installHook(opts: InstallHookOptions = {}): {
     let userScope: "user" | "project" | null = null;
 
     if (existingIsTagged) {
-      // 之前装过 teamagent — 复用上次备份（保留用户原 cmd），idempotent
-      const orig = existing?._teamagentOriginalCommand;
-      const origType = existing?._teamagentOriginalType;
-      const origScope = existing?._teamagentOriginalScope;
+      // 之前装过 viki — 复用上次备份（保留用户原 cmd），idempotent
+      const orig = existing?._vikiOriginalCommand;
+      const origType = existing?._vikiOriginalType;
+      const origScope = existing?._vikiOriginalScope;
       if (typeof orig === "string" && orig.length > 0) {
         userCmd = orig;
         userType = typeof origType === "string" ? origType : "command";
@@ -1014,12 +1014,12 @@ export function installHook(opts: InstallHookOptions = {}): {
     const newStatusLine: NonNullable<ClaudeSettings["statusLine"]> = {
       type: "command",
       command: buildStatusLineCommand(userCmd, teamCmd),
-      _teamagentTag: STATUS_LINE_TAG,
+      _vikiTag: STATUS_LINE_TAG,
     };
     if (userCmd) {
-      newStatusLine._teamagentOriginalCommand = userCmd;
-      newStatusLine._teamagentOriginalType = userType;
-      newStatusLine._teamagentOriginalScope = userScope ?? "user";
+      newStatusLine._vikiOriginalCommand = userCmd;
+      newStatusLine._vikiOriginalType = userType;
+      newStatusLine._vikiOriginalScope = userScope ?? "user";
       statusLineMergedScope = userScope;
     }
     settings.statusLine = newStatusLine;
@@ -1031,8 +1031,8 @@ export function installHook(opts: InstallHookOptions = {}): {
 
   // Issue #161 — Layer 1 viral install. Default `userLevel: true` so Claude
   // Code launched from a sub-directory of an initialized project still has
-  // the TeamAgent hooks registered. The user-level write is additive and
-  // idempotent — existing TeamAgent-tagged entries are replaced in place,
+  // the Viki hooks registered. The user-level write is additive and
+  // idempotent — existing Viki-tagged entries are replaced in place,
   // foreign entries are preserved untouched.
   const userLevel = opts.userLevel ?? true;
   if (userLevel) {
@@ -1053,8 +1053,8 @@ export function installHook(opts: InstallHookOptions = {}): {
   // (`bin-digital-twin-tap.cjs`) spawns this daemon detached when a session
   // ends; pre-F1 the binary was self-installed lazily at first daemon spawn,
   // which meant `git pull` -> rebuild never picked up changes (you had to
-  // delete `~/.teamagent/digital-twin/bin-uploader.cjs` by hand). Folding
-  // staging into install-hook makes `teamagent install-hook` upgrade the
+  // delete `~/.viki/digital-twin/bin-uploader.cjs` by hand). Folding
+  // staging into install-hook makes `viki install-hook` upgrade the
   // daemon binary too, mirroring how the hook bundles are kept fresh.
   const daemonBinaryEntry = opts.daemonBinaryEntry ?? defaultDaemonBinaryEntry();
   const daemonBinary = stageDaemonBinaryToUser(daemonBinaryEntry, homeDir);
@@ -1072,8 +1072,8 @@ export function installHook(opts: InstallHookOptions = {}): {
 }
 
 /**
- * 读 user-level `~/.claude/settings.json` 的 statusLine。返回非 teamagent 自己的
- * 那条；teamagent 自己 tag 过的或文件不存在均返回 null（避免重入嵌套）。
+ * 读 user-level `~/.claude/settings.json` 的 statusLine。返回非 viki 自己的
+ * 那条；viki 自己 tag 过的或文件不存在均返回 null（避免重入嵌套）。
  */
 function readUserLevelStatusLine(
   homeDir: string,
@@ -1084,11 +1084,11 @@ function readUserLevelStatusLine(
     const raw = fs.readFileSync(userSettingsPath, "utf-8").trim();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as {
-      statusLine?: { command?: string; type?: string; _teamagentTag?: string };
+      statusLine?: { command?: string; type?: string; _vikiTag?: string };
     };
     const sl = parsed.statusLine;
     if (!sl || typeof sl.command !== "string" || sl.command.length === 0) return null;
-    if (sl._teamagentTag) return null;
+    if (sl._vikiTag) return null;
     return { command: sl.command, type: typeof sl.type === "string" ? sl.type : "command" };
   } catch {
     return null;
@@ -1109,7 +1109,7 @@ function buildStatusLineCommand(
   const t = escapeForBashSingleQuote(teamCmd);
   // issue #331: Claude Code pipes JSON to stdin of the statusLine.command,
   // and we have **two** segments sharing that pipe. If we naively run
-  //   bash -c '<user>; echo; <teamagent>'
+  //   bash -c '<user>; echo; <viki>'
   // the first segment's `cat` / `jq` will drain stdin and the second segment
   // sees EOF — so all CC-derived fields (模型/上下文/用量/5h/7d/会话) silently
   // come up empty. Fix: snapshot stdin into a shell variable once at the top
@@ -1119,7 +1119,7 @@ function buildStatusLineCommand(
   return `bash -c '_TS_IN=$(cat); printf "%s" "$_TS_IN" | { ${u}; }; echo; printf "%s" "$_TS_IN" | { ${t}; }'`;
 }
 
-/** 移除 TeamAgent hook 注册（PreToolUse + PostToolUse 一并）。 */
+/** 移除 Viki hook 注册（PreToolUse + PostToolUse 一并）。 */
 export function uninstallHook(opts: { cwd?: string } = {}): {
   settingsPath: string;
   removed: boolean;
@@ -1141,7 +1141,7 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
   if (settings.hooks.PreToolUse) {
     const before = settings.hooks.PreToolUse.length;
     settings.hooks.PreToolUse = settings.hooks.PreToolUse.filter(
-      (h) => h._teamagentTag !== HOOK_TAG,
+      (h) => h._vikiTag !== HOOK_TAG,
     );
     if (settings.hooks.PreToolUse.length !== before) removedAny = true;
     if (settings.hooks.PreToolUse.length === 0) delete settings.hooks.PreToolUse;
@@ -1150,7 +1150,7 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
   if (settings.hooks.PostToolUse) {
     const before = settings.hooks.PostToolUse.length;
     settings.hooks.PostToolUse = settings.hooks.PostToolUse.filter(
-      (h) => h._teamagentTag !== POST_HOOK_TAG,
+      (h) => h._vikiTag !== POST_HOOK_TAG,
     );
     if (settings.hooks.PostToolUse.length !== before) removedAny = true;
     if (settings.hooks.PostToolUse.length === 0) delete settings.hooks.PostToolUse;
@@ -1159,7 +1159,7 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
   if (settings.hooks.UserPromptSubmit) {
     const before = settings.hooks.UserPromptSubmit.length;
     settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit.filter(
-      (h) => h._teamagentTag !== USER_PROMPT_TAG,
+      (h) => h._vikiTag !== USER_PROMPT_TAG,
     );
     if (settings.hooks.UserPromptSubmit.length !== before) removedAny = true;
     if (settings.hooks.UserPromptSubmit.length === 0) delete settings.hooks.UserPromptSubmit;
@@ -1168,9 +1168,9 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
   if (settings.hooks.Stop) {
     const before = settings.hooks.Stop.length;
     // B+C scope (2026-05-09): Stop now hosts both bin-stop and the
-    // digital-twin-tap entry — drop both teamagent tags.
+    // digital-twin-tap entry — drop both viki tags.
     settings.hooks.Stop = settings.hooks.Stop.filter(
-      (h) => h._teamagentTag !== STOP_HOOK_TAG && h._teamagentTag !== DIGITAL_TWIN_TAG,
+      (h) => h._vikiTag !== STOP_HOOK_TAG && h._vikiTag !== DIGITAL_TWIN_TAG,
     );
     if (settings.hooks.Stop.length !== before) removedAny = true;
     if (settings.hooks.Stop.length === 0) delete settings.hooks.Stop;
@@ -1187,7 +1187,7 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
     const list = settings.hooks[channel] as HookEntry[] | undefined;
     if (!Array.isArray(list)) continue;
     const before = list.length;
-    const next = list.filter((h) => h._teamagentTag !== tag);
+    const next = list.filter((h) => h._vikiTag !== tag);
     if (next.length !== before) removedAny = true;
     if (next.length === 0) {
       delete settings.hooks[channel];
@@ -1200,15 +1200,15 @@ export function uninstallHook(opts: { cwd?: string } = {}): {
     delete settings.hooks;
   }
 
-  // statusLine：只有在明确打了 teamagent tag 时才动。issue #104 起 install
-  // 会把用户原 cmd 备份到 _teamagentOriginalCommand。卸载策略：
+  // statusLine：只有在明确打了 viki tag 时才动。issue #104 起 install
+  // 会把用户原 cmd 备份到 _vikiOriginalCommand。卸载策略：
   //   scope=project → 把项目级 statusLine 写回原 {type, command}
   //   scope=user / 缺失 → 直接删项目级条目（用户的 ~/.claude/settings.json
   //     从未被 install 触碰，CC 重新解析时会回到用户级）
-  if (settings.statusLine?._teamagentTag === STATUS_LINE_TAG) {
-    const orig = settings.statusLine._teamagentOriginalCommand;
-    const origType = settings.statusLine._teamagentOriginalType;
-    const origScope = settings.statusLine._teamagentOriginalScope;
+  if (settings.statusLine?._vikiTag === STATUS_LINE_TAG) {
+    const orig = settings.statusLine._vikiOriginalCommand;
+    const origType = settings.statusLine._vikiOriginalType;
+    const origScope = settings.statusLine._vikiOriginalScope;
     if (
       typeof orig === "string" &&
       orig.length > 0 &&
@@ -1249,7 +1249,7 @@ function shellQuote(p: string): string {
  * "no orphans found"; the caller treats this as a soft warning, not an error.
  *
  * Detection is a substring check on the basename (e.g. `laziness-self-report.sh`)
- * — same heuristic used by `isTeamagentEntry`. False-positive rate is low
+ * — same heuristic used by `isVikiEntry`. False-positive rate is low
  * because shell scripts are generally referenced by full filename, but we
  * deliberately do NOT register orphans automatically. The caller decides
  * whether to warn, fail, or interactively prompt.

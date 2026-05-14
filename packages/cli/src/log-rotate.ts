@@ -1,8 +1,8 @@
 /**
  * B-093: simple size-based log rotation. logError variants used to call
  * `appendFileSync` unconditionally, so any high-frequency error source (and
- * historical pollution from B-085-era tests that wrote into ~/.teamagent/
- * before TEAMAGENT_HOME was honored) could grow the file unbounded — tests
+ * historical pollution from B-085-era tests that wrote into ~/.viki/
+ * before VIKI_HOME was honored) could grow the file unbounded — tests
  * had already accumulated 613KB / 3479 lines on a real machine.
  *
  * The rotation rule is intentionally simple:

@@ -5,13 +5,13 @@ import path from "node:path";
 import {
   matchPrompt,
   parseExtraTriggersEnv,
-} from "@teamagent/core";
+} from "@viki/core";
 import { executeDaily } from "../commands/daily.js";
 
 /**
  * The UserPromptSubmit hook composes its `additionalContext` envelope by:
  *   1. Running `matchPrompt(prompt, { disabled, extraTriggers })` from
- *      @teamagent/core.
+ *      @viki/core.
  *   2. When matched, calling `executeDaily({ projectsRoot, homeDir, archive,
  *      format: "context" })` and pushing `out.contextMarkdown` into the
  *      block list.
@@ -24,21 +24,21 @@ import { executeDaily } from "../commands/daily.js";
 describe("UserPromptSubmit ↔ daily-summary wiring", () => {
   let tmpHome: string;
   let projectsRoot: string;
-  const originalEnv = process.env["TEAMAGENT_HOME"];
+  const originalEnv = process.env["VIKI_HOME"];
 
   beforeEach(() => {
     tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "tb-hook-daily-"));
     projectsRoot = path.join(tmpHome, ".claude", "projects");
     fs.mkdirSync(projectsRoot, { recursive: true });
-    delete process.env["TEAMAGENT_HOME"];
+    delete process.env["VIKI_HOME"];
   });
 
   afterEach(() => {
     fs.rmSync(tmpHome, { recursive: true, force: true });
     if (originalEnv === undefined) {
-      delete process.env["TEAMAGENT_HOME"];
+      delete process.env["VIKI_HOME"];
     } else {
-      process.env["TEAMAGENT_HOME"] = originalEnv;
+      process.env["VIKI_HOME"] = originalEnv;
     }
   });
 
@@ -66,13 +66,13 @@ describe("UserPromptSubmit ↔ daily-summary wiring", () => {
     expect(matchPrompt("/daily").fire).toBe(true);
   });
 
-  it("honors TEAMAGENT_DAILY_TRIGGERS env additions like the hook does", () => {
+  it("honors VIKI_DAILY_TRIGGERS env additions like the hook does", () => {
     const triggers = parseExtraTriggersEnv("custom-trigger,周报");
     expect(matchPrompt("custom-trigger", { extraTriggers: triggers }).fire).toBe(true);
     expect(matchPrompt("周报", { extraTriggers: triggers }).fire).toBe(true);
   });
 
-  it("honors TEAMAGENT_DAILY_DISABLED=1 like the hook does", () => {
+  it("honors VIKI_DAILY_DISABLED=1 like the hook does", () => {
     expect(matchPrompt("总结一下今天的日报", { disabled: true }).fire).toBe(false);
   });
 
@@ -87,7 +87,7 @@ describe("UserPromptSubmit ↔ daily-summary wiring", () => {
       archive: true,
       format: "context",
     });
-    expect(out.contextMarkdown).toContain("# TeamAgent daily summary");
+    expect(out.contextMarkdown).toContain("# Viki daily summary");
     expect(out.contextMarkdown).toContain("projA");
     // Archive file written, includes the host repo display name.
     const archive = fs.readFileSync(out.archivePath, "utf-8");

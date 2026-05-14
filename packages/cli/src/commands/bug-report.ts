@@ -11,7 +11,7 @@ export interface BugReportOptions {
   now?: Date;
   env?: NodeJS.ProcessEnv;
   runCommand?: (cmd: string, args: string[]) => string;
-  teamagentVersion?: string;
+  vikiVersion?: string;
 }
 
 export interface BugReportResult {
@@ -41,18 +41,18 @@ export async function executeBugReport(opts: BugReportOptions = {}): Promise<Bug
   const homeDir = opts.homeDir ?? os.homedir();
   const env = opts.env ?? process.env;
   const now = opts.now ?? new Date();
-  const teamagentHome = env["TEAMAGENT_HOME"] ?? path.join(homeDir, ".teamagent");
-  const outputPath = opts.outputPath ?? defaultReportPath(teamagentHome, now);
+  const vikiHome = env["VIKI_HOME"] ?? path.join(homeDir, ".viki");
+  const outputPath = opts.outputPath ?? defaultReportPath(vikiHome, now);
   const runCommand = opts.runCommand ?? defaultRunCommand;
 
   const markdown = renderBugReport({
     cwd,
     homeDir,
-    teamagentHome,
+    vikiHome,
     now,
     env,
     runCommand,
-    teamagentVersion: opts.teamagentVersion,
+    vikiVersion: opts.vikiVersion,
     stdout: opts.stdout ?? false,
   });
 
@@ -70,15 +70,15 @@ export async function executeBugReport(opts: BugReportOptions = {}): Promise<Bug
 function renderBugReport(args: {
   cwd: string;
   homeDir: string;
-  teamagentHome: string;
+  vikiHome: string;
   now: Date;
   env: NodeJS.ProcessEnv;
   runCommand: (cmd: string, args: string[]) => string;
-  teamagentVersion?: string;
+  vikiVersion?: string;
   stdout: boolean;
 }): string {
   const lines: string[] = [];
-  lines.push("# TeamAgent Bug Report");
+  lines.push("# Viki Bug Report");
   lines.push("");
   lines.push(`Generated: ${args.now.toISOString()}`);
   lines.push("");
@@ -99,7 +99,7 @@ function renderBugReport(args: {
   lines.push(`- total_memory_mb: ${Math.round(os.totalmem() / 1024 / 1024)}`);
   lines.push(`- cwd: ${args.cwd}`);
   lines.push(`- shell: ${args.env["SHELL"] ?? "(unknown)"}`);
-  lines.push(`- TEAMAGENT_HOME: ${args.teamagentHome}`);
+  lines.push(`- VIKI_HOME: ${args.vikiHome}`);
   lines.push("");
   lines.push("## Tool Versions");
   lines.push("");
@@ -107,15 +107,15 @@ function renderBugReport(args: {
   lines.push(`- npm: ${commandOrUnavailable(args.runCommand, "npm", ["--version"])}`);
   lines.push(`- pnpm: ${commandOrUnavailable(args.runCommand, "pnpm", ["--version"])}`);
   lines.push(`- claude: ${commandOrUnavailable(args.runCommand, "claude", ["--version"])}`);
-  lines.push(`- teamagent: ${args.teamagentVersion ?? commandOrUnavailable(args.runCommand, "teamagent", ["--version"])}`);
+  lines.push(`- viki: ${args.vikiVersion ?? commandOrUnavailable(args.runCommand, "viki", ["--version"])}`);
   lines.push("");
   lines.push("## Install State");
   lines.push("");
   lines.push(fileStatus("user Claude settings", path.join(args.homeDir, ".claude", "settings.json")));
   lines.push(fileStatus("project Claude settings", path.join(args.cwd, ".claude", "settings.local.json")));
-  lines.push(fileStatus("project knowledge db", path.join(args.cwd, ".teamagent", "knowledge.db")));
-  lines.push(fileStatus("update state", path.join(args.teamagentHome, "update-state.json")));
-  lines.push(fileStatus("auto-update disabled marker", path.join(args.teamagentHome, "auto-update.disabled")));
+  lines.push(fileStatus("project knowledge db", path.join(args.cwd, ".viki", "knowledge.db")));
+  lines.push(fileStatus("update state", path.join(args.vikiHome, "update-state.json")));
+  lines.push(fileStatus("auto-update disabled marker", path.join(args.vikiHome, "auto-update.disabled")));
   lines.push("");
   lines.push("## Hook Commands");
   lines.push("");
@@ -124,7 +124,7 @@ function renderBugReport(args: {
   lines.push("");
   lines.push("## Raw Logs");
   lines.push("");
-  for (const log of logFiles(args.cwd, args.teamagentHome)) {
+  for (const log of logFiles(args.cwd, args.vikiHome)) {
     lines.push(renderFileBlock(log.label, log.file));
   }
   lines.push("");
@@ -166,9 +166,9 @@ function commandOrUnavailable(
   }
 }
 
-function defaultReportPath(teamagentHome: string, now: Date): string {
+function defaultReportPath(vikiHome: string, now: Date): string {
   const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  return path.join(teamagentHome, "bug-reports", `teamagent-bug-report-${stamp}.md`);
+  return path.join(vikiHome, "bug-reports", `viki-bug-report-${stamp}.md`);
 }
 
 function fileStatus(label: string, file: string): string {
@@ -207,12 +207,12 @@ function renderHookCommands(label: string, settingsPath: string): string {
   }
 }
 
-function logFiles(cwd: string, teamagentHome: string): Array<{ label: string; file: string }> {
+function logFiles(cwd: string, vikiHome: string): Array<{ label: string; file: string }> {
   return [
-    { label: "TEAMAGENT_HOME update.log", file: path.join(teamagentHome, "update.log") },
-    { label: "TEAMAGENT_HOME update-state.json", file: path.join(teamagentHome, "update-state.json") },
-    { label: "project events.jsonl", file: path.join(cwd, ".teamagent", "events.jsonl") },
-    { label: "project config.json", file: path.join(cwd, ".teamagent", "config.json") },
+    { label: "VIKI_HOME update.log", file: path.join(vikiHome, "update.log") },
+    { label: "VIKI_HOME update-state.json", file: path.join(vikiHome, "update-state.json") },
+    { label: "project events.jsonl", file: path.join(cwd, ".viki", "events.jsonl") },
+    { label: "project config.json", file: path.join(cwd, ".viki", "config.json") },
   ];
 }
 

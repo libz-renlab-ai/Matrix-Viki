@@ -4,9 +4,9 @@ import type {
   KnowledgeExtractor,
   KnowledgeStore,
   Validator,
-} from "@teamagent/ports";
-import type { KnowledgeEntry, Scope } from "@teamagent/types";
-import { computeEnforcement } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry, Scope } from "@viki/types";
+import { computeEnforcement } from "@viki/types";
 
 /**
  * source-agnostic ingest pipeline。所有非 correction 源共用的通路：

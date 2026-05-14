@@ -20,25 +20,25 @@ let DatabaseSync;
 try {
   ({ DatabaseSync } = require("node:sqlite"));
 } catch {
-  process.stdout.write("TeamAgent正在运行 | (sqlite不可用)");
+  process.stdout.write("Viki正在运行 | (sqlite不可用)");
   process.exit(0);
 }
 
 // CC 运行 statusLine 时 cwd = 当前项目根，不是 script 所在目录。
 // 旧实现用 __dirname 凑巧在 dev repo 能 resolve，但 tarball 装到
-// node_modules/teamagent/dist/ 之后 ../.teamagent/knowledge.db 指向
+// node_modules/viki/dist/ 之后 ../.viki/knowledge.db 指向
 // 包内部（无 db），就会错报 0 条。
 const fs = require("node:fs");
 
-// `teamagent init` is repo-scoped: it lands `.teamagent/knowledge.db` in the
+// `viki init` is repo-scoped: it lands `.viki/knowledge.db` in the
 // main checkout, not in every git worktree spawned from it. A worktree's
 // `.git` entry is a FILE pointing to `<main>/.git/worktrees/<name>`; without
 // walking that pointer the statusline saw no project DB under the worktree
-// cwd and printed "TeamAgent 未初始化本项目" every time the user opened a
+// cwd and printed "Viki 未初始化本项目" every time the user opened a
 // worktree session. resolveProjectDbPath probes cwd first (preserves
 // non-worktree behaviour and lets explicit per-worktree init still win),
 // then follows the .git pointer to the main checkout if cwd has no DB.
-const PROJECT_DB_RELPATH = path.join(".teamagent", "knowledge.db");
+const PROJECT_DB_RELPATH = path.join(".viki", "knowledge.db");
 
 function findMainCheckoutFromWorktree(cwd) {
   try {
@@ -54,7 +54,7 @@ function findMainCheckoutFromWorktree(cwd) {
     // Real `git worktree add` always writes absolute paths. Rejecting
     // relative entries closes a path-traversal vector where a hostile
     // `.git` file in an attacker-writable cwd could redirect us to read
-    // an arbitrary `.teamagent/knowledge.db`.
+    // an arbitrary `.viki/knowledge.db`.
     if (!path.isAbsolute(gitdir)) return null;
     // Only follow `<main>/.git/worktrees/<name>` shape — submodules use
     // `<super>/.git/modules/<name>` and must be ignored.
@@ -107,8 +107,8 @@ function getProjectName(cwd) {
 }
 
 const PROJECT_DB = resolveProjectDbPath(process.cwd());
-const GLOBAL_DB = path.join(os.homedir(), ".teamagent", "global.db");
-const EVENTS_DB = path.join(os.homedir(), ".teamagent", "events.db");
+const GLOBAL_DB = path.join(os.homedir(), ".viki", "global.db");
+const EVENTS_DB = path.join(os.homedir(), ".viki", "events.db");
 
 const PROJECT_MARKERS = [
   ".git",
@@ -317,7 +317,7 @@ function formatMetric(value) {
 // 回落到老 4 字段，不挂状态栏）。
 function readStdinJsonSync(maxBytes) {
   try {
-    // 守卫：如果 stdin 是 TTY（手工 `node scripts/teamagent-statusline.cjs`
+    // 守卫：如果 stdin 是 TTY（手工 `node scripts/viki-statusline.cjs`
     // 直接跑、没有 stdin redirect），`readFileSync(0)` 会 block 等 Ctrl-D。
     // CC spawn 时 stdin 是 pipe，isTTY 为 undefined / false → 进 read 路径。
     if (process.stdin.isTTY) return null;
@@ -490,7 +490,7 @@ function buildCcFields(cc) {
 // The statusline already has every field the snapshot needs (model / cost /
 // exceeds_200k_tokens from CC stdin; context / 5h / 7d from the transcript) and
 // runs frequently, so it's the natural — and lowest-blast-radius — push site.
-// Throttled to once per 30s via ~/.teamagent/cc-status/.last-push, and the POST
+// Throttled to once per 30s via ~/.viki/cc-status/.last-push, and the POST
 // itself runs in a detached child so a hung server can never slow the status
 // row. Everything here is best-effort: any failure is swallowed so the
 // statusline render is never affected. Canonical spec for the body shape:
@@ -532,7 +532,7 @@ function ccSafeUserId(raw) {
 
 function readDigitalTwinConfig() {
   try {
-    const f = path.join(os.homedir(), ".teamagent", "digital-twin.json");
+    const f = path.join(os.homedir(), ".viki", "digital-twin.json");
     const c = JSON.parse(fs.readFileSync(f, "utf-8"));
     if (!c || typeof c !== "object" || !c.uploader || !c.identity) return null;
     return c;
@@ -541,7 +541,7 @@ function readDigitalTwinConfig() {
 
 function readQuotaCache() {
   try {
-    const f = path.join(os.homedir(), ".teamagent", "digital-twin", "quota-cache.json");
+    const f = path.join(os.homedir(), ".viki", "digital-twin", "quota-cache.json");
     const q = JSON.parse(fs.readFileSync(f, "utf-8"));
     return q && typeof q === "object" ? q : null;
   } catch { return null; }
@@ -762,7 +762,7 @@ function maybePushCcStatus(cc) {
     ) {
       return;
     }
-    const lastPushPath = path.join(os.homedir(), ".teamagent", "cc-status", ".last-push");
+    const lastPushPath = path.join(os.homedir(), ".viki", "cc-status", ".last-push");
     if (!claimCcStatusPushSlot(lastPushPath, CC_STATUS_PUSH_INTERVAL_MS)) return;
     const body = buildCcStatusBody(cc, cfg);
     if (!body) return;
@@ -774,7 +774,7 @@ function main() {
   // 未 init 且像项目 → 显眼提醒 (此路径在 --dangerously-skip-permissions 下也触发,
   // 因为 statusline 不经过 hook 系统)
   if (!hasProjectDb() && isProjectDir(process.cwd())) {
-    process.stdout.write("⚠️  TeamAgent 未初始化本项目 | 运行 `teamagent init` 启用");
+    process.stdout.write("⚠️  Viki 未初始化本项目 | 运行 `viki init` 启用");
     return;
   }
 
@@ -783,7 +783,7 @@ function main() {
   const eventsDb = tryOpenDb(EVENTS_DB);
 
   if (!projectDb && !globalDb && !eventsDb) {
-    process.stdout.write("TeamAgent 未安装 | 运行 `npm install -g teamagent-X.Y.Z.tgz`");
+    process.stdout.write("Viki 未安装 | 运行 `npm install -g viki-X.Y.Z.tgz`");
     return;
   }
 
@@ -839,13 +839,13 @@ function main() {
   const ccSegment = ccFields.length > 0 ? ` | ${ccFields.join(" | ")}` : "";
 
   // issue #306 — project name surfaces between the existing 4-field prefix
-  // (TeamAgent | 规则 | 帮过 | 拦过) and any CC stdin fields, so existing tests
+  // (Viki | 规则 | 帮过 | 拦过) and any CC stdin fields, so existing tests
   // that pin the exact 4-field prefix substring keep passing while new
   // presence info (which repo this session is in) becomes visible at a glance.
   const projectName = getProjectName(process.cwd());
 
   process.stdout.write(
-    `TeamAgent | 规则:${formatMetric(count)} | 帮过:${formatMetric(helpedToday)}今/${formatMetric(helpedWeek)}周 | 拦过:${formatMetric(riskToday)}今 | 项目:${projectName}${ccSegment} | ${hint}`,
+    `Viki | 规则:${formatMetric(count)} | 帮过:${formatMetric(helpedToday)}今/${formatMetric(helpedWeek)}周 | 拦过:${formatMetric(riskToday)}今 | 项目:${projectName}${ccSegment} | ${hint}`,
   );
 
   // issue #350 — after the status row is rendered, best-effort push a CC

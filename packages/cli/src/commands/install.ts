@@ -8,8 +8,8 @@ import {
   isStepDone,
   resolveProjectId,
   type StepKey,
-} from "@teamagent/core/install-state";
-import type { InstallStateStore } from "@teamagent/ports";
+} from "@viki/core/install-state";
+import type { InstallStateStore } from "@viki/ports";
 import { FsInstallStateStore } from "../install-state-fs-store.js";
 import { defaultWarmupStatePath, writeInitialPlaceholder } from "../warmup-state.js";
 import {
@@ -101,7 +101,7 @@ const INSTALL_STEPS: Array<{
 
 export function renderInstallHelp(): string {
   return [
-    "Usage: teamagent install [--preview] [--yes|-y] [--non-interactive]",
+    "Usage: viki install [--preview] [--yes|-y] [--non-interactive]",
     "",
     "Options:",
     "  --preview          Print the install manifest and exit without writes",
@@ -145,7 +145,7 @@ export function createDefaultInstallDeps(opts: {
     },
     warmup: () => spawnDetachedWarmup(homeDir),
     confirm: (question) => confirmPrompt(question, opts.args),
-    store: new FsInstallStateStore({ rootDir: path.join(homeDir, ".teamagent") }),
+    store: new FsInstallStateStore({ rootDir: path.join(homeDir, ".viki") }),
     projectId: resolveProjectId(cwd),
   };
 }
@@ -158,7 +158,7 @@ export async function runInstall(
   lines.push(formatInstallManifest(renderInstallManifest()).trimEnd());
   lines.push("");
 
-  const question = "Install TeamAgent hooks and knowledge base? (Y/n)";
+  const question = "Install Viki hooks and knowledge base? (Y/n)";
   lines.push(question);
   const accepted = await deps.confirm(question);
   const promptCount = 1;
@@ -235,8 +235,8 @@ async function confirmPrompt(question: string, args: InstallArgs | undefined): P
 
 async function spawnDetachedWarmup(homeDir: string): Promise<WarmupLaunchResult> {
   const stateFile = defaultWarmupStatePath(homeDir);
-  const teamagentDir = path.dirname(stateFile);
-  fs.mkdirSync(teamagentDir, { recursive: true });
+  const vikiDir = path.dirname(stateFile);
+  fs.mkdirSync(vikiDir, { recursive: true });
   writeInitialPlaceholder(stateFile, "Xenova/multilingual-e5-small");
 
   const entry = resolveCliEntry();
@@ -244,12 +244,12 @@ async function spawnDetachedWarmup(homeDir: string): Promise<WarmupLaunchResult>
     return {
       ok: false,
       pid: null,
-      detail: "CLI entry not resolvable; run `teamagent warmup` manually",
+      detail: "CLI entry not resolvable; run `viki warmup` manually",
       stateFile,
     };
   }
 
-  const logFile = path.join(teamagentDir, "warmup.log");
+  const logFile = path.join(vikiDir, "warmup.log");
   const fd = fs.openSync(logFile, "a");
   try {
     const child = nodeSpawn(process.execPath, [entry, "warmup", "--write-state", stateFile], {
@@ -287,8 +287,8 @@ function resolveCliEntry(): string | undefined {
   for (let i = 0; i < 8; i++) {
     const bundled = path.join(dir, "bin.js");
     if (fs.existsSync(bundled)) return bundled;
-    const teamagentDist = path.join(dir, "packages", "teamagent", "dist", "bin.js");
-    if (fs.existsSync(teamagentDist)) return teamagentDist;
+    const vikiDist = path.join(dir, "packages", "viki", "dist", "bin.js");
+    if (fs.existsSync(vikiDist)) return vikiDist;
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;

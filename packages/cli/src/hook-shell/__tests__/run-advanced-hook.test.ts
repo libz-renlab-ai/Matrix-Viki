@@ -7,11 +7,11 @@
  *   4. detached re-entry → readArgvInput instead of stdin
  *
  * Strategy mirrors run-hook.test.ts:
- *   - TEAMAGENT_HOME → tmpdir so sqlite lands nowhere real
+ *   - VIKI_HOME → tmpdir so sqlite lands nowhere real
  *   - feedStdin + process.stdin override
  *   - process.exit intercepted → exitCode capture
  *   - stdout/stderr captured
- *   - DualLayerStore + SqliteEventLog mocked at the @teamagent/adapters boundary
+ *   - DualLayerStore + SqliteEventLog mocked at the @viki/adapters boundary
  *     so tests never open sqlite
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -20,7 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Readable } from "node:stream";
 
-// ── mock @teamagent/adapters before importing runAdvancedHook ─────────────
+// ── mock @viki/adapters before importing runAdvancedHook ─────────────
 // Constructor-call counters live at module scope so the vi.mock factory can
 // increment them. Each test resets them in beforeEach.
 
@@ -29,7 +29,7 @@ const mockEventLogClose = vi.fn();
 let dualLayerStoreConstructorCount = 0;
 let sqliteEventLogConstructorCount = 0;
 
-vi.mock("@teamagent/adapters", () => {
+vi.mock("@viki/adapters", () => {
   class MockDualLayerStore {
     close = mockStoreClose;
     constructor(_config: unknown) {
@@ -53,7 +53,7 @@ vi.mock("@teamagent/adapters", () => {
     render(_events: unknown[], _vis: unknown): string { return ""; }
   }
   function normalizeCwd(cwd: string): string { return cwd; }
-  // `satisfies Partial<typeof import("@teamagent/adapters")>` would be ideal
+  // `satisfies Partial<typeof import("@viki/adapters")>` would be ideal
   // to catch future key renames on the real adapters barrel at compile time.
   // However the mock stubs are intentionally minimal (missing the full instance
   // interfaces of DualLayerStore, SqliteEventLog, etc.), so TypeScript rejects
@@ -68,7 +68,7 @@ vi.mock("@teamagent/adapters", () => {
     InMemoryAttributionBus: MockInMemoryAttributionBus,
     StdoutRenderer: MockStdoutRenderer,
     normalizeCwd,
-  } as unknown as Partial<typeof import("@teamagent/adapters")>;
+  } as unknown as Partial<typeof import("@viki/adapters")>;
 });
 
 import { runAdvancedHook } from "../index.js";
@@ -78,7 +78,7 @@ import type { AdvancedHookContext } from "../types.js";
 
 let tmpHome: string;
 let tmpCwd: string;
-let origTeamagentHome: string | undefined;
+let origVikiHome: string | undefined;
 let origExit: typeof process.exit;
 let origStdin: NodeJS.ReadStream;
 let stdoutBuf: string[];
@@ -100,11 +100,11 @@ beforeEach(() => {
   sqliteEventLogConstructorCount = 0;
   vi.clearAllMocks();
 
-  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-adv-hook-home-"));
-  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-adv-hook-cwd-"));
+  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-adv-hook-home-"));
+  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "viki-adv-hook-cwd-"));
 
-  origTeamagentHome = process.env.TEAMAGENT_HOME;
-  process.env.TEAMAGENT_HOME = tmpHome;
+  origVikiHome = process.env.VIKI_HOME;
+  process.env.VIKI_HOME = tmpHome;
 
   origExit = process.exit;
   exitCode = undefined;
@@ -129,8 +129,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (origTeamagentHome === undefined) delete process.env.TEAMAGENT_HOME;
-  else process.env.TEAMAGENT_HOME = origTeamagentHome;
+  if (origVikiHome === undefined) delete process.env.VIKI_HOME;
+  else process.env.VIKI_HOME = origVikiHome;
   process.exit = origExit;
   Object.defineProperty(process, "stdin", { configurable: true, value: origStdin });
   process.stdout.write = origStdoutWrite;
@@ -163,7 +163,7 @@ function parseAny(raw: unknown): Record<string, unknown> | null {
 
 describe("runAdvancedHook — lock file", () => {
   it("lock file is written before handler runs and unlinked after", async () => {
-    const lockRelPath = ".teamagent/.adv-test.lock";
+    const lockRelPath = ".viki/.adv-test.lock";
     const lockAbsPath = path.join(tmpCwd, lockRelPath);
 
     feedStdin(makePayload(tmpCwd));
@@ -193,7 +193,7 @@ describe("runAdvancedHook — lock file", () => {
   });
 
   it("lock file is unlinked even when handler throws", async () => {
-    const lockRelPath = ".teamagent/.adv-throw.lock";
+    const lockRelPath = ".viki/.adv-throw.lock";
     const lockAbsPath = path.join(tmpCwd, lockRelPath);
 
     feedStdin(makePayload(tmpCwd));
@@ -219,7 +219,7 @@ describe("runAdvancedHook — lock file", () => {
   });
 
   it("lock file body contains the JSON-serialised payload", async () => {
-    const lockRelPath = ".teamagent/.adv-payload.lock";
+    const lockRelPath = ".viki/.adv-payload.lock";
     const lockAbsPath = path.join(tmpCwd, lockRelPath);
     const expectedPayload = { pid: 42, started_at: "2026-05-08T00:00:00.000Z" };
 
@@ -422,7 +422,7 @@ describe("runAdvancedHook — pipelineTimeoutMs", () => {
   }, 5000);
 
   it("lock file is cleaned up after timeout (finally block covers lock)", async () => {
-    const lockRelPath = ".teamagent/.timeout-test.lock";
+    const lockRelPath = ".viki/.timeout-test.lock";
     const lockAbsPath = path.join(tmpCwd, lockRelPath);
 
     feedStdin(makePayload(tmpCwd));

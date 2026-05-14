@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openDb } from "@teamagent/adapters";
+import { openDb } from "@viki/adapters";
 import {
   buildFallbackDescriptions,
   buildMigrationPrompt,

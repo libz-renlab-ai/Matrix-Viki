@@ -6,7 +6,7 @@ import { Readable, Writable, PassThrough } from "node:stream";
 import { runFirstRunWizard } from "../commands/first-run.js";
 
 function mkTmpHome() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-test-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "viki-test-"));
 }
 
 function rmRetry(p: string) {
@@ -100,7 +100,7 @@ describe("runFirstRunWizard", () => {
     expect(calls.length).toBe(0);
     expect(captured()).toContain("skeleton-demo");
 
-    const stateFile = path.join(homeDir, ".teamagent", "first-run-state.json");
+    const stateFile = path.join(homeDir, ".viki", "first-run-state.json");
     expect(fs.existsSync(stateFile)).toBe(false);
   });
 
@@ -127,7 +127,7 @@ describe("runFirstRunWizard", () => {
       process.exit = origExit;
     }
 
-    const stateFile = path.join(homeDir, ".teamagent", "first-run-state.json");
+    const stateFile = path.join(homeDir, ".viki", "first-run-state.json");
     expect(fs.existsSync(stateFile)).toBe(true);
     const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
     expect(state.completedSteps).toContain("skeleton-demo");
@@ -141,10 +141,10 @@ describe("runFirstRunWizard", () => {
     homes.push(homeDir);
 
     // Pre-seed state file
-    const teamagentDir = path.join(homeDir, ".teamagent");
-    fs.mkdirSync(teamagentDir, { recursive: true });
+    const vikiDir = path.join(homeDir, ".viki");
+    fs.mkdirSync(vikiDir, { recursive: true });
     fs.writeFileSync(
-      path.join(teamagentDir, "first-run-state.json"),
+      path.join(vikiDir, "first-run-state.json"),
       JSON.stringify({ version: 1, completedSteps: ["skeleton-demo"], lastRunAt: 1714000000000 }, null, 2),
     );
 

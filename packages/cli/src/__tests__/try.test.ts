@@ -3,7 +3,7 @@
  *   ┌────────────────────────────────────────┐
  *   │  executeTry({help:true}) ─> usage 块   │
  *   │  executeTry({delayMs:0}) ─> 5 cases     │
- *   │  hook output ─> '拦截' / 'TeamAgent'   │
+ *   │  hook output ─> '拦截' / 'Viki'   │
  *   └────────────────────────────────────────┘
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -77,18 +77,18 @@ describe("executeTry full run (delayMs: 0)", () => {
     expect(r.output).toContain("[5/5]");
     expect(r.output).toContain("演示完成。");
     // CTA mentions the demo hook fallback
-    expect(r.output).toContain("teamagent demo hook");
+    expect(r.output).toContain("viki demo hook");
   });
 
-  it("each case's section contains a recognizable TeamAgent hook substring", async () => {
+  it("each case's section contains a recognizable Viki hook substring", async () => {
     const r = await executeTry({
       delayMs: 0,
       cwd: tmp.cwd,
       homeDir: tmp.home,
     });
-    // The real executeDemoHook output always contains "TeamAgent" (and either
+    // The real executeDemoHook output always contains "Viki" (and either
     // a 拦截 / warn / 通过 marker depending on rule state). With no DB seeded
-    // we get the "通过 (无规则命中)" branch — but it still includes "TeamAgent"
+    // we get the "通过 (无规则命中)" branch — but it still includes "Viki"
     // and "模拟 PreToolUse 结果". This test asserts the recognizable substring
     // surfaces in every per-case section, proving we did NOT stub the renderer.
     const cases = ["[1/5]", "[2/5]", "[3/5]", "[4/5]", "[5/5]"];
@@ -98,7 +98,7 @@ describe("executeTry full run (delayMs: 0)", () => {
       // grab up to 600 chars after the marker — enough to cover the whole
       // hook block which is ~10 lines indented.
       const section = r.output.slice(idx, idx + 600);
-      expect(section).toContain("TeamAgent");
+      expect(section).toContain("Viki");
     }
   });
 

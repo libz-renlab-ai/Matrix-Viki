@@ -46,7 +46,7 @@ assert_absent \
 # neg-no-state: .warmup-state.json must not exist
 assert_absent \
   "neg-no-state" \
-  "${HOMEDIR}/.teamagent/.warmup-state.json" \
+  "${HOMEDIR}/.viki/.warmup-state.json" \
   "PASS no-warmup-state" \
   "FAIL .warmup-state.json present at"
 

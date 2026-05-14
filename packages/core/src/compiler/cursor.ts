@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
  * Compile KnowledgeEntry[] into a `.cursorrules` plain-text string.

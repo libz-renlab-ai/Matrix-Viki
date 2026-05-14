@@ -19,7 +19,7 @@
  *   unit.json     — vitest reporter output for the relevant test files
  *   chaos.json    — exit/stderr/elapsed of a clean-tmpdir spawn of
  *                   bin-session-start.cjs
- *   doctor.json   — abbreviated `teamagent doctor` JSON before vs. after
+ *   doctor.json   — abbreviated `viki doctor` JSON before vs. after
  *                   a deliberately broken hook script
  *   dump.json     — canonical roll-up consumed by the §V3 LLM judge
  *
@@ -105,12 +105,12 @@ function runUnitProbe() {
 
 async function runChaosProbe() {
   const startedAt = ISO();
-  // Prefer the staged-style bundle (packages/teamagent/dist/) over the
+  // Prefer the staged-style bundle (packages/viki/dist/) over the
   // cli-local dist, because that is what postinstall actually copies to
-  // ~/.teamagent/hooks/. Fall back to the cli dist if teamagent dist is
+  // ~/.viki/hooks/. Fall back to the cli dist if viki dist is
   // not built (allows running the probe on a partial build).
   const candidates = [
-    path.join(REPO_ROOT, "packages", "teamagent", "dist", "bin-session-start.cjs"),
+    path.join(REPO_ROOT, "packages", "viki", "dist", "bin-session-start.cjs"),
     path.join(REPO_ROOT, "packages", "cli", "dist", "bin-session-start.cjs"),
   ];
   const binPath = candidates.find((p) => fs.existsSync(p));
@@ -121,7 +121,7 @@ async function runChaosProbe() {
       startedAt,
       finishedAt: ISO(),
       skipped: true,
-      reason: "no bin-session-start.cjs found; build the cli or teamagent package first",
+      reason: "no bin-session-start.cjs found; build the cli or viki package first",
       passed: false,
     };
     writeJson("chaos.json", payload);
@@ -134,7 +134,7 @@ async function runChaosProbe() {
   const result = await new Promise((resolve) => {
     const env = { ...process.env };
     delete env["CLAUDE_PROJECT_DIR"];
-    delete env["TEAMAGENT_ALLOW_BARE_SESSIONSTART"];
+    delete env["VIKI_ALLOW_BARE_SESSIONSTART"];
     const child = spawn(process.execPath, [staged], {
       cwd: stageRoot,
       stdio: ["pipe", "pipe", "pipe"],
@@ -226,7 +226,7 @@ function extractLeadingJson(stdout) {
 
 function invokeCheckHookSpawn(scriptPath) {
   // Direct call into doctor.ts's `checkHookSpawn` via a small tsx-runnable
-  // helper. Going through the full `teamagent doctor` command short-circuits
+  // helper. Going through the full `viki doctor` command short-circuits
   // before reaching hook-spawn on a fresh tmpdir (knowledge.db precedes it
   // in the check chain and triggers an early return). Bypassing the outer
   // chain isolates the spawn-probe behavior, which is what the V4 judge
@@ -258,15 +258,15 @@ function runDoctorProbe() {
 
   // Broken case: a .cjs that throws on `require()` of a missing module —
   // simulates the issue-280 failure mode without depending on a globally
-  // installed teamagent. Expect status === "fail".
+  // installed viki. Expect status === "fail".
   const brokenDir = fs.mkdtempSync(path.join(os.tmpdir(), "issue-280-judge-broken-"));
   const brokenBin = path.join(brokenDir, "broken-session-start.cjs");
   fs.writeFileSync(brokenBin, "require('this-module-does-not-exist-issue-280');\n");
 
-  // Fixed case: point at the freshly-built teamagent dist (or cli dist) —
+  // Fixed case: point at the freshly-built viki dist (or cli dist) —
   // the same bundle postinstall would stage. Expect status === "pass".
   const realBinCandidates = [
-    path.join(REPO_ROOT, "packages", "teamagent", "dist", "bin-session-start.cjs"),
+    path.join(REPO_ROOT, "packages", "viki", "dist", "bin-session-start.cjs"),
     path.join(REPO_ROOT, "packages", "cli", "dist", "bin-session-start.cjs"),
   ];
   const realBin = realBinCandidates.find((p) => fs.existsSync(p)) ?? null;

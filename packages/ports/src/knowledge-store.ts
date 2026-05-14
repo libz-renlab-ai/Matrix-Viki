@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** 查询知识库时的过滤条件。 */
 export interface QueryOptions {

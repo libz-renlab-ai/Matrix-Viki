@@ -31,14 +31,14 @@ export default defineConfig({
   splitting: false,
   // 把所有 workspace 包 + zod 打进单文件，避免运行时模块解析。
   // js-tiktoken: 纯 JS，bundle 能 inline；不加进来时 bin 被 stage 到
-  // ~/.teamagent/hooks/ 后离开 monorepo hoisted node_modules 就找不到 →
+  // ~/.viki/hooks/ 后离开 monorepo hoisted node_modules 就找不到 →
   // SessionStart hook 启动时 MODULE_NOT_FOUND 静默崩（issue #131）。
-  // 与 packages/teamagent/tsup.config.ts 的发布配置行为对齐。
+  // 与 packages/viki/tsup.config.ts 的发布配置行为对齐。
   noExternal: [
-    "@teamagent/types",
-    "@teamagent/ports",
-    "@teamagent/core",
-    "@teamagent/adapters",
+    "@viki/types",
+    "@viki/ports",
+    "@viki/core",
+    "@viki/adapters",
     "zod",
     "@xenova/transformers",
     "js-tiktoken",
@@ -54,10 +54,10 @@ export default defineConfig({
   shims: true,
   // statusline 故意不 bundle —— tsup CJS 会把 require("node:sqlite") 重写成
   // require("sqlite") 破坏 builtin。直接复制源文件即可。
-  // installHook() 默认找 cli/dist/teamagent-statusline.cjs，没有这一步会软跳过。
+  // installHook() 默认找 cli/dist/viki-statusline.cjs，没有这一步会软跳过。
   async onSuccess() {
-    const src = path.resolve(__dirname, "../../scripts/teamagent-statusline.cjs");
-    const dst = path.resolve(__dirname, "dist/teamagent-statusline.cjs");
+    const src = path.resolve(__dirname, "../../scripts/viki-statusline.cjs");
+    const dst = path.resolve(__dirname, "dist/viki-statusline.cjs");
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, dst);
     }

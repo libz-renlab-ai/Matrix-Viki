@@ -1,8 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { KnowledgeEntry, Scope } from "@teamagent/types";
-import { DEFAULT_FIRE_THRESHOLD } from "@teamagent/types";
-import { normalizeChannel } from "@teamagent/types";
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { KnowledgeEntry, Scope } from "@viki/types";
+import { DEFAULT_FIRE_THRESHOLD } from "@viki/types";
+import { normalizeChannel } from "@viki/types";
+import type { RuleEmbedder } from "@viki/ports";
 import { syncRuleVectors, syncToolVector, deleteRuleVectors } from "./vec-sync.js";
 
 export interface SqliteKnowledgeStoreOptions {
@@ -228,7 +228,7 @@ export class SqliteKnowledgeStore {
    *      encode trigger/pattern/tool_context descriptions, write vec0 rows,
    *      and stamp embedder_model_id so downstream semanticMatch can see the rule.
    *   3. Embedding failure is swallowed (logged to stderr) — the row is not lost;
-   *      operators can run `pnpm teamagent migrate-v6 --repair-all` to retry.
+   *      operators can run `pnpm viki migrate-v6 --repair-all` to retry.
    *
    * Returning a Promise lets callers (init/pitfall/extract pipelines) await
    * embedding completion before status output. Hot-path PreToolUse hook reads
@@ -239,7 +239,7 @@ export class SqliteKnowledgeStore {
     this.add(entry);
     await this.syncEmbeddingsFor(entry).catch((err) => {
       process.stderr.write(
-        `[teamagent] auto-embed failed for ${entry.id}: ${(err as Error).message}\n`,
+        `[viki] auto-embed failed for ${entry.id}: ${(err as Error).message}\n`,
       );
     });
   }
@@ -253,7 +253,7 @@ export class SqliteKnowledgeStore {
     if (!merged) return;
     await this.syncEmbeddingsFor(merged).catch((err) => {
       process.stderr.write(
-        `[teamagent] auto-embed update failed for ${id}: ${(err as Error).message}\n`,
+        `[viki] auto-embed update failed for ${id}: ${(err as Error).message}\n`,
       );
     });
   }

@@ -5,7 +5,7 @@
  * Any thrown error from primary — LLMClientError or generic Error from parse —
  * triggers exactly one attempt on fallback. Fallback errors propagate.
  */
-import type { LLMClient } from "@teamagent/ports";
+import type { LLMClient } from "@viki/ports";
 
 export function makeFallbackLLMClient(
   primary: LLMClient,

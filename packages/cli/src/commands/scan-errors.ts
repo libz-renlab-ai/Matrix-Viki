@@ -8,14 +8,14 @@ import {
   SqliteCandidateQueue,
   CompositeErrorSignalCollector,
   openDb,
-} from "@teamagent/adapters";
-import type { PersistedEvent } from "@teamagent/types";
+} from "@viki/adapters";
+import type { PersistedEvent } from "@viki/types";
 import {
   filterSignals,
   buildErrorBatches,
-} from "@teamagent/core";
-import type { LLMClient } from "@teamagent/ports";
-import type { KnowledgeEntry, ParsedSession } from "@teamagent/types";
+} from "@viki/core";
+import type { LLMClient } from "@viki/ports";
+import type { KnowledgeEntry, ParsedSession } from "@viki/types";
 
 export interface ScanErrorsOptions {
   mode: "efficient" | "full";
@@ -35,7 +35,7 @@ const SCAN_STATE_FILENAME = "scan-state.json";
 
 export function resolveSince(sinceRaw: string | undefined, homeDir: string, now: Date): Date {
   if (!sinceRaw) {
-    const statePath = path.join(homeDir, ".teamagent", SCAN_STATE_FILENAME);
+    const statePath = path.join(homeDir, ".viki", SCAN_STATE_FILENAME);
     try {
       const state = JSON.parse(fs.readFileSync(statePath, "utf-8")) as Record<string, unknown>;
       if (state.lastScanAt) return new Date(String(state.lastScanAt));
@@ -62,7 +62,7 @@ export function resolveSince(sinceRaw: string | undefined, homeDir: string, now:
 }
 
 function saveScanState(homeDir: string, now: Date, mode: string): void {
-  const dir = path.join(homeDir, ".teamagent");
+  const dir = path.join(homeDir, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, SCAN_STATE_FILENAME),
@@ -125,9 +125,9 @@ export async function executeScanErrors(
   const now = opts.now ? opts.now() : new Date();
   const since = resolveSince(opts.sinceRaw, home, now);
   const projectsRoot = opts.projectsRoot ?? path.join(home, ".claude", "projects");
-  const eventsDbPath = opts.eventsDbPath ?? path.join(home, ".teamagent", "events.db");
+  const eventsDbPath = opts.eventsDbPath ?? path.join(home, ".viki", "events.db");
   const candidatesDbPath =
-    opts.candidatesDbPath ?? path.join(home, ".teamagent", "candidates.db");
+    opts.candidatesDbPath ?? path.join(home, ".viki", "candidates.db");
 
   // Read events
   let events: ReturnType<SqliteEventLog["readAll"]> = [];
@@ -263,7 +263,7 @@ export async function executeScanErrors(
 
   lines.push(`  ✓ 新增候选规则: ${totalCandidates} 条`);
   if (totalCandidates > 0) {
-    lines.push(`  运行 teamagent review-candidates 审核`);
+    lines.push(`  运行 viki review-candidates 审核`);
   }
 
   return lines.join("\n") + "\n";

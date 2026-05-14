@@ -53,8 +53,8 @@ describe("init pack prompt + --pack flag", () => {
       expect(result.packPrompt).toBeDefined();
       const body = result.packPrompt ?? "";
       // Open / close v1 markers
-      expect(body).toContain("<!-- teamagent-pack-prompt v1 -->");
-      expect(body).toContain("<!-- /teamagent-pack-prompt v1 -->");
+      expect(body).toContain("<!-- viki-pack-prompt v1 -->");
+      expect(body).toContain("<!-- /viki-pack-prompt v1 -->");
       // 6 observed rows in fixed order
       expect(body).toMatch(
         /package\.json[\s\S]*pyproject\.toml[\s\S]*Cargo\.toml[\s\S]*Dockerfile[\s\S]*requirements\.txt[\s\S]*go\.mod/,
@@ -65,7 +65,7 @@ describe("init pack prompt + --pack flag", () => {
       // Available packs and CTA
       expect(body).toContain("**frontend-js**");
       expect(body).toContain("**ops-safety**");
-      expect(body).toContain("teamagent pack add");
+      expect(body).toContain("viki pack add");
       expect(body).toContain("--pack all");
       expect(body).toMatch(/--pack [a-z][\w-]*,[a-z][\w-]*/);
     });
@@ -81,9 +81,9 @@ describe("init pack prompt + --pack flag", () => {
         packsDir: dirs.packsDir,
       });
       const out = renderInitResult(result);
-      expect(out).toContain("<!-- teamagent-pack-prompt v1 -->");
-      expect(out).toContain("<!-- /teamagent-pack-prompt v1 -->");
-      expect(out).toContain("teamagent pack add");
+      expect(out).toContain("<!-- viki-pack-prompt v1 -->");
+      expect(out).toContain("<!-- /viki-pack-prompt v1 -->");
+      expect(out).toContain("viki pack add");
     });
 
     it("records a pack-prompt step", async () => {
@@ -121,7 +121,7 @@ describe("init pack prompt + --pack flag", () => {
       expect(result.packPrompt ?? "").toBe("");
       // Rendered stdout must NOT contain the v1 prompt block …
       const out = renderInitResult(result);
-      expect(out).not.toContain("<!-- teamagent-pack-prompt v1 -->");
+      expect(out).not.toContain("<!-- viki-pack-prompt v1 -->");
       // … but MUST contain the new single-line notice.
       expect(out).toContain("暂无 stack packs 可用");
       // Step still records as ok.
@@ -147,7 +147,7 @@ describe("init pack prompt + --pack flag", () => {
       expect(result.ok).toBe(true);
       expect(result.packPrompt ?? "").toBe("");
       const out = renderInitResult(result);
-      expect(out).not.toContain("<!-- teamagent-pack-prompt");
+      expect(out).not.toContain("<!-- viki-pack-prompt");
       const step = result.steps.find((s) => s.step === "load-pack");
       expect(step?.status).toBe("ok");
       expect(step?.detail).toMatch(/2 个 pack/);
@@ -199,7 +199,7 @@ describe("init pack prompt + --pack flag", () => {
         pack: "all",
       });
       expect(result.ok).toBe(true);
-      const logPath = path.join(dirs.home, ".teamagent", ".install-log");
+      const logPath = path.join(dirs.home, ".viki", ".install-log");
       expect(fs.existsSync(logPath)).toBe(true);
       const last = fs
         .readFileSync(logPath, "utf-8")

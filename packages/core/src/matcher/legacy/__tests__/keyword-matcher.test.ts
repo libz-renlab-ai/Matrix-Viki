@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { matchRules } from "../keyword-matcher.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeRule(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {
@@ -235,7 +235,7 @@ describe("matchRules — multi-pattern OR semantics", () => {
   it("'/' is NOT a separator (it appears in unix paths and breaks rules)", () => {
     // wrong_pattern 含 / 应被当成单个字面 token，而不是切成 'a','b','c'
     const rule = makeRule({
-      wrong_pattern: 'import ... from "@teamagent/ports/src/__tests__/foo.js"',
+      wrong_pattern: 'import ... from "@viki/ports/src/__tests__/foo.js"',
     });
     // 不包含完整 wrong_pattern → 不命中
     expect(
@@ -252,7 +252,7 @@ describe("matchRules — multi-pattern OR semantics", () => {
       matchRules(
         {
           toolName: "Write",
-          input: { file_path: "x.ts", content: 'import ... from "@teamagent/ports/src/__tests__/foo.js"' },
+          input: { file_path: "x.ts", content: 'import ... from "@viki/ports/src/__tests__/foo.js"' },
         },
         [rule],
       ),

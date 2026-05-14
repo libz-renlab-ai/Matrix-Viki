@@ -8,10 +8,10 @@ import { mkdtempSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { rmSync } from "node:fs";
-import { openDb, syncRuleVectors, SqliteSemanticRetriever } from "@teamagent/adapters";
-import { matchRulesAsync, semanticMatch } from "@teamagent/core";
-import type { RuleEmbedder } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { openDb, syncRuleVectors, SqliteSemanticRetriever } from "@viki/adapters";
+import { matchRulesAsync, semanticMatch } from "@viki/core";
+import type { RuleEmbedder } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 // 384-dim 单元向量 embedder（文本哈希 → 固定向量，可重复，与 sqlite-vec 兼容）
 const e2eEmbedder: RuleEmbedder = {
@@ -298,14 +298,14 @@ describe("M4-B end-to-end", () => {
     });
   });
 
-  describe("Scenario 5: feature flag TEAMAGENT_MATCHER=legacy", () => {
+  describe("Scenario 5: feature flag VIKI_MATCHER=legacy", () => {
     it("env var read correctly — legacy path check", () => {
-      const original = process.env.TEAMAGENT_MATCHER;
+      const original = process.env.VIKI_MATCHER;
       try {
-        process.env.TEAMAGENT_MATCHER = "legacy";
-        expect(process.env.TEAMAGENT_MATCHER).toBe("legacy");
+        process.env.VIKI_MATCHER = "legacy";
+        expect(process.env.VIKI_MATCHER).toBe("legacy");
       } finally {
-        process.env.TEAMAGENT_MATCHER = original ?? "";
+        process.env.VIKI_MATCHER = original ?? "";
       }
     });
   });

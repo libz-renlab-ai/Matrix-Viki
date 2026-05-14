@@ -6,7 +6,7 @@
  * `escape.manualResources = true`. The handler never touches `ctx.store()`
  * or `ctx.eventLog()`, so neither sqlite handle is opened — which is
  * load-bearing: SessionStart's auto-init detection works by checking
- * whether `<cwd>/.teamagent/knowledge.db` exists, and `DualLayerStore`'s
+ * whether `<cwd>/.viki/knowledge.db` exists, and `DualLayerStore`'s
  * eager open in the default `runHook` layer would create that file before
  * `decideAction` ran, flipping every probe to `skip-already-initialized`.
  *
@@ -23,10 +23,10 @@
  *   3. update banners (`maybeShowPendingBanner`, `maybeShowReinstallBanner`)
  *      — both helpers accept an injectable `stderr` callback so we route
  *      them through `ctx.mirrorSystemMessage` instead of raw stderr,
- *      keeping the unified `TEAMAGENT_HOOK_STDERR=0` opt-out.
+ *      keeping the unified `VIKI_HOOK_STDERR=0` opt-out.
  *   4. updater spawn (detached, fire-and-forget).
- *   5. M5 auto-pipeline — same gates as before (`TEAMAGENT_M5_AUTOSESSION`,
- *      `TEAMAGENT_M5_AUTOPUSH`).
+ *   5. M5 auto-pipeline — same gates as before (`VIKI_M5_AUTOSESSION`,
+ *      `VIKI_M5_AUTOPUSH`).
  *
  * SessionStart has no `hookSpecificOutput` envelope wired today (this bin
  * has historically returned exit 0 with empty stdout). We keep that —
@@ -61,7 +61,7 @@ import { cleanupWikiResidue } from "./wiki-residue-cleanup.js";
 import { cleanupDbBackups } from "./db-backup-cleanup.js";
 import { runM5Session, renderM5SessionBanner } from "./m5-session-hook.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
-import { findTeamagentRoot } from "./lib/walk-up.js";
+import { findVikiRoot } from "./lib/walk-up.js";
 import { tryDetachedSpawn } from "./daemon-first-embedder.js";
 import { defaultEmbedderStatePath } from "./embedder-state.js";
 import { postRegister } from "./embedder-client.js";
@@ -78,7 +78,7 @@ import { emitCcStatus } from "./realtime-emit.js";
  * We accept the call only when at least one of these signals is present:
  *   1. CLAUDE_PROJECT_DIR env var set (Claude Code sets this before hooks)
  *   2. stdin contains a JSON object with hook_event_name === "SessionStart"
- *   3. stdin is empty AND TEAMAGENT_ALLOW_BARE_SESSIONSTART=1 (manual dogfood)
+ *   3. stdin is empty AND VIKI_ALLOW_BARE_SESSIONSTART=1 (manual dogfood)
  * Returning `null` from parseInput fast-exits the shell without side effects.
  */
 type SessionStartInput = Partial<SessionStartHookInput>;
@@ -90,7 +90,7 @@ function parseInput(raw: unknown): SessionStartInput | null {
     : undefined;
 
   const claudeProjectDir = process.env["CLAUDE_PROJECT_DIR"];
-  const allowBare = process.env["TEAMAGENT_ALLOW_BARE_SESSIONSTART"] === "1";
+  const allowBare = process.env["VIKI_ALLOW_BARE_SESSIONSTART"] === "1";
 
   // Signal 2: documented Claude Code SessionStart hook payload shape.
   if (isObject && hookEventName === "SessionStart") {
@@ -114,18 +114,18 @@ async function main(): Promise<void> {
     parseInput,
     escape: { manualResources: true },
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // SessionStart hook bails before any side effect (embedder daemon
       // spawn, wiki residue cleanup, schema-migration backup prune, M5
       // pipeline). Returning undefined yields a minimal no-op envelope so
       // Claude Code proceeds without surprise. Used by PR-2/PR-3 paired
       // TB-ON vs TB-OFF token-cost ablation.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return undefined;
       }
 
       // Feature #2 v3: fire-and-forget cc-status push to the team receiver.
-      // No-op when TEAMAGENT_REALTIME_URL is unset, so this is silent until a
+      // No-op when VIKI_REALTIME_URL is unset, so this is silent until a
       // teammate opts in by exporting the env var (see docs/features/team-realtime.md).
       // Wrapped in try/catch even though emitCcStatus already swallows everything
       // — the SessionStart path must never propagate a failure here.
@@ -161,20 +161,20 @@ async function main(): Promise<void> {
       cleanupWikiResidue();
 
       // B-094: prune legacy `*.before-*` schema-migration db backups in both
-      // user-global ~/.teamagent and project-local <cwd>/.teamagent so they
+      // user-global ~/.viki and project-local <cwd>/.viki so they
       // do not accumulate forever. Best-effort.
       // Issue #161: when Claude Code is launched from a sub-directory of a
-      // teamagent-initialized project, walk up to the real project root so
-      // we clean the right `.teamagent/`. Falls back to `ctx.cwd` when no
+      // viki-initialized project, walk up to the real project root so
+      // we clean the right `.viki/`. Falls back to `ctx.cwd` when no
       // ancestor is initialized — preserves the legacy behaviour for cwds
       // that are themselves the project root.
-      const homeTeamagent = path.join(os.homedir(), ".teamagent");
-      cleanupDbBackups(homeTeamagent);
-      const projectRoot = findTeamagentRoot(ctx.cwd) ?? ctx.cwd;
-      cleanupDbBackups(path.join(projectRoot, ".teamagent"));
+      const homeViki = path.join(os.homedir(), ".viki");
+      cleanupDbBackups(homeViki);
+      const projectRoot = findVikiRoot(ctx.cwd) ?? ctx.cwd;
+      cleanupDbBackups(path.join(projectRoot, ".viki"));
 
       // CRITICAL: decideAction MUST run before any code that could touch
-      // <cwd>/.teamagent/knowledge.db. We're using runAdvancedHook with
+      // <cwd>/.viki/knowledge.db. We're using runAdvancedHook with
       // manualResources=true precisely so the shell does NOT eagerly open
       // DualLayerStore (which would create the .db file and flip the
       // detection from "auto-init" to "skip-already-initialized"). The
@@ -184,24 +184,24 @@ async function main(): Promise<void> {
         // New project: show visible banner + kick off init in background.
         // Claude Code displays SessionStart stderr on first turn.
         ctx.mirrorSystemMessage(
-          `✨ TeamAgent: 新项目检测到 (无 .teamagent/knowledge.db)，后台自动 init 中...\n` +
-          `   日志: ~/.teamagent/auto-init.log\n` +
-          `   禁用: touch ~/.teamagent/auto-init.disabled`,
+          `✨ Viki: 新项目检测到 (无 .viki/knowledge.db)，后台自动 init 中...\n` +
+          `   日志: ~/.viki/auto-init.log\n` +
+          `   禁用: touch ~/.viki/auto-init.disabled`,
         );
         try { spawnAutoInit(ctx.cwd); } catch (e) { logError("auto-init-spawn-failed", e); }
       } else if (action === "skip-not-a-project") {
         // 当前目录没有项目标记 (.git / package.json / pyproject.toml 等),
-        // 不敢自动建 .teamagent/. 告诉用户为啥没动作 + 提供出路.
+        // 不敢自动建 .viki/. 告诉用户为啥没动作 + 提供出路.
         ctx.mirrorSystemMessage(
-          `ℹ️  TeamAgent: 当前目录不像项目 (无 .git / package.json / pyproject.toml 等标记), 跳过 auto-init\n` +
-          `   想启用: 在有这些标记的项目里开 Claude Code, 或手动运行 \`teamagent init\`\n` +
-          `   完全静默: touch ~/.teamagent/auto-init.disabled`,
+          `ℹ️  Viki: 当前目录不像项目 (无 .git / package.json / pyproject.toml 等标记), 跳过 auto-init\n` +
+          `   想启用: 在有这些标记的项目里开 Claude Code, 或手动运行 \`viki init\`\n` +
+          `   完全静默: touch ~/.viki/auto-init.disabled`,
         );
       }
 
       // 自动更新：先显示上次更新完成的 banner，再决定是否后台 spawn updater.
       // session-start-logic 的 banner helper 默认写 process.stderr；这里改走
-      // ctx.mirrorSystemMessage 以遵守 TEAMAGENT_HOOK_STDERR=0 的统一开关。
+      // ctx.mirrorSystemMessage 以遵守 VIKI_HOOK_STDERR=0 的统一开关。
       // helper 自己加 \n，mirror 也加 \n，所以 strip 末尾换行避免双重换行。
       try {
         maybeShowPendingBanner((s) => ctx.mirrorSystemMessage(s.replace(/\n$/, "")));
@@ -217,7 +217,7 @@ async function main(): Promise<void> {
       } catch (e) { logError("version-check-banner-failed", e); }
       // Issue #225: soft-force upgrade prompt. Re-fires every SessionStart
       // until the user picks A/B/C; honors snooze backoff + never_prompt +
-      // TEAMAGENT_NEVER_PROMPT env override. Shown AFTER the pending /
+      // VIKI_NEVER_PROMPT env override. Shown AFTER the pending /
       // reinstall banners so a successful auto-update gets its "✨ 已更新"
       // celebration first, then the next-version prompt (if any) follows.
       try {
@@ -230,16 +230,16 @@ async function main(): Promise<void> {
       }
 
       // M5 自动管线：infect + bootstrap apply + sync apply + auto-publish
-      // （全部降级，不阻塞）。默认开启（spec §7"激进模式"），TEAMAGENT_M5_AUTOSESSION=0
-      // 显式关闭；auto-push 也默认开启，TEAMAGENT_M5_AUTOPUSH=0 显式关闭。
+      // （全部降级，不阻塞）。默认开启（spec §7"激进模式"），VIKI_M5_AUTOSESSION=0
+      // 显式关闭；auto-push 也默认开启，VIKI_M5_AUTOPUSH=0 显式关闭。
       // 闸门 1（secret scanner）+ 闸门 2（scope classifier）兜底，规则离开本机前
       // 都已过两道闸。
-      if (ctx.env["TEAMAGENT_M5_AUTOSESSION"] !== "0") {
+      if (ctx.env["VIKI_M5_AUTOSESSION"] !== "0") {
         try {
           const r = await runM5Session({
             projectRoot: ctx.cwd,
             homeDir: os.homedir(),
-            autoPush: ctx.env["TEAMAGENT_M5_AUTOPUSH"] !== "0",
+            autoPush: ctx.env["VIKI_M5_AUTOPUSH"] !== "0",
           });
           const banner = renderM5SessionBanner(r);
           if (banner) ctx.mirrorSystemMessage(banner);

@@ -17,7 +17,7 @@ export class UnknownFlagError extends Error {
   /** The command label used to compose the error message. */
   readonly command: string;
   constructor(command: string, flag: string) {
-    super(`${command}: unknown flag "${flag}". Run 'teamagent --help' for valid flags.`);
+    super(`${command}: unknown flag "${flag}". Run 'viki --help' for valid flags.`);
     this.name = "UnknownFlagError";
     this.command = command;
     this.flag = flag;

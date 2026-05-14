@@ -2,7 +2,7 @@
  * Pure project-id resolution.
  *
  * Maps an absolute project directory to a deterministic, filesystem-safe
- * slug suitable for `~/.teamagent/install-state/<projectId>.json`. Pure
+ * slug suitable for `~/.viki/install-state/<projectId>.json`. Pure
  * (no fs, no IO) — the SHA-256 dependency comes from `node:crypto`,
  * which is the standard library's hash module and is allowed in
  * `packages/core/` because it does no IO (only computes a digest of a

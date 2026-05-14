@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { compileCursorRules } from "../cursor.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function mkEntry(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

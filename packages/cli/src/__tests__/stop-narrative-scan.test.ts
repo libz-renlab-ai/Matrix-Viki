@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runStopNarrativeScan, readLastInjected, pendingFilePath, lastInjectedFilePath } from "../stop-narrative-scan.js";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 function makeRule(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

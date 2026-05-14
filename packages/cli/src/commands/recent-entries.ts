@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createRequire } from "node:module";
 import type { DatabaseSync } from "node:sqlite";
-import { findTeamagentRoot } from "../find-teamagent-root.js";
+import { findVikiRoot } from "../find-viki-root.js";
 
 // node:sqlite is a Node 22+ experimental built-in. Use createRequire to load it
 // at runtime to avoid ESM static-import resolution issues in vitest.
@@ -17,10 +17,10 @@ export interface RecentEntry {
  * Returns empty array on any error (DB missing, table missing, etc.).
  */
 export async function getRecentEntries(cwd: string): Promise<RecentEntry[]> {
-  // Walk up to find the project's .teamagent/knowledge.db so that calling
+  // Walk up to find the project's .viki/knowledge.db so that calling
   // from a subfolder still queries the project's rules (issue #161).
-  const root = findTeamagentRoot(cwd);
-  const dbPath = path.join(root, ".teamagent", "knowledge.db");
+  const root = findVikiRoot(cwd);
+  const dbPath = path.join(root, ".viki", "knowledge.db");
   let db: DatabaseSync | undefined;
   try {
     const { DatabaseSync } = _require("node:sqlite") as typeof import("node:sqlite");

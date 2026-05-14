@@ -10,8 +10,8 @@ import type {
   Tier,
   TierTransition,
   DeltaStep,
-} from "@teamagent/ports";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 const DEMERIT_KIND_TO_SOURCE: Record<string, DemeritEvent["source"]> = {
   "ai.override.ignored": "ai_override_ignored",

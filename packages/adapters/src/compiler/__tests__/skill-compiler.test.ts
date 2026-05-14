@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import { makeSkillCompiler } from "../skill-compiler.js";
-import { runSkillCompilerContract } from "@teamagent/ports/contracts";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { runSkillCompilerContract } from "@viki/ports/contracts";
+import type { KnowledgeEntry } from "@viki/types";
 
 function mkTmp(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "skill-adapter-"));

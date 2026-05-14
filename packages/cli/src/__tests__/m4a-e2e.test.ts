@@ -20,9 +20,9 @@ import os from "node:os";
 import path from "node:path";
 import { runStopNarrativeScan, readLastInjected, lastInjectedFilePath, pendingFilePath } from "../stop-narrative-scan.js";
 import { buildInjectionFromPending, persistLastInjected, scanUserInput } from "../user-prompt-inject.js";
-import { matchRules } from "@teamagent/core";
-import { runCalibrationPipelineV2 } from "@teamagent/core";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+import { matchRules } from "@viki/core";
+import { runCalibrationPipelineV2 } from "@viki/core";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 function narrativeRule(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {
@@ -155,7 +155,7 @@ describe("M4-A scenario A: narrative loop (education fails → recurred demerit)
     // Calibrator: feed all events through v2 pipeline
     // (Using in-memory store stub would normally go here; we assert the
     // event schema fits the consumer by verifying the signal map handles it.)
-    const { v2Calibrator } = await import("@teamagent/core");
+    const { v2Calibrator } = await import("@viki/core");
     const result = v2Calibrator.calibrate(
       { ...rule, demerit: 0 },
       {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeConfidence, HALF_LIFE_DAYS } from "../wilson.js";
-import type { Observation, Tier } from "@teamagent/ports";
+import type { Observation, Tier } from "@viki/ports";
 
 const now = new Date("2026-04-16T12:00:00Z");
 

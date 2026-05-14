@@ -7,7 +7,7 @@ import {
   DualLayerStore,
   openDb,
   makeSkillCompiler,
-} from "@teamagent/adapters";
+} from "@viki/adapters";
 import {
   defaultCalibrator,
   runCalibrationPipeline,
@@ -16,9 +16,9 @@ import {
   runCompile,
   type AdjustmentRecord,
   type CalibrationV2Record,
-} from "@teamagent/core";
-import type { PersistedEvent } from "@teamagent/types";
-import type { Observation } from "@teamagent/adapters";
+} from "@viki/core";
+import type { PersistedEvent } from "@viki/types";
+import type { Observation } from "@viki/adapters";
 
 export interface CalibrateOptions {
   cwd?: string;
@@ -57,12 +57,12 @@ function resolvePaths(opts: CalibrateOptions) {
   const cwd = opts.cwd ?? process.cwd();
   return {
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
     eventsDbPath:
-      opts.eventsDbPath ?? path.join(home, ".teamagent", "events.db"),
-    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "teamagent"),
+      opts.eventsDbPath ?? path.join(home, ".viki", "events.db"),
+    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "viki"),
   };
 }
 
@@ -367,7 +367,7 @@ export function parseCalibrateArgs(argv: string[]): CalibrateOptions {
       const base = a.split("=")[0]!;
       if (!CALIBRATE_KNOWN_FLAGS.has(base)) {
         throw new CalibrateArgError(
-          `calibrate: unknown flag "${a}". Run 'teamagent --help' for valid flags.`,
+          `calibrate: unknown flag "${a}". Run 'viki --help' for valid flags.`,
         );
       }
     }
@@ -377,7 +377,7 @@ export function parseCalibrateArgs(argv: string[]): CalibrateOptions {
 
 export function renderCalibrateResult(r: CalibrateResult): string {
   const lines: string[] = [];
-  lines.push(r.dryRun ? "🔍 TeamAgent Calibrate (dry-run)" : "⚖️  TeamAgent Calibrate");
+  lines.push(r.dryRun ? "🔍 Viki Calibrate (dry-run)" : "⚖️  Viki Calibrate");
   lines.push("");
   for (const { scope, scanned, adjustedCount, archivedCount, adjustments, v2Adjustments } of r.byScope) {
     if (scanned === 0) {

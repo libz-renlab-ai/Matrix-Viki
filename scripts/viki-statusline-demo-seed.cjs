@@ -3,7 +3,7 @@
  * Seed isolated SQLite databases for the statusline live demo.
  *
  * Usage:
- *   node teamagent-statusline-demo-seed.cjs <db-path> <kind> <rows-json>
+ *   node viki-statusline-demo-seed.cjs <db-path> <kind> <rows-json>
  *
  * Where:
  *   kind = "knowledge" | "events"
@@ -11,8 +11,8 @@
  *     knowledge: { status, type?, created_at }
  *     events:    { kind, timestamp }
  *
- * Used by `teamagent-statusline-demo.sh` to seed sandbox DBs without
- * touching the user's real ~/.teamagent. Standalone CJS so it works
+ * Used by `viki-statusline-demo.sh` to seed sandbox DBs without
+ * touching the user's real ~/.viki. Standalone CJS so it works
  * with the same `node:sqlite` builtin that the production statusline
  * relies on.
  */
@@ -23,7 +23,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 function die(msg) {
-  process.stderr.write(`teamagent-statusline-demo-seed: ${msg}\n`);
+  process.stderr.write(`viki-statusline-demo-seed: ${msg}\n`);
   process.exit(1);
 }
 

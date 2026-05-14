@@ -1,4 +1,4 @@
-import type { MarkdownCompilerLike } from "@teamagent/core";
+import type { MarkdownCompilerLike } from "@viki/core";
 import { MarkdownCompiler } from "./markdown-compiler.js";
 import { NestedRuleStoreCompiler } from "./nested-rule-store.js";
 
@@ -6,7 +6,7 @@ import { NestedRuleStoreCompiler } from "./nested-rule-store.js";
  * 共享的规则编译器选择器（issue #42）。
  *
  * - 默认 → `NestedRuleStoreCompiler`（用户级 nested rule store）
- * - `legacy === true` 或 `TEAMAGENT_LEGACY_CLAUDE_MD=1` → 旧 CLAUDE.md 行为
+ * - `legacy === true` 或 `VIKI_LEGACY_CLAUDE_MD=1` → 旧 CLAUDE.md 行为
  *
  * 这一层让 `analyze` / `calibrate` / `ingest` / `pitfall` 等命令复用一致的策略，
  * 不必每个 caller 重新实现 env 解析与构造分支。
@@ -16,7 +16,7 @@ export interface CreateRuleCompilerOptions {
   legacy?: boolean;
   /** Legacy 模式下使用的 CLAUDE.md 路径。默认由 caller 传入。 */
   claudeMdPath?: string;
-  /** Nested 模式下使用的 rules 根目录。默认 `~/.claude/teamagent/rules`。 */
+  /** Nested 模式下使用的 rules 根目录。默认 `~/.claude/viki/rules`。 */
   rulesDir?: string;
   /** 时间 getter（测试可注入）。 */
   now?: () => string;
@@ -45,7 +45,7 @@ export function createRuleCompiler(opts: CreateRuleCompilerOptions = {}): Markdo
 
 function resolveLegacy(explicit: boolean | undefined): boolean {
   if (explicit !== undefined) return explicit;
-  const env = process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
+  const env = process.env["VIKI_LEGACY_CLAUDE_MD"];
   if (env === undefined) return false;
   return env === "1" || env.toLowerCase() === "true" || env.toLowerCase() === "yes";
 }

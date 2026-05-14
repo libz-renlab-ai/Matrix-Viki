@@ -145,7 +145,7 @@ function runTestAdapters() {
 
 function runBuild() {
   const startedAt = ISO();
-  const result = spawnSync("pnpm", ["-F", "@teamagent/cli", "build"], {
+  const result = spawnSync("pnpm", ["-F", "@viki/cli", "build"], {
     cwd: REPO_ROOT,
     encoding: "utf-8",
     windowsHide: true,
@@ -195,10 +195,10 @@ async function runSingleTracker() {
       cwd: tmpHome,
       env: {
         ...process.env,
-        TEAMAGENT_HOME: tmpHome,
+        VIKI_HOME: tmpHome,
         HOME: tmpHome,
         USERPROFILE: tmpHome,
-        TEAMAGENT_XENOVA_TRACKER: trackerPath,
+        VIKI_XENOVA_TRACKER: trackerPath,
         CLAUDE_PROJECT_DIR: tmpHome,
       },
       stdio: ["pipe", "pipe", "pipe"],
@@ -267,11 +267,11 @@ async function runConcurrentTracker() {
     return new Promise((resolve) => {
       const env = {
         ...process.env,
-        TEAMAGENT_HOME: tmpHome,
+        VIKI_HOME: tmpHome,
         HOME: tmpHome,
         USERPROFILE: tmpHome,
-        TEAMAGENT_XENOVA_TRACKER: trackerPath,
-        TEAMAGENT_XENOVA_TRACKER_FAIL_FAST: "1",
+        VIKI_XENOVA_TRACKER: trackerPath,
+        VIKI_XENOVA_TRACKER_FAIL_FAST: "1",
         CLAUDE_PROJECT_DIR: tmpHome,
       };
       const child = spawn(process.execPath, [bin], {

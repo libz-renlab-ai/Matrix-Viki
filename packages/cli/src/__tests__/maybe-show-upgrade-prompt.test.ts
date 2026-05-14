@@ -7,7 +7,7 @@ import {
   readUpdateState,
   writeUpdateState,
 } from "../session-start-logic.js";
-import { defaultUpdateState } from "@teamagent/core";
+import { defaultUpdateState } from "@viki/core";
 
 let homeBak: string | undefined;
 let neverPromptBak: string | undefined;
@@ -37,17 +37,17 @@ const FIXTURE_CHANGELOG = `# CHANGELOG
 
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "tg-upgrade-prompt-"));
-  homeBak = process.env["TEAMAGENT_HOME"];
-  neverPromptBak = process.env["TEAMAGENT_NEVER_PROMPT"];
-  process.env["TEAMAGENT_HOME"] = tmpHome;
-  delete process.env["TEAMAGENT_NEVER_PROMPT"];
+  homeBak = process.env["VIKI_HOME"];
+  neverPromptBak = process.env["VIKI_NEVER_PROMPT"];
+  process.env["VIKI_HOME"] = tmpHome;
+  delete process.env["VIKI_NEVER_PROMPT"];
 });
 
 afterEach(() => {
-  if (homeBak === undefined) delete process.env["TEAMAGENT_HOME"];
-  else process.env["TEAMAGENT_HOME"] = homeBak;
-  if (neverPromptBak === undefined) delete process.env["TEAMAGENT_NEVER_PROMPT"];
-  else process.env["TEAMAGENT_NEVER_PROMPT"] = neverPromptBak;
+  if (homeBak === undefined) delete process.env["VIKI_HOME"];
+  else process.env["VIKI_HOME"] = homeBak;
+  if (neverPromptBak === undefined) delete process.env["VIKI_NEVER_PROMPT"];
+  else process.env["VIKI_NEVER_PROMPT"] = neverPromptBak;
   fs.rmSync(tmpHome, { recursive: true, force: true });
 });
 
@@ -70,12 +70,12 @@ describe("maybeShowUpgradePrompt", () => {
       () => 0,
       loadFixtureChangelog,
     );
-    expect(captured).toContain("TeamAgent 0.10.5 可用");
+    expect(captured).toContain("Viki 0.10.5 可用");
     expect(captured).toContain("0.10.1");
     expect(captured).toContain("Windows install fixed");
-    expect(captured).toContain("teamagent update --now");
-    expect(captured).toContain("teamagent update --snooze");
-    expect(captured).toContain("teamagent update --never");
+    expect(captured).toContain("viki update --now");
+    expect(captured).toContain("viki update --snooze");
+    expect(captured).toContain("viki update --never");
   });
 
   it("does NOT mark pending_banner.shown=true (re-fires every SessionStart)", () => {
@@ -115,8 +115,8 @@ describe("maybeShowUpgradePrompt", () => {
     expect(captured).toBe("");
   });
 
-  it("emits nothing when TEAMAGENT_NEVER_PROMPT=1 (env override)", () => {
-    process.env["TEAMAGENT_NEVER_PROMPT"] = "1";
+  it("emits nothing when VIKI_NEVER_PROMPT=1 (env override)", () => {
+    process.env["VIKI_NEVER_PROMPT"] = "1";
     writeUpdateState({
       ...defaultUpdateState(),
       last_installed_version: "0.10.1",
@@ -167,7 +167,7 @@ describe("maybeShowUpgradePrompt", () => {
       () => 25 * 60 * 60 * 1000, // 1h past snooze
       loadFixtureChangelog,
     );
-    expect(captured).toContain("TeamAgent");
+    expect(captured).toContain("Viki");
     expect(captured).toContain("已 snooze 1 次");
   });
 
@@ -199,7 +199,7 @@ describe("maybeShowUpgradePrompt", () => {
       () => "", // no changelog
     );
     expect(captured).toContain("abcdef1");
-    expect(captured).toContain("teamagent update --now");
+    expect(captured).toContain("viki update --now");
   });
 
   // Issue #225 iter-1 — soft-force re-fire semantic
@@ -213,8 +213,8 @@ describe("maybeShowUpgradePrompt", () => {
     let secondCall = "";
     maybeShowUpgradePrompt((s) => { firstCall += s; }, () => 1000, loadFixtureChangelog);
     maybeShowUpgradePrompt((s) => { secondCall += s; }, () => 2000, loadFixtureChangelog);
-    expect(firstCall).toContain("teamagent update --now");
-    expect(secondCall).toContain("teamagent update --now");
+    expect(firstCall).toContain("viki update --now");
+    expect(secondCall).toContain("viki update --now");
   });
 
   it("re-fires even when pending_banner.shown=true (decoupled from legacy banner)", () => {
@@ -227,7 +227,7 @@ describe("maybeShowUpgradePrompt", () => {
     });
     let captured = "";
     maybeShowUpgradePrompt((s) => { captured += s; }, () => 1000, loadFixtureChangelog);
-    expect(captured).toContain("teamagent update --now");
+    expect(captured).toContain("viki update --now");
   });
 
   it("stops re-firing once user dismisses via prompt_dismissed_for_to", () => {
@@ -251,7 +251,7 @@ describe("maybeShowUpgradePrompt", () => {
     });
     let captured = "";
     maybeShowUpgradePrompt((s) => { captured += s; }, () => 1000, loadFixtureChangelog);
-    expect(captured).toContain("teamagent update --now");
+    expect(captured).toContain("viki update --now");
   });
 
   // Issue #245 — AttributionBus emit + events.db persistence
@@ -288,7 +288,7 @@ describe("maybeShowUpgradePrompt", () => {
       loadFixtureChangelog,
       { bus, eventLog, randSuffix: () => "fix" },
     );
-    expect(captured).toContain("teamagent update --now");
+    expect(captured).toContain("viki update --now");
     // bus emit
     expect(emitted).toEqual([
       { kind: "update-prompt-shown", fromVer: "0.10.1", toVer: "0.10.5", snoozeLevel: 2 },

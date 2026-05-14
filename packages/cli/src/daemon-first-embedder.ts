@@ -20,7 +20,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { RuleEmbedder } from "@teamagent/ports";
+import type { RuleEmbedder } from "@viki/ports";
 import { embedViaDaemon } from "./embedder-client.js";
 import {
   defaultEmbedderStatePath,
@@ -87,7 +87,7 @@ export class DaemonFirstEmbedder implements RuleEmbedder {
 
 /**
  * Best-effort detached spawn of bin-embedder.cjs. Locates the bin via the
- * known dist path or via TEAMAGENT_EMBEDDER_BIN env override.
+ * known dist path or via VIKI_EMBEDDER_BIN env override.
  *
  * Issue #315 (Race α): when N SessionStart hooks fire concurrently with no
  * daemon yet running, all N call `tryDetachedSpawn`, see the missing state
@@ -139,30 +139,30 @@ export function tryDetachedSpawn(statePath: string): void {
 }
 
 function resolveEmbedderBin(): string | null {
-  const override = process.env["TEAMAGENT_EMBEDDER_BIN"];
+  const override = process.env["VIKI_EMBEDDER_BIN"];
   if (override && fs.existsSync(override)) return override;
 
   const candidates: string[] = [
-    // POSIX npm -g installed alongside teamagent CLI
-    path.join(os.homedir(), ".local", "lib", "teamagent", "dist", "bin-embedder.cjs"),
+    // POSIX npm -g installed alongside viki CLI
+    path.join(os.homedir(), ".local", "lib", "viki", "dist", "bin-embedder.cjs"),
     // monorepo dev: cli/dist
     path.resolve(process.cwd(), "packages", "cli", "dist", "bin-embedder.cjs"),
-    // hooks staged in ~/.teamagent/hooks/
-    path.join(os.homedir(), ".teamagent", "hooks", "bin-embedder.cjs"),
+    // hooks staged in ~/.viki/hooks/
+    path.join(os.homedir(), ".viki", "hooks", "bin-embedder.cjs"),
   ];
 
-  // Windows global npm install: %APPDATA%\npm\node_modules\teamagent\dist\
+  // Windows global npm install: %APPDATA%\npm\node_modules\viki\dist\
   const appData = process.env["APPDATA"];
   if (appData) {
     candidates.push(
-      path.join(appData, "npm", "node_modules", "teamagent", "dist", "bin-embedder.cjs"),
+      path.join(appData, "npm", "node_modules", "viki", "dist", "bin-embedder.cjs"),
     );
   }
   // Some Windows setups land deps under %LOCALAPPDATA%\npm too.
   const localAppData = process.env["LOCALAPPDATA"];
   if (localAppData) {
     candidates.push(
-      path.join(localAppData, "npm", "node_modules", "teamagent", "dist", "bin-embedder.cjs"),
+      path.join(localAppData, "npm", "node_modules", "viki", "dist", "bin-embedder.cjs"),
     );
   }
 
@@ -172,14 +172,14 @@ function resolveEmbedderBin(): string | null {
     } catch { /* ignore */ }
   }
 
-  // Last resort: ask Node's resolver to find the teamagent package, then
+  // Last resort: ask Node's resolver to find the viki package, then
   // walk to dist/bin-embedder.cjs. Works for nvm / pnpm / Yarn layouts the
   // hardcoded candidates above miss.
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const req = (typeof require !== "undefined" ? require : null) as NodeRequire | null;
     if (req) {
-      const pkgJson = req.resolve("teamagent/package.json");
+      const pkgJson = req.resolve("viki/package.json");
       const candidate = path.join(path.dirname(pkgJson), "dist", "bin-embedder.cjs");
       if (fs.existsSync(candidate)) return candidate;
     }

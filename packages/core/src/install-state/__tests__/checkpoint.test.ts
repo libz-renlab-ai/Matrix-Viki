@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryInstallStateStore } from "@teamagent/ports/contracts";
+import { InMemoryInstallStateStore } from "@viki/ports/contracts";
 import { checkpoint } from "../checkpoint.js";
 import { isStepDone, pendingSteps } from "../lifecycle.js";
 import { STEP_KEYS } from "../schema.js";

@@ -1,20 +1,20 @@
 /**
- * `teamagent demo` — issue #93.
+ * `viki demo` — issue #93.
  *
  * Three modes selected by argv:
  *
- *   teamagent demo                    → default: print CTA, poll events.db
+ *   viki demo                    → default: print CTA, poll events.db
  *                                       for a moment-rule attribution within
  *                                       60s, print evidence on hit.
- *   teamagent demo --inline           → spawn the real bin-pre-tool-use.cjs
+ *   viki demo --inline           → spawn the real bin-pre-tool-use.cjs
  *                                       with a canonical mock fixture and
  *                                       render the decision as ANSI text.
  *                                       CI-safe (no IDE required).
- *   teamagent demo --record [path]    → generate docs/landing/demo.tape
+ *   viki demo --record [path]    → generate docs/landing/demo.tape
  *                                       (vhs config) and, if vhs is on PATH,
  *                                       spawn it to render the gif.
  *
- * The legacy `teamagent demo hook <tool> <key=value>...` subcommand stays
+ * The legacy `viki demo hook <tool> <key=value>...` subcommand stays
  * intact in bin.ts (handled before this dispatcher is reached).
  */
 import fs from "node:fs";
@@ -58,7 +58,7 @@ export function parseDemoArgs(args: string[]): DemoArgs {
   if (args[0] === "hook") {
     return {
       mode: "unknown",
-      reason: "hook is handled by `teamagent demo hook` (legacy dispatcher)",
+      reason: "hook is handled by `viki demo hook` (legacy dispatcher)",
     };
   }
   if (args.includes("--inline")) return { mode: "inline" };
@@ -175,7 +175,7 @@ export function buildVhsTape(opts: BuildVhsTapeOpts): string {
   const w = opts.width ?? 1200;
   const h = opts.height ?? 600;
   return [
-    `# vhs tape for teamagent demo (issue #93)`,
+    `# vhs tape for viki demo (issue #93)`,
     `# scene 1: user corrects AI; scene 2: next session, AI tries again, gets blocked.`,
     ``,
     `Output ${opts.outputPath}`,
@@ -200,7 +200,7 @@ export function buildVhsTape(opts: BuildVhsTapeOpts): string {
     `Enter`,
     `Sleep 3s`,
     ``,
-    `Type "# TeamAgent intercepted (PreToolUse: deny + suggest dayjs)"`,
+    `Type "# Viki intercepted (PreToolUse: deny + suggest dayjs)"`,
     `Sleep 1500ms`,
     `Enter`,
     `Sleep 1500ms`,
@@ -296,7 +296,7 @@ export async function executeDemoDefault(
   const interval = opts.pollIntervalMs ?? 1_000;
   const since = opts.sinceIso ?? new Date(start).toISOString();
   const matchLike = opts.matchKnowledgeIdLike ?? "moment";
-  const eventsPath = path.join(opts.homeDir, ".teamagent", "events.db");
+  const eventsPath = path.join(opts.homeDir, ".viki", "events.db");
 
   const { DatabaseSync } = requireCjs("node:sqlite") as typeof import("node:sqlite");
 
@@ -343,15 +343,15 @@ export async function executeDemo(
       const start = new Date().toISOString();
       const cta = [
         ``,
-        `🎬 TeamAgent demo`,
+        `🎬 Viki demo`,
         ``,
         `1. 在你正在用的 Claude Code 会话里跑：`,
         `   npm install moment`,
         ``,
-        `2. 我会在 60 秒内 poll \`~/.teamagent/events.db\`，`,
+        `2. 我会在 60 秒内 poll \`~/.viki/events.db\`，`,
         `   抓到 universal pack 拦截 moment 的 attribution 事件。`,
         ``,
-        `(Ctrl-C 中止；CI 环境里改用 \`teamagent demo --inline\`。)`,
+        `(Ctrl-C 中止；CI 环境里改用 \`viki demo --inline\`。)`,
         ``,
       ].join("\n");
       process.stderr.write(cta);
@@ -387,9 +387,9 @@ export async function executeDemo(
             `⏱️  60s 超时，没抓到 moment 拦截事件。`,
             ``,
             `检查项：`,
-            `  - 当前项目是否已 init？跑 \`teamagent doctor\``,
-            `  - universal pack 是否到位？\`teamagent stats | grep moment\``,
-            `  - CI 环境改跑 \`teamagent demo --inline\``,
+            `  - 当前项目是否已 init？跑 \`viki doctor\``,
+            `  - universal pack 是否到位？\`viki stats | grep moment\``,
+            `  - CI 环境改跑 \`viki demo --inline\``,
           ].join("\n") + "\n",
         exitCode: 1,
       };
@@ -437,10 +437,10 @@ export async function executeDemo(
             `未知 demo 模式: ${reason}`,
             ``,
             `用法:`,
-            `  teamagent demo                  # default: poll events.db 等真拦截`,
-            `  teamagent demo --inline         # CI-safe，spawn hook bin 演示一次拦截`,
-            `  teamagent demo --record [path]  # 生成 vhs tape (+ GIF if vhs 在 PATH)`,
-            `  teamagent demo hook <tool> ...  # legacy: 离线模拟 PreToolUse`,
+            `  viki demo                  # default: poll events.db 等真拦截`,
+            `  viki demo --inline         # CI-safe，spawn hook bin 演示一次拦截`,
+            `  viki demo --record [path]  # 生成 vhs tape (+ GIF if vhs 在 PATH)`,
+            `  viki demo hook <tool> ...  # legacy: 离线模拟 PreToolUse`,
           ].join("\n") + "\n",
         exitCode: 1,
       };
@@ -458,7 +458,7 @@ function resolveHookBinPath(): string {
     const dev = path.join(
       dir,
       "packages",
-      "teamagent",
+      "viki",
       "dist",
       "bin-pre-tool-use.cjs",
     );
@@ -466,7 +466,7 @@ function resolveHookBinPath(): string {
     const nestedDist = path.join(
       dir,
       "..",
-      "teamagent",
+      "viki",
       "dist",
       "bin-pre-tool-use.cjs",
     );

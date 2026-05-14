@@ -8,14 +8,14 @@ import {
   packTag,
   parsePackMeta,
   type PackMeta,
-} from "@teamagent/core";
-import { SqliteKnowledgeStore, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import { SqliteKnowledgeStore, openDb } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 export type PackSubcommand = "list" | "add" | "remove";
 
 export interface PackCommonOptions {
-  /** Override registry directory (env: TEAMAGENT_PACKS_DIR; tests inject directly). */
+  /** Override registry directory (env: VIKI_PACKS_DIR; tests inject directly). */
   packsDir?: string;
   /** Override resolved user-global DB path. */
   userGlobalDbPath?: string;
@@ -50,23 +50,23 @@ export interface PackRemoveResult {
 /**
  * Resolve packs directory. Priority:
  *  1. Explicit `opts.packsDir`.
- *  2. `TEAMAGENT_PACKS_DIR` env var.
+ *  2. `VIKI_PACKS_DIR` env var.
  *  3. Walk up from this module looking for
- *     `dist/seed/packs/` (bundled) or `packages/teamagent/seed/packs/` (dev).
+ *     `dist/seed/packs/` (bundled) or `packages/viki/seed/packs/` (dev).
  *  4. Falls back to undefined (no registry available).
  */
 export function resolvePacksDir(explicit?: string): string | undefined {
   if (explicit) return explicit;
-  const envPath = process.env["TEAMAGENT_PACKS_DIR"];
+  const envPath = process.env["VIKI_PACKS_DIR"];
   if (envPath) return envPath;
   const here = fileURLToPath(import.meta.url);
   let dir = path.dirname(here);
   for (let i = 0; i < 8; i++) {
     const bundled = path.join(dir, "dist", "seed", "packs");
     if (fs.existsSync(bundled)) return bundled;
-    const dev = path.join(dir, "packages", "teamagent", "seed", "packs");
+    const dev = path.join(dir, "packages", "viki", "seed", "packs");
     if (fs.existsSync(dev)) return dev;
-    const sibling = path.join(dir, "..", "teamagent", "seed", "packs");
+    const sibling = path.join(dir, "..", "viki", "seed", "packs");
     if (fs.existsSync(sibling)) return sibling;
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -78,7 +78,7 @@ export function resolvePacksDir(explicit?: string): string | undefined {
 function resolveUserGlobalDb(opts: PackCommonOptions): string {
   if (opts.userGlobalDbPath) return opts.userGlobalDbPath;
   const home = opts.homeDir ?? os.homedir();
-  return path.join(home, ".teamagent", "global.db");
+  return path.join(home, ".viki", "global.db");
 }
 
 /**
@@ -203,7 +203,7 @@ export function executePackAdd(
       try {
         if (!packsDir) {
           throw new Error(
-            "no packs registry resolved (set TEAMAGENT_PACKS_DIR or ensure seed/packs/ exists)",
+            "no packs registry resolved (set VIKI_PACKS_DIR or ensure seed/packs/ exists)",
           );
         }
         const rules = readPackRules(packsDir, name);
@@ -274,7 +274,7 @@ export function executePackRemove(
 export function parsePackArgs(argv: string[]): PackArgs {
   if (argv.length === 0) {
     throw new Error(
-      'Usage: teamagent pack <list|add|remove> [names] [--json]\n' +
+      'Usage: viki pack <list|add|remove> [names] [--json]\n' +
         '  pack list [--json]\n' +
         '  pack add <names>      e.g. pack add frontend-js,ops-safety\n' +
         '  pack remove <names>',
@@ -331,7 +331,7 @@ export function renderPackList(result: PackListResult, json: boolean): string {
   }
   lines.push("");
   if (result.available.length === 0) {
-    lines.push("Available packs: (no packs shipped in this teamagent build)");
+    lines.push("Available packs: (no packs shipped in this viki build)");
   } else {
     lines.push(`Available packs (${result.available.length}):`);
     for (const p of result.available) {
@@ -359,7 +359,7 @@ export function renderPackAdd(result: PackAddResult): string {
   }
   if (result.notFound.length > 0) {
     lines.push(`❌ Unknown pack: ${result.notFound.join(", ")}`);
-    lines.push("   Run `teamagent pack list` to see available packs.");
+    lines.push("   Run `viki pack list` to see available packs.");
   }
   if (result.failed.length > 0) {
     lines.push(`⚠  Failed: ${result.failed.map((f) => `${f.name} (${f.error})`).join(", ")}`);

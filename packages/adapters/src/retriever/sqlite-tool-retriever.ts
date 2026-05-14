@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import type { SemanticRetriever, SemanticCandidate } from "@teamagent/ports";
+import type { SemanticRetriever, SemanticCandidate } from "@viki/ports";
 import {
   deserializeRow,
   type KnowledgeRow,

@@ -10,7 +10,7 @@ import {
   readState,
   writeState,
 } from "../commands/update.js";
-import { defaultUpdateState } from "@teamagent/core";
+import { defaultUpdateState } from "@viki/core";
 import type { FetchShaResult } from "../github-api.js";
 
 // Mock the github-api module so legacy checkCmd tests don't make real HTTP calls.
@@ -42,14 +42,14 @@ let envBak: string | undefined;
 
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "tg-upd-cmd-"));
-  envBak = process.env["TEAMAGENT_HOME"];
-  process.env["TEAMAGENT_HOME"] = tmpHome;
+  envBak = process.env["VIKI_HOME"];
+  process.env["VIKI_HOME"] = tmpHome;
   emittedEvents.length = 0;
 });
 
 afterEach(() => {
-  if (envBak === undefined) delete process.env["TEAMAGENT_HOME"];
-  else process.env["TEAMAGENT_HOME"] = envBak;
+  if (envBak === undefined) delete process.env["VIKI_HOME"];
+  else process.env["VIKI_HOME"] = envBak;
   fs.rmSync(tmpHome, { recursive: true, force: true });
 });
 
@@ -125,7 +125,7 @@ describe.skip("checkCmd — per-reason error messages (pre-#313, behaviour remov
   }
 
   it("rate_limit_anonymous: surfaces the exact error message", async () => {
-    const msg = "GitHub anonymous rate limit exhausted; set TEAMAGENT_GITHUB_TOKEN to authenticate (5000 req/h)";
+    const msg = "GitHub anonymous rate limit exhausted; set VIKI_GITHUB_TOKEN to authenticate (5000 req/h)";
     mockFetchRemoteSha.mockResolvedValue(failResult("rate_limit_anonymous", msg, 403));
     const r = await runUpdateCommand("check");
     expect(r.ok).toBe(false);
@@ -262,7 +262,7 @@ describe.skip("checkCmd — ETag and sha persistence on success (pre-#313, behav
       ok: false,
       reason: "rate_limit_anonymous",
       status: 403,
-      message: "GitHub anonymous rate limit exhausted; set TEAMAGENT_GITHUB_TOKEN to authenticate (5000 req/h)",
+      message: "GitHub anonymous rate limit exhausted; set VIKI_GITHUB_TOKEN to authenticate (5000 req/h)",
     } satisfies FetchShaResult);
 
     const before = Date.now();
@@ -375,8 +375,8 @@ describe("checkCmd (#313 fetchLatestVersion)", () => {
     expect(r.output).toContain("暂时查不到新版本");
     expect(r.output).toContain("pages_5xx");
     expect(r.output).toContain("npm_5xx");
-    expect(r.output).toContain("npm i -g teamagent@latest");
-    expect(r.output).toContain("TEAMAGENT_GITHUB_TOKEN");
+    expect(r.output).toContain("npm i -g viki@latest");
+    expect(r.output).toContain("VIKI_GITHUB_TOKEN");
     // MUST NOT include the old internal jargon
     expect(r.output).not.toContain("GitHub anonymous rate limit");
   });
@@ -498,7 +498,7 @@ describe("findUpdaterBinary install layouts (issue #151)", () => {
 
   it("npm flat dist layout: locates sibling bin-updater.cjs", () => {
     // npm published artifact: <root>/dist/update-XXX.js + <root>/dist/bin-updater.cjs
-    const dist = path.join(tmpRoot, "teamagent", "dist");
+    const dist = path.join(tmpRoot, "viki", "dist");
     fs.mkdirSync(dist, { recursive: true });
     const updaterFile = path.join(dist, "bin-updater.cjs");
     fs.writeFileSync(updaterFile, "// stub");
@@ -522,7 +522,7 @@ describe("findUpdaterBinary install layouts (issue #151)", () => {
   });
 
   it("returns null when bin-updater.cjs is absent", () => {
-    const dist = path.join(tmpRoot, "teamagent", "dist");
+    const dist = path.join(tmpRoot, "viki", "dist");
     fs.mkdirSync(dist, { recursive: true });
     const updateModule = path.join(dist, "update-MISSING.js");
     fs.writeFileSync(updateModule, "// stub");

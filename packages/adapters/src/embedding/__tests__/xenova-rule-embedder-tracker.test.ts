@@ -1,11 +1,11 @@
 /**
- * Issue #315 — TEAMAGENT_XENOVA_TRACKER env-gated ctor instrument.
+ * Issue #315 — VIKI_XENOVA_TRACKER env-gated ctor instrument.
  *
  * Verifies that:
  *   1. With env unset, the ctor does not touch any file (zero IO cost).
- *   2. With TEAMAGENT_XENOVA_TRACKER=<path>, each `new XenovaRuleEmbedder()`
+ *   2. With VIKI_XENOVA_TRACKER=<path>, each `new XenovaRuleEmbedder()`
  *      appends exactly one line with `${ts} pid=${pid} argv=<argv>` shape.
- *   3. With TEAMAGENT_XENOVA_TRACKER_FAIL_FAST=1, the 2nd ctor in the same
+ *   3. With VIKI_XENOVA_TRACKER_FAIL_FAST=1, the 2nd ctor in the same
  *      process triggers `process.exit(2)` (defensive — harness uses this to
  *      kill the fan-out the moment a regression appears so the test machine
  *      itself does not get OOM-spiked).
@@ -30,14 +30,14 @@ describe("XenovaRuleEmbedder ctor tracker (issue #315)", () => {
       os.tmpdir(),
       `xenova-tracker-${Date.now()}-${Math.random().toString(36).slice(2)}.log`,
     );
-    delete process.env["TEAMAGENT_XENOVA_TRACKER"];
-    delete process.env["TEAMAGENT_XENOVA_TRACKER_FAIL_FAST"];
+    delete process.env["VIKI_XENOVA_TRACKER"];
+    delete process.env["VIKI_XENOVA_TRACKER_FAIL_FAST"];
   });
 
   afterEach(() => {
     try { fs.unlinkSync(tmpFile); } catch { /* best-effort */ }
-    delete process.env["TEAMAGENT_XENOVA_TRACKER"];
-    delete process.env["TEAMAGENT_XENOVA_TRACKER_FAIL_FAST"];
+    delete process.env["VIKI_XENOVA_TRACKER"];
+    delete process.env["VIKI_XENOVA_TRACKER_FAIL_FAST"];
   });
 
   it("env unset: ctor writes nothing", () => {
@@ -46,7 +46,7 @@ describe("XenovaRuleEmbedder ctor tracker (issue #315)", () => {
   });
 
   it("env set: ctor appends one line per construction", () => {
-    process.env["TEAMAGENT_XENOVA_TRACKER"] = tmpFile;
+    process.env["VIKI_XENOVA_TRACKER"] = tmpFile;
     new XenovaRuleEmbedder();
     new XenovaRuleEmbedder();
     new XenovaRuleEmbedder();
@@ -58,8 +58,8 @@ describe("XenovaRuleEmbedder ctor tracker (issue #315)", () => {
   });
 
   it("FAIL_FAST=1: 2nd ctor calls process.exit(2)", () => {
-    process.env["TEAMAGENT_XENOVA_TRACKER"] = tmpFile;
-    process.env["TEAMAGENT_XENOVA_TRACKER_FAIL_FAST"] = "1";
+    process.env["VIKI_XENOVA_TRACKER"] = tmpFile;
+    process.env["VIKI_XENOVA_TRACKER_FAIL_FAST"] = "1";
     const exitSpy = vi
       .spyOn(process, "exit")
       .mockImplementation(((_code?: number) => undefined) as never);
@@ -74,8 +74,8 @@ describe("XenovaRuleEmbedder ctor tracker (issue #315)", () => {
   });
 
   it("FAIL_FAST=1: 1st ctor does NOT exit (only ≥2 lines trigger)", () => {
-    process.env["TEAMAGENT_XENOVA_TRACKER"] = tmpFile;
-    process.env["TEAMAGENT_XENOVA_TRACKER_FAIL_FAST"] = "1";
+    process.env["VIKI_XENOVA_TRACKER"] = tmpFile;
+    process.env["VIKI_XENOVA_TRACKER_FAIL_FAST"] = "1";
     const exitSpy = vi
       .spyOn(process, "exit")
       .mockImplementation(((_code?: number) => undefined) as never);
@@ -89,7 +89,7 @@ describe("XenovaRuleEmbedder ctor tracker (issue #315)", () => {
 
   it("tracker write failure does not break ctor", () => {
     // Point to a path inside a non-existent directory so appendFileSync throws.
-    process.env["TEAMAGENT_XENOVA_TRACKER"] = path.join(
+    process.env["VIKI_XENOVA_TRACKER"] = path.join(
       os.tmpdir(),
       "nonexistent-dir-issue-315",
       "tracker.log",

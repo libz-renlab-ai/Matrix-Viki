@@ -1,5 +1,5 @@
 /**
- * Issue #155 / Order 1 — tests for `pnpm teamagent install --preview`.
+ * Issue #155 / Order 1 — tests for `pnpm viki install --preview`.
  *
  * Plan: docs/plans/issue-155/order-1-preview/plan.md § 2 "Tests".
  *
@@ -32,7 +32,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN_TS = path.resolve(__dirname, "..", "bin.ts");
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
 
-function spawnTeamagent(args: readonly string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
+function spawnViki(args: readonly string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
   // Use `tsx` to execute the TS source directly. `tsx` is a workspace dev
   // dependency on the monorepo root; we resolve via `npx --no-install` so
   // the test runs against the in-tree code without depending on a built
@@ -78,7 +78,7 @@ describe("renderInstallManifest", () => {
     for (const id of DEFAULT_PROJECT_SKILLS) {
       expect(skillsBlock).toContain(id);
     }
-    // Should NOT list user-level teamagent skills as part of [skills].
+    // Should NOT list user-level viki skills as part of [skills].
     expect(skillsBlock).toContain("NOT listed here");
   });
 
@@ -150,7 +150,7 @@ describe("parseInstallArgs", () => {
   });
 });
 
-describe("integration: pnpm teamagent install --preview", () => {
+describe("integration: pnpm viki install --preview", () => {
   // Skip subprocess integration tests on Windows: per CLAUDE.md the file
   // already works around vitest OOM by serialising files; spawning a TS
   // toolchain on Windows under that constraint is flaky. The unit tests
@@ -161,7 +161,7 @@ describe("integration: pnpm teamagent install --preview", () => {
   it.skipIf(SKIP_SUBPROCESS)(
     "exits 0 and emits the 5 section headers in order",
     () => {
-      const result = spawnTeamagent(["install", "--preview"]);
+      const result = spawnViki(["install", "--preview"]);
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(0);
       const stdout = result.stdout ?? "";
@@ -179,11 +179,11 @@ describe("integration: pnpm teamagent install --preview", () => {
       nodeFs.mkdirSync(fakeCwd, { recursive: true });
 
       try {
-        const result = spawnTeamagent(["install", "--preview"], {
+        const result = spawnViki(["install", "--preview"], {
           cwd: fakeCwd,
           env: {
             // Keep PATH so tsx + node can still resolve. Override HOME so any
-            // accidental ~/.teamagent write would land here.
+            // accidental ~/.viki write would land here.
             HOME: fakeHome,
             USERPROFILE: fakeHome,
           },
@@ -217,10 +217,10 @@ describe("integration: pnpm teamagent install --preview", () => {
   it.skipIf(SKIP_SUBPROCESS)(
     "install --help advertises install without a vector skip flag",
     () => {
-      const result = spawnTeamagent(["install", "--help"]);
+      const result = spawnViki(["install", "--help"]);
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(0);
-      expect(result.stdout ?? "").toContain("Usage: teamagent install");
+      expect(result.stdout ?? "").toContain("Usage: viki install");
       expect(result.stdout ?? "").not.toMatch(/--skip-(vector-)?model/);
     },
   );

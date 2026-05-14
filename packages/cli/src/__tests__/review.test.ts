@@ -3,8 +3,8 @@ import nodeFs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { executeReview, parseReviewArgs } from "../commands/review.js";
-import { DualLayerStore, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore, openDb } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 function mkTmp() {
   const dir = nodeFs.mkdtempSync(path.join(os.tmpdir(), "review-"));
@@ -49,8 +49,8 @@ function makeEntry(over: Partial<KnowledgeEntry>): KnowledgeEntry {
 }
 
 function openStore(dir: string) {
-  const projectDbPath = path.join(dir, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(dir, ".teamagent", "global.db");
+  const projectDbPath = path.join(dir, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(dir, ".viki", "global.db");
   nodeFs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
   nodeFs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
   return new DualLayerStore({ projectDbPath, userGlobalDbPath });

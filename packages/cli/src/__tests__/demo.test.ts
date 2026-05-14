@@ -1,5 +1,5 @@
 /**
- * Tests for `teamagent demo` (issue #93) — three modes.
+ * Tests for `viki demo` (issue #93) — three modes.
  *
  * Default mode polls events.db for a matching attribution event.
  * --inline mode renders deterministic ANSI output without an IDE.
@@ -65,7 +65,7 @@ describe("parseDemoArgs", () => {
     // with the new modes, so seeing "hook" should be flagged as unknown.
     expect(parseDemoArgs(["hook", "Bash"])).toEqual({
       mode: "unknown",
-      reason: "hook is handled by `teamagent demo hook` (legacy dispatcher)",
+      reason: "hook is handled by `viki demo hook` (legacy dispatcher)",
     });
   });
 
@@ -83,7 +83,7 @@ describe("renderInlineDecisionAnsi", () => {
       tool_input: { command: "npm install moment" },
       decision: "deny",
       message:
-        "🚫 TeamAgent 拦截 (置信 0.85)\n应改用: 使用 dayjs 或 date-fns 替代 moment\n原因: deprecated\n(规则 id: seed-pack-universal-moment)",
+        "🚫 Viki 拦截 (置信 0.85)\n应改用: 使用 dayjs 或 date-fns 替代 moment\n原因: deprecated\n(规则 id: seed-pack-universal-moment)",
     });
     expect(out).toContain("npm install moment");
     expect(out).toContain("dayjs");
@@ -112,7 +112,7 @@ describe("executeDemoInlineWithSpawn", () => {
         hookEventName: "PreToolUse",
         permissionDecision: "deny",
         permissionDecisionReason:
-          "TeamAgent: 应改用 dayjs 或 date-fns 替代 moment (rule seed-pack-universal-moment)",
+          "Viki: 应改用 dayjs 或 date-fns 替代 moment (rule seed-pack-universal-moment)",
       },
     });
 
@@ -220,9 +220,9 @@ describe("executeDemoDefault — events.db poll", () => {
     try {
       const home = tmp.dir;
       // Pre-create events.db with a fixture row that the poll should pick up.
-      const teamagentDir = path.join(home, ".teamagent");
-      fs.mkdirSync(teamagentDir, { recursive: true });
-      const eventsDb = path.join(teamagentDir, "events.db");
+      const vikiDir = path.join(home, ".viki");
+      fs.mkdirSync(vikiDir, { recursive: true });
+      const eventsDb = path.join(vikiDir, "events.db");
       // Create the file with a matching row already present.
       const { DatabaseSync } = requireCjs("node:sqlite") as typeof import("node:sqlite");
       const db = new DatabaseSync(eventsDb);

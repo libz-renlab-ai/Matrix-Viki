@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 /**
  * Contract test for the hook bundle config (issue #131).
  *
- * Hook bins (bin-session-start.cjs etc) are staged by `teamagent install-user-hook`
- * to ~/.teamagent/hooks/, which sits outside any node_modules tree. Any pure-JS
+ * Hook bins (bin-session-start.cjs etc) are staged by `viki install-user-hook`
+ * to ~/.viki/hooks/, which sits outside any node_modules tree. Any pure-JS
  * dependency that the bundle leaves as an external `require()` call will fail
  * with MODULE_NOT_FOUND when the staged bin is fired by Claude Code.
  *
@@ -31,7 +31,7 @@ const REQUIRED_NO_EXTERNAL = [
 
 /**
  * Source-level invariant for the regression fixed 2026-05-09: the staged
- * ~/.teamagent/hooks/bin-session-start.cjs (built by packages/teamagent/tsup.config.ts
+ * ~/.viki/hooks/bin-session-start.cjs (built by packages/viki/tsup.config.ts
  * with web-tree-sitter listed in NATIVE_EXTERNAL) crashed at load time with
  * MODULE_NOT_FOUND because ast-context.ts had a top-level static value import of
  * web-tree-sitter, which esbuild left as a top-level `var X = require(...)` in the
@@ -135,7 +135,7 @@ describe("packages/cli hook bundle config", () => {
       expect(
         block!.includes(`"${dep}"`),
         `tsup.hook.config.ts noExternal must include "${dep}" — otherwise the staged ` +
-          `~/.teamagent/hooks/bin-*.cjs will hit MODULE_NOT_FOUND on hook fire (issue #131)`,
+          `~/.viki/hooks/bin-*.cjs will hit MODULE_NOT_FOUND on hook fire (issue #131)`,
       ).toBe(true);
     }
   });
@@ -178,11 +178,11 @@ describe("packages/cli hook bundle config", () => {
 
   /**
    * Native externals (web-tree-sitter etc) are intentionally kept external in
-   * packages/teamagent/tsup.config.ts (NATIVE_EXTERNAL) — we cannot inline a
+   * packages/viki/tsup.config.ts (NATIVE_EXTERNAL) — we cannot inline a
    * WASM-loading runtime safely. But that means any `import` of one of those
    * modules at TS source top-level is still going to leak as a top-level
    * `var X = require("…")` in the staged hook bundle, and the staged bin
-   * lives at ~/.teamagent/hooks/ outside any node_modules tree → MODULE_NOT_FOUND
+   * lives at ~/.viki/hooks/ outside any node_modules tree → MODULE_NOT_FOUND
    * on first SessionStart load (regression observed 2026-05-09).
    *
    * Contract: any native external must be lazy-required (via dynamic import,
@@ -204,7 +204,7 @@ describe("packages/cli hook bundle config", () => {
    * back in via a different transitive entry.
    *
    * Add to this list when a new native external joins NATIVE_EXTERNAL in
-   * `packages/teamagent/tsup.config.ts` and could plausibly be statically
+   * `packages/viki/tsup.config.ts` and could plausibly be statically
    * imported from a hot bundle path.
    */
   const LAZY_REQUIRED_NATIVES = [
@@ -216,9 +216,9 @@ describe("packages/cli hook bundle config", () => {
 
   /**
    * Issue #280: built dist locations to scan. Both the cli-local dist
-   * (`packages/cli/dist/`) and the teamagent dist (`packages/teamagent/dist/`,
-   * the one whose contents postinstall copies to `~/.teamagent/hooks/`)
-   * must obey the lazy-require contract. The teamagent dist was the
+   * (`packages/cli/dist/`) and the viki dist (`packages/viki/dist/`,
+   * the one whose contents postinstall copies to `~/.viki/hooks/`)
+   * must obey the lazy-require contract. The viki dist was the
    * actual surface area of issue #280 — the cli dist was already
    * covered by issue #131 but had no analog for the staged bundle.
    */
@@ -228,8 +228,8 @@ describe("packages/cli hook bundle config", () => {
       dir: path.resolve(HERE, "..", "..", "dist"),
     },
     {
-      label: "packages/teamagent/dist",
-      dir: path.resolve(HERE, "..", "..", "..", "teamagent", "dist"),
+      label: "packages/viki/dist",
+      dir: path.resolve(HERE, "..", "..", "..", "viki", "dist"),
     },
   ];
 
@@ -259,7 +259,7 @@ describe("packages/cli hook bundle config", () => {
             expect(
               topLevel.test(text),
               `${label}/${bin} contains top-level require("${dep}") — must be lazy via dynamic import to keep ` +
-                `~/.teamagent/hooks/${bin} loadable outside node_modules. Convert the offending ` +
+                `~/.viki/hooks/${bin} loadable outside node_modules. Convert the offending ` +
                 `static import in packages/core/src/matcher/legacy/ast-context.ts (or its caller) to ` +
                 `\`await import("${dep}")\` inside the function that actually needs it.`,
             ).toBe(false);

@@ -197,7 +197,7 @@ function main(): void {
     "packages/adapters/src/hook/claude-agent-sdk/__tests__/pre-tool-use-sdk.test.ts",
   ], { allowFailure: true });
   runCommand("old-hook-smoke", ["pnpm", "smoke:hook"], { allowFailure: true });
-  runCommand("statusline-direct", ["node", "scripts/teamagent-statusline.cjs"], { allowFailure: true });
+  runCommand("statusline-direct", ["node", "scripts/viki-statusline.cjs"], { allowFailure: true });
   runCommand("new-strict-claudefast", [
     "pnpm",
     "smoke:claudefast",
@@ -261,7 +261,7 @@ function main(): void {
         "strict stream-json 只能证明当前 hook runtime 是否成功，不能证明跨机器规则同步。",
         "跨机器同步需要 Alice/Bob 两个 HOME/项目的落盘 DB diff 和 session-start 注入证据。"
       ],
-      nextEvidenceNeeded: ["alice/session-start/stdout.jsonl", "bob/session-start/stdout.jsonl", "team-rules git repo diff", "bob/.teamagent/knowledge.db export"],
+      nextEvidenceNeeded: ["alice/session-start/stdout.jsonl", "bob/session-start/stdout.jsonl", "team-rules git repo diff", "bob/.viki/knowledge.db export"],
     },
     {
       id: 16,
@@ -281,7 +281,7 @@ function main(): void {
       id: 17,
       feature: "SessionEnd 真实关闭语义",
       finalChoice: "hybrid",
-      status: settings.hasSessionEnd && sessionEndText.includes("TEAMAGENT_SESSION_END_PIPELINE") ? "partially-proved" : "proved-gap",
+      status: settings.hasSessionEnd && sessionEndText.includes("VIKI_SESSION_END_PIPELINE") ? "partially-proved" : "proved-gap",
       oldEvidence: ["packages/cli/src/bin-session-end.ts", rel(settings.settingsPath)],
       newEvidence: [...commonNewEvidence, rel(newStrict.stderrPath)],
       reasons: [
@@ -295,7 +295,7 @@ function main(): void {
       id: 18,
       feature: "PreCompact",
       finalChoice: "hybrid",
-      status: settings.hasPreCompact && preCompactText.includes("TEAMAGENT_PRE_COMPACT_PIPELINE") ? "partially-proved" : "proved-gap",
+      status: settings.hasPreCompact && preCompactText.includes("VIKI_PRE_COMPACT_PIPELINE") ? "partially-proved" : "proved-gap",
       oldEvidence: ["packages/cli/src/bin-pre-compact.ts", rel(settings.settingsPath)],
       newEvidence: commonNewEvidence,
       reasons: [
@@ -310,7 +310,7 @@ function main(): void {
       feature: "StatusLine 完整终端体验",
       finalChoice: "hybrid",
       status: statusline.exitCode === 0 ? "partially-proved" : "blocked-by-environment",
-      oldEvidence: [rel(statusline.stdoutPath), "packages/cli/src/__tests__/install-hook.test.ts", "scripts/teamagent-statusline.cjs"],
+      oldEvidence: [rel(statusline.stdoutPath), "packages/cli/src/__tests__/install-hook.test.ts", "scripts/viki-statusline.cjs"],
       newEvidence: commonNewEvidence,
       reasons: [
         "旧测试和直接脚本输出证明 statusLine 脚本/注册语义。",

@@ -1,9 +1,9 @@
 ---
 name: pitfall
-description: Record a pitfall (experience/lesson) into TeamAgent knowledge base. Use when the user says "记录一下这个坑", "记一个踩坑", "/pitfall", or wants to capture what they just learned so AI doesn't repeat the mistake.
+description: Record a pitfall (experience/lesson) into Viki knowledge base. Use when the user says "记录一下这个坑", "记一个踩坑", "/pitfall", or wants to capture what they just learned so AI doesn't repeat the mistake.
 ---
 
-# /pitfall — 记录踩坑经验到 TeamAgent
+# /pitfall — 记录踩坑经验到 Viki
 
 当用户想要手动记录一条踩坑或最佳实践经验时触发。操作流程：
 
@@ -27,7 +27,7 @@ description: Record a pitfall (experience/lesson) into TeamAgent knowledge base.
 使用 Bash 工具执行非交互模式，字段通过 flag 传递（每个 flag 值用双引号包裹以避免转义）：
 
 ```bash
-pnpm teamagent pitfall --non-interactive \
+pnpm viki pitfall --non-interactive \
   --trigger="..." \
   --wrong="..." \
   --correct="..." \
@@ -39,7 +39,7 @@ pnpm teamagent pitfall --non-interactive \
 
 CLI 会：
 - 写入对应 scope 的 SQLite knowledge store
-- 触发 compile / propagation，刷新 TeamAgent Skills / docs 知识传播产物
+- 触发 compile / propagation，刷新 Viki Skills / docs 知识传播产物
 - 输出归因块（"做了什么 / 知识库变化 / 传播到 / 下次体验"）
 
 ## 3. 把归因块原样展示给用户

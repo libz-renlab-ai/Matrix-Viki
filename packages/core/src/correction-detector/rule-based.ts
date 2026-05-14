@@ -1,4 +1,4 @@
-import type { ParsedSession, SessionTurn, ToolCall } from "@teamagent/types";
+import type { ParsedSession, SessionTurn, ToolCall } from "@viki/types";
 
 /** 纠正时刻的信号类型。对应 spec v5.2 纠正时刻表。 */
 export type CorrectionSignal =

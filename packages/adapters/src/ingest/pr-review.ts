@@ -1,4 +1,4 @@
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 /**
  * `gh pr view <n> --json reviews` 的宽松解析。

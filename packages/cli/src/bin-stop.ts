@@ -11,7 +11,7 @@
  *                              escape.detached and runs the pipeline
  *
  * Incremental vs full:
- *   - Stop hook: incremental (uses .teamagent/scan-cursor.json)
+ *   - Stop hook: incremental (uses .viki/scan-cursor.json)
  *   - SessionEnd / PreCompact (via runStopPipeline({fullRescan:true})): full
  *
  * NEVER exits non-zero — runAdvancedHook always exits 0.
@@ -26,7 +26,7 @@
  *      bin-stop.test.ts 在 `runStopPipeline` 直接调用层断言 lock 行为，shell
  *      escape.lock 只在 main 进入 handler 时持有，会 break 这些测试。
  *
- * 12+ 条 user-visible `process.stderr.write("TeamAgent: ...")` 改造：通过
+ * 12+ 条 user-visible `process.stderr.write("Viki: ...")` 改造：通过
  * `RunStopPipelineOptions.emit` 注入一个 `(AttributionEvent) => void`。
  *   - 从 `runAdvancedHook` 进来的调用，emit 绑到 `ctx.bus.emit` —— shell 注入
  *     的 StdoutRenderer 订阅会按 visibility 渲染到 stderr。
@@ -51,16 +51,16 @@ import {
   openDb,
   syncRuleVectors,
   SqliteSemanticRetriever,
-} from "@teamagent/adapters";
-import type { LLMClient, RuleEmbedder } from "@teamagent/ports";
+} from "@viki/adapters";
+import type { LLMClient, RuleEmbedder } from "@viki/ports";
 import { DaemonFirstEmbedder } from "./daemon-first-embedder.js";
-import type { AttributionEvent } from "@teamagent/types";
-import { parseSessionFile, semanticMatch, buildSemanticDescriptions } from "@teamagent/core";
+import type { AttributionEvent } from "@viki/types";
+import { parseSessionFile, semanticMatch, buildSemanticDescriptions } from "@viki/core";
 import { executeAnalyze, type AnalyzeMeta } from "./commands/analyze.js";
 import { executeCalibrate } from "./commands/calibrate.js";
 import { executeCompile } from "./commands/compile.js";
 import { executeScanErrors } from "./commands/scan-errors.js";
-import { readTeamAgentConfig } from "./commands/config.js";
+import { readVikiConfig } from "./commands/config.js";
 import { readCursor, writeCursorAndSeen, clearCursor, readSeen } from "./scan-cursor.js";
 import { appendHarvest } from "./harvest-writer.js";
 import { makeFallbackLLMClient } from "./llm-with-fallback.js";
@@ -68,7 +68,7 @@ import { runStopNarrativeScan, readLastInjected, lastInjectedFilePath } from "./
 import { rotateIfTooLarge } from "./log-rotate.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
 import type { AdvancedHookOptions } from "./hook-shell/index.js";
-import { findTeamagentRoot } from "./lib/walk-up.js";
+import { findVikiRoot } from "./lib/walk-up.js";
 import { emitCcStatus } from "./realtime-emit.js";
 
 /**
@@ -99,7 +99,7 @@ function emitWithFallback(emit: EmitFn | undefined, event: AttributionEvent, fal
  *     the timeout would otherwise be 30s away)
  *
  * Issue #189 follow-up: raw `Promise.race + setTimeout` was holding the
- * per-cwd singleton lock for the full TEAMAGENT_*_TIMEOUT_MS window even
+ * per-cwd singleton lock for the full VIKI_*_TIMEOUT_MS window even
  * after semantic-scan / scan-errors finished in milliseconds, blocking
  * subsequent Stop events. Reported by Codex on PR #196.
  */
@@ -174,7 +174,7 @@ async function catchUpVectorization(
         timestamp: nowIso(),
         count: rows.length,
       },
-      `TeamAgent: 向量化补全 ${rows.length} 条规则\n`,
+      `Viki: 向量化补全 ${rows.length} 条规则\n`,
     );
   } finally {
     vdb.close();
@@ -202,7 +202,7 @@ export interface RunStopPipelineOptions {
 
 /** Pipeline hard timeout. Harness kills us at its own timeout (~300s); we guard below. */
 const PIPELINE_TIMEOUT_MS = (() => {
-  const envVal = parseInt(process.env.TEAMAGENT_STOP_TIMEOUT_MS ?? "", 10);
+  const envVal = parseInt(process.env.VIKI_STOP_TIMEOUT_MS ?? "", 10);
   return Number.isFinite(envVal) && envVal > 0 ? envVal : 240_000;
 })();
 
@@ -218,7 +218,7 @@ function isRetryableAnalyzeError(e: unknown): boolean {
 }
 
 /** Lock file used by the statusline to show "Stop 运行中" indicator. */
-const STOP_LOCK_RELATIVE = path.join(".teamagent", ".stop-running.lock");
+const STOP_LOCK_RELATIVE = path.join(".viki", ".stop-running.lock");
 
 function writeStopLock(cwd: string): string {
   const lockPath = path.join(cwd, STOP_LOCK_RELATIVE);
@@ -267,7 +267,7 @@ function removeStopLock(lockPath: string): void {
 // Stale locks are silently overwritten by the next spawn attempt.
 // ──────────────────────────────────────────────────────────────────────────
 
-const STOP_PIPELINE_LOCKS_DIR = path.join(".teamagent", "locks");
+const STOP_PIPELINE_LOCKS_DIR = path.join(".viki", "locks");
 const STOP_PIPELINE_LOCK_MAX_AGE_MS = 30 * 60 * 1000; // 30 min
 const STOP_PIPELINE_LOCK_FUTURE_SKEW_MS = 60 * 1000; // tolerate 60s clock skew
 
@@ -290,7 +290,7 @@ function cwdLockKey(cwd: string): string {
 
 function pipelineLockPath(cwd: string): string {
   return path.join(
-    teamagentHomeDir(),
+    vikiHomeDir(),
     STOP_PIPELINE_LOCKS_DIR,
     `${cwdLockKey(cwd)}.stop-pipeline.lock`,
   );
@@ -405,8 +405,8 @@ export function shouldSkipForExistingPipeline(
 
 /** Build the Haiku-primary Sonnet-fallback LLM client. Overridable by env. */
 function buildLLMClient(): LLMClient {
-  const primaryModel = process.env.TEAMAGENT_LLM_MODEL ?? "haiku";
-  const fallbackModel = process.env.TEAMAGENT_LLM_FALLBACK_MODEL ?? "sonnet";
+  const primaryModel = process.env.VIKI_LLM_MODEL ?? "haiku";
+  const fallbackModel = process.env.VIKI_LLM_FALLBACK_MODEL ?? "sonnet";
   const primary = new ClaudeCodeLLMClient({ model: primaryModel });
   if (primaryModel === fallbackModel) return primary;
   const fallback = new ClaudeCodeLLMClient({ model: fallbackModel });
@@ -419,15 +419,15 @@ export async function runStopPipeline(
 ): Promise<void> {
   const cwd = input.cwd;
   // Issue #161: when Claude Code is launched from a sub-directory of a
-  // teamagent-initialized project, `cwd` points at the child but the project
+  // viki-initialized project, `cwd` points at the child but the project
   // DB lives in an ancestor. Walk up once to find the real project root so
   // analyze / calibrate / narrative-scan / catch-up vectorization all read
-  // the right `.teamagent/knowledge.db`. Falls back to `cwd` when no ancestor
+  // the right `.viki/knowledge.db`. Falls back to `cwd` when no ancestor
   // has been initialized — preserves the legacy "current dir is project" path.
   // NOTE: `cwd` is still used unchanged for error logging, harvest writes,
   // and the stop-running lock — those are about "where the user invoked
   // from", not "where the project lives".
-  const projectRoot = findTeamagentRoot(cwd) ?? cwd;
+  const projectRoot = findVikiRoot(cwd) ?? cwd;
   const fullRescan = opts.fullRescan === true;
   const modeTag = opts.modeTag ?? (fullRescan ? "full" : "incremental");
   const emit = opts.emit;
@@ -460,7 +460,7 @@ export async function runStopPipeline(
         timestamp: nowIso(),
         modeTag,
       },
-      `TeamAgent: 分析会话中 (${modeTag})...\n`,
+      `Viki: 分析会话中 (${modeTag})...\n`,
     );
     // Small initial wait: Claude Code may still hold the transcript file lock
     // when Stop fires on Windows.
@@ -478,7 +478,7 @@ export async function runStopPipeline(
           timestamp: nowIso(),
           reason: "transcript 未落盘，可能是子任务/测试 session",
         },
-        `TeamAgent: 跳过 analyze (transcript 未落盘，可能是子任务/测试 session)\n`,
+        `Viki: 跳过 analyze (transcript 未落盘，可能是子任务/测试 session)\n`,
       );
     } else {
       let lastErr: unknown;
@@ -507,7 +507,7 @@ export async function runStopPipeline(
               timestamp: nowIso(),
               firstLine,
             },
-            `TeamAgent: ${firstLine}\n`,
+            `Viki: ${firstLine}\n`,
           );
           analyzed = true;
           break;
@@ -545,7 +545,7 @@ export async function runStopPipeline(
         severity: "info",
         timestamp: nowIso(),
       },
-      "TeamAgent: 校准置信度中...\n",
+      "Viki: 校准置信度中...\n",
     );
     await executeCalibrate({ cwd: projectRoot });
     emitWithFallback(
@@ -556,7 +556,7 @@ export async function runStopPipeline(
         severity: "info",
         timestamp: nowIso(),
       },
-      "TeamAgent: 校准完成\n",
+      "Viki: 校准完成\n",
     );
   } catch (e) {
     logError(cwd, "calibrate", e);
@@ -572,7 +572,7 @@ export async function runStopPipeline(
         severity: "info",
         timestamp: nowIso(),
       },
-      "TeamAgent: 更新 Skills 中...\n",
+      "Viki: 更新 Skills 中...\n",
     );
     const r = await executeCompile({ cwd, legacyClaudeMd: false });
     emitWithFallback(
@@ -584,13 +584,13 @@ export async function runStopPipeline(
         timestamp: nowIso(),
         count: r.skills.written.length,
       },
-      `TeamAgent: Skills 导出 ${r.skills.written.length} 条；docs propagation 由新增规则调度\n`,
+      `Viki: Skills 导出 ${r.skills.written.length} 条；docs propagation 由新增规则调度\n`,
     );
     try {
       const { getRecentEntries } = await import("./commands/recent-entries.js");
       const recent = await getRecentEntries(cwd);
       if (recent.length > 0) {
-        process.stdout.write(`✦ TeamAgent 本会话学到 ${recent.length} 条新经验\n`);
+        process.stdout.write(`✦ Viki 本会话学到 ${recent.length} 条新经验\n`);
         for (const e of recent) {
           process.stdout.write(`  · ${e.tldr} [${e.confidence.toFixed(2)}]\n`);
         }
@@ -621,7 +621,7 @@ export async function runStopPipeline(
   }
 
   // Step 4.5: catch-up vectorization —补全缺向量的老规则（fire-and-forget，最多 15 条/次）
-  const catchUpDbPath = path.join(projectRoot, ".teamagent", "knowledge.db");
+  const catchUpDbPath = path.join(projectRoot, ".viki", "knowledge.db");
   if (existsSync(catchUpDbPath)) {
     catchUpVectorization(catchUpDbPath, getStopEmbedder(), emit).catch(() => {/* best-effort */});
   }
@@ -629,7 +629,7 @@ export async function runStopPipeline(
   // Step 5: scan-errors → candidates.db (opt-out via config). Runs last so
   // the main rules pipeline (analyze/calibrate/compile/harvest) is already
   // durable by the time we do the extra LLM work.
-  const stopScanCfg = readTeamAgentConfig(cwd);
+  const stopScanCfg = readVikiConfig(cwd);
   if (stopScanCfg.stop_scan_errors) {
     try {
       emitWithFallback(
@@ -640,7 +640,7 @@ export async function runStopPipeline(
           severity: "info",
           timestamp: nowIso(),
         },
-        "TeamAgent: 扫描工具失败信号 (scan-errors)...\n",
+        "Viki: 扫描工具失败信号 (scan-errors)...\n",
       );
       const scanTimeoutMs = stopScanCfg.stop_scan_errors_timeout_ms;
       const scanLlm = buildLLMClient();
@@ -664,7 +664,7 @@ export async function runStopPipeline(
             timestamp: nowIso(),
             timeoutMs: scanTimeoutMs,
           },
-          `TeamAgent: scan-errors 超时 (>${scanTimeoutMs}ms)，跳过\n`,
+          `Viki: scan-errors 超时 (>${scanTimeoutMs}ms)，跳过\n`,
         );
       } else {
         const lastLine = out.trim().split("\n").filter(Boolean).pop() ?? "";
@@ -678,7 +678,7 @@ export async function runStopPipeline(
               timestamp: nowIso(),
               lastLine,
             },
-            `TeamAgent: scan-errors ${lastLine}\n`,
+            `Viki: scan-errors ${lastLine}\n`,
           );
         }
       }
@@ -703,10 +703,10 @@ export async function runStopPipeline(
       // aiText alone silently skipped compliance scoring for tool-only turns.
       if (lastTurn) {
         const aiText = lastTurn.assistantText ?? "";
-        const projectDbPath = path.join(projectRoot, ".teamagent", "knowledge.db");
-        const globalDbPath = path.join(os.homedir(), ".teamagent", "global.db");
-        const eventsDbPath = path.join(os.homedir(), ".teamagent", "events.db");
-        const sessionsDir = path.join(os.homedir(), ".teamagent", "sessions");
+        const projectDbPath = path.join(projectRoot, ".viki", "knowledge.db");
+        const globalDbPath = path.join(os.homedir(), ".viki", "global.db");
+        const eventsDbPath = path.join(os.homedir(), ".viki", "events.db");
+        const sessionsDir = path.join(os.homedir(), ".viki", "sessions");
         mkdirSync(path.dirname(projectDbPath), { recursive: true });
         mkdirSync(path.dirname(globalDbPath), { recursive: true });
         mkdirSync(path.dirname(eventsDbPath), { recursive: true });
@@ -739,7 +739,7 @@ export async function runStopPipeline(
         }
 
         // Step 6b (M4-B): semantic match on AI last turn — supplement to literal scanNarrative.
-        // Skipped when TEAMAGENT_MATCHER=legacy or when the vector model is
+        // Skipped when VIKI_MATCHER=legacy or when the vector model is
         // not yet ready (issue #91 two-stage warmup). Never throws (all
         // errors swallowed).
         const { describeWarmupReadiness: descRdy, defaultWarmupStatePath: dwsp } = await import(
@@ -747,7 +747,7 @@ export async function runStopPipeline(
         );
         const stopWarmup = descRdy(dwsp(os.homedir()));
         const useLegacyMatcher =
-          (process.env.TEAMAGENT_MATCHER ?? "").toLowerCase() === "legacy" ||
+          (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy" ||
           !stopWarmup.ready;
         if (!useLegacyMatcher) {
           try {
@@ -769,12 +769,12 @@ export async function runStopPipeline(
             // CLI / slow-CI scenarios.
             const semScanTimeoutMs = ((): number => {
               const v = parseInt(
-                process.env["TEAMAGENT_SEMANTIC_SCAN_TIMEOUT_MS"] ?? "",
+                process.env["VIKI_SEMANTIC_SCAN_TIMEOUT_MS"] ?? "",
                 10,
               );
               return Number.isFinite(v) && v > 0 ? v : 30_000;
             })();
-            let semanticHits: import("@teamagent/core").SemanticMatch[] | null;
+            let semanticHits: import("@viki/core").SemanticMatch[] | null;
             try {
               semanticHits = await raceWithTimeout(
                 semanticMatch({
@@ -800,7 +800,7 @@ export async function runStopPipeline(
                   timestamp: nowIso(),
                   timeoutMs: semScanTimeoutMs,
                 },
-                `TeamAgent: semantic-scan 超时 (>${semScanTimeoutMs}ms)，跳过\n`,
+                `Viki: semantic-scan 超时 (>${semScanTimeoutMs}ms)，跳过\n`,
               );
             } else if (semanticHits.length > 0) {
               const semanticEventsDb = openDb(eventsDbPath);
@@ -828,7 +828,7 @@ export async function runStopPipeline(
                     timestamp: nowIso(),
                     count: semanticHits.length,
                   },
-                  `TeamAgent: semantic-scan 命中 ${semanticHits.length} 条规则\n`,
+                  `Viki: semantic-scan 命中 ${semanticHits.length} 条规则\n`,
                 );
               } finally {
                 semanticEventLog.close();
@@ -860,20 +860,20 @@ export async function runFullRescanPipeline(input: StopHookInput): Promise<void>
 }
 
 /**
- * B-085: tests must be able to redirect TeamAgent state writes (logError,
+ * B-085: tests must be able to redirect Viki state writes (logError,
  * main-crash log) to a tmp dir without monkey-patching `os.homedir()`. Honor
- * `TEAMAGENT_HOME` env var when set, fall back to `os.homedir()` otherwise.
+ * `VIKI_HOME` env var when set, fall back to `os.homedir()` otherwise.
  * In production this env is unset and behavior is unchanged.
  */
-function teamagentHomeDir(): string {
-  return process.env.TEAMAGENT_HOME ?? os.homedir();
+function vikiHomeDir(): string {
+  return process.env.VIKI_HOME ?? os.homedir();
 }
 
 function logError(cwd: string, step: string, err: unknown): void {
   try {
-    const teamagentDir = path.join(teamagentHomeDir(), ".teamagent");
-    mkdirSync(teamagentDir, { recursive: true });
-    const logPath = path.join(teamagentDir, "stop-errors.log");
+    const vikiDir = path.join(vikiHomeDir(), ".viki");
+    mkdirSync(vikiDir, { recursive: true });
+    const logPath = path.join(vikiDir, "stop-errors.log");
     // B-093: rotate before append so the file does not grow unbounded. The
     // existing 613KB / 3479-line pollution from B-085-era tests will rotate
     // out on the first new append.
@@ -914,7 +914,7 @@ function normalizeStopHookInput(v: unknown): StopHookInput | null {
  *
  * Detect whether this invocation is a genuine detached-pipeline child.
  * Requires BOTH env flag set AND argv[2] pointing to an existing tmp file —
- * the env flag alone is insufficient because TEAMAGENT_STOP_PIPELINE=1 has
+ * the env flag alone is insufficient because VIKI_STOP_PIPELINE=1 has
  * been observed leaking into the foreground hook process (root cause:
  * upstream env inheritance in Claude Code's hook spawn). When env says "I'm
  * a child" but argv proves otherwise, fall through to the foreground stdin
@@ -924,7 +924,7 @@ function normalizeStopHookInput(v: unknown): StopHookInput | null {
 export function isDetachedPipelineInvocation(
   env: NodeJS.ProcessEnv,
   argv: readonly string[],
-  envKey: string = "TEAMAGENT_STOP_PIPELINE",
+  envKey: string = "VIKI_STOP_PIPELINE",
 ): boolean {
   if (env[envKey] !== "1") return false;
   const arg = argv[2];
@@ -948,12 +948,12 @@ async function main(): Promise<void> {
     channel: "Stop",
     parseInput: normalizeStopHookInput,
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // Stop hook bails before any side effect (singleton lock claim,
       // detached self-spawn, sync pipeline). One check at handler entry
       // covers all three paths (detached / async / sync) below — DRY-er
       // than three near-duplicate guards.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return;
       }
 
@@ -1005,7 +1005,7 @@ async function main(): Promise<void> {
       }
 
       // Normal Stop hook entry. Branch on configured mode.
-      const config = readTeamAgentConfig(ctx.cwd);
+      const config = readVikiConfig(ctx.cwd);
 
       if (config.stop_mode === "async") {
         const selfPath = process.argv[1];
@@ -1032,7 +1032,7 @@ async function main(): Promise<void> {
               timestamp: nowIso(),
               otherPid: liveOwner,
             },
-            `TeamAgent: stop hook pid ${liveOwner} 仍在运行，跳过本次 Stop event\n`,
+            `Viki: stop hook pid ${liveOwner} 仍在运行，跳过本次 Stop event\n`,
           );
           return;
         }
@@ -1041,7 +1041,7 @@ async function main(): Promise<void> {
         // backslashes and double-quotes is fragile; a temp file is unambiguous.
         const tmpFile = path.join(
           os.tmpdir(),
-          `teamagent-stop-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
+          `viki-stop-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
         );
         try {
           writeFileSync(tmpFile, JSON.stringify(ctx.input), "utf-8");
@@ -1053,7 +1053,7 @@ async function main(): Promise<void> {
           detached: true,
           stdio: "ignore",
           cwd: ctx.cwd,
-          env: { ...process.env, TEAMAGENT_STOP_PIPELINE: "1" },
+          env: { ...process.env, VIKI_STOP_PIPELINE: "1" },
           // CRITICAL on Windows: without this, every detached spawn opens a
           // new console window. In async mode that fires on every session
           // close, so users see a flurry of popups. Must hide.
@@ -1098,7 +1098,7 @@ async function main(): Promise<void> {
             timestamp: nowIso(),
             otherPid: syncLiveOwner,
           },
-          `TeamAgent: stop hook pid ${syncLiveOwner} 仍在运行，跳过本次 Stop event (sync)\n`,
+          `Viki: stop hook pid ${syncLiveOwner} 仍在运行，跳过本次 Stop event (sync)\n`,
         );
         return;
       }
@@ -1115,7 +1115,7 @@ async function main(): Promise<void> {
       // not auto-open and force handlers to share resources.
       manualResources: true,
       // Pipeline duration cap — harness kills us at its own ~300s timeout if
-      // we don't return first. Override via TEAMAGENT_STOP_TIMEOUT_MS.
+      // we don't return first. Override via VIKI_STOP_TIMEOUT_MS.
       pipelineTimeoutMs: PIPELINE_TIMEOUT_MS,
       detached: {
         isDetachedInvocation: (env, argv) => isDetachedPipelineInvocation(env, argv),
@@ -1135,8 +1135,8 @@ async function main(): Promise<void> {
 if (path.basename(process.argv[1] ?? "").startsWith("bin-stop")) {
   main().catch((e) => {
     try {
-      // B-085: honor TEAMAGENT_HOME (matches logError/teamagentHomeDir).
-      const logPath = path.join(teamagentHomeDir(), ".teamagent", "stop-errors.log");
+      // B-085: honor VIKI_HOME (matches logError/vikiHomeDir).
+      const logPath = path.join(vikiHomeDir(), ".viki", "stop-errors.log");
       // B-093: same rotation policy as logError above.
       rotateIfTooLarge(logPath);
       appendFileSync(

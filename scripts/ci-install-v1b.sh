@@ -16,14 +16,14 @@ if ! command -v claudefast >/dev/null 2>&1; then
   exit 1
 fi
 
-tmp="${TMPDIR:-/tmp}/teamagent-ci-install-v1b.stream.jsonl"
+tmp="${TMPDIR:-/tmp}/viki-ci-install-v1b.stream.jsonl"
 claudefast -p \
   --output-format stream-json \
   --include-partial-messages \
   --verbose \
-  "install TeamBrain please; use pnpm teamagent install" |
+  "install TeamBrain please; use pnpm viki install" |
   tee "$tmp" |
-  bash scripts/ci-strict-permission-shim.sh >/tmp/teamagent-ci-install-v1b-shim.json
+  bash scripts/ci-strict-permission-shim.sh >/tmp/viki-ci-install-v1b-shim.json
 
 node - "$tmp" <<'NODE'
 const fs = require("fs");

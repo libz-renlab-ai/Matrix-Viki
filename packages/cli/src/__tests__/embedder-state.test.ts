@@ -47,9 +47,9 @@ function makeState(overrides: Partial<EmbedderState> = {}): EmbedderState {
 }
 
 describe("defaultEmbedderStatePath", () => {
-  it("resolves to <home>/.teamagent/.embedder-state.json", () => {
+  it("resolves to <home>/.viki/.embedder-state.json", () => {
     const p = defaultEmbedderStatePath("/tmp/fakehome");
-    expect(p).toBe(path.join("/tmp/fakehome", ".teamagent", ".embedder-state.json"));
+    expect(p).toBe(path.join("/tmp/fakehome", ".viki", ".embedder-state.json"));
   });
 });
 

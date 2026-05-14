@@ -58,7 +58,7 @@ describe("warmup graceful skip (issue #160)", () => {
       expect(state).not.toBeNull();
       expect(state!.status).toBe("skipped");
       expect(state!.completed_at).toMatch(/^\d{4}-/);
-      // pid=0 (placeholder convention) ensures older teamagent readers that
+      // pid=0 (placeholder convention) ensures older viki readers that
       // don't recognize "skipped" fall through to "downloading" with
       // isPidAlive(0)=true rather than reporting `stale_downloading` FAIL.
       expect(state!.pid).toBe(0);

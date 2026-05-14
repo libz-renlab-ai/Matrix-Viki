@@ -74,7 +74,7 @@ describe("createPreToolUseHandler (core)", () => {
     });
 
     expect(result.permissionDecision).toBe("allow");
-    expect(result.systemMessage).toMatch(/\+-- TeamAgent 强烈提醒 -+\+/);
+    expect(result.systemMessage).toMatch(/\+-- Viki 强烈提醒 -+\+/);
     expect(result.systemMessage).toContain("fetch");
     expect(result.systemMessage).toMatch(/置信度 0\.\d+/);
     expect(append).toHaveBeenCalledWith(
@@ -111,7 +111,7 @@ describe("createPreToolUseHandler (core)", () => {
     });
 
     expect(result.permissionDecision).toBe("allow");
-    expect(result.systemMessage).toMatch(/\+-- TeamAgent 经验提醒 -+\+/);
+    expect(result.systemMessage).toMatch(/\+-- Viki 经验提醒 -+\+/);
     expect(append).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: "hook-pre.warned",
@@ -158,7 +158,7 @@ describe("createPreToolUseHandler (core)", () => {
     expect(kinds).not.toContain("hook-pre.warned");
   });
 
-  it("formatStyle 'humane' → no '+-- ... -+' box border, uses '⚠️ TeamAgent 提醒' 3-line shape", async () => {
+  it("formatStyle 'humane' → no '+-- ... -+' box border, uses '⚠️ Viki 提醒' 3-line shape", async () => {
     const warnRule = {
       id: "r1",
       enforcement: "warn",
@@ -185,9 +185,9 @@ describe("createPreToolUseHandler (core)", () => {
     expect(result.systemMessage).toBeDefined();
     expect(result.systemMessage).not.toMatch(/\+--/); // no ascii-box border
     expect(result.systemMessage).not.toMatch(/^\|/m); // no pipe-bordered rows
-    // Issue #86 humane shape: 3 lines starting with ⚠️ TeamAgent 提醒 (warn) /
-    // ⚠️ TeamAgent 拦了一下 (block).
-    expect(result.systemMessage).toMatch(/^⚠️ TeamAgent 提醒 — /);
+    // Issue #86 humane shape: 3 lines starting with ⚠️ Viki 提醒 (warn) /
+    // ⚠️ Viki 拦了一下 (block).
+    expect(result.systemMessage).toMatch(/^⚠️ Viki 提醒 — /);
     expect(result.systemMessage).toContain("fetch");
   });
 

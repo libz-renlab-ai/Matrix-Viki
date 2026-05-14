@@ -7,7 +7,7 @@ import { openDb, closeDb, CURRENT_SCHEMA_VERSION } from "../schema.js";
 let tmpDir: string;
 
 function tmpDbPath(): string {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-schema-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-schema-"));
   return path.join(tmpDir, "test.db");
 }
 

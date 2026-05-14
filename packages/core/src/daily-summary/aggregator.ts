@@ -4,7 +4,7 @@
  * No LLM call here — pure deterministic counting + first/last user-turn
  * excerpt. The downstream rewriter feeds this into the user's own Claude
  * window so it can write the one-line summary itself (issue #371 grill §2:
- * "TeamAgent 主流程零 LLM 调用").
+ * "Viki 主流程零 LLM 调用").
  */
 
 import type { ProjectGroup } from "./scanner.js";

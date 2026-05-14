@@ -5,8 +5,8 @@ import path from "node:path";
 
 const CAVEAT = "<local-command-" + "caveat>";
 const s = new DualLayerStore({
-  projectDbPath: path.join(process.cwd(), ".teamagent", "knowledge.db"),
-  userGlobalDbPath: path.join(os.homedir(), ".teamagent", "global.db"),
+  projectDbPath: path.join(process.cwd(), ".viki", "knowledge.db"),
+  userGlobalDbPath: path.join(os.homedir(), ".viki", "global.db"),
 });
 const avoid = s
   .findActive()

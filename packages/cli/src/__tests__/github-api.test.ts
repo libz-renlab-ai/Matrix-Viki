@@ -140,7 +140,7 @@ describe("fetchRemoteSha", () => {
     if (!result.ok) {
       expect(result.reason).toBe("rate_limit_anonymous");
       expect(result.status).toBe(403);
-      expect(result.message).toContain("TEAMAGENT_GITHUB_TOKEN");
+      expect(result.message).toContain("VIKI_GITHUB_TOKEN");
     }
   });
 

@@ -1,38 +1,38 @@
 import fs from "node:fs";
 import path from "node:path";
-import { findTeamagentRoot } from "../find-teamagent-root.js";
+import { findVikiRoot } from "../find-viki-root.js";
 
-export interface TeamAgentConfig {
+export interface VikiConfig {
   stop_mode: "sync" | "async";
-  /** Run scan-errors as part of Stop pipeline (writes to ~/.teamagent/candidates.db). */
+  /** Run scan-errors as part of Stop pipeline (writes to ~/.viki/candidates.db). */
   stop_scan_errors: boolean;
   /** Timeout budget (ms) for the scan-errors step inside Stop. */
   stop_scan_errors_timeout_ms: number;
 }
 
-const DEFAULTS: TeamAgentConfig = {
+const DEFAULTS: VikiConfig = {
   stop_mode: "async",
   stop_scan_errors: true,
   stop_scan_errors_timeout_ms: 90_000,
 };
 
-export function readTeamAgentConfig(cwd: string): TeamAgentConfig {
-  const root = findTeamagentRoot(cwd);
-  const file = path.join(root, ".teamagent", "config.json");
+export function readVikiConfig(cwd: string): VikiConfig {
+  const root = findVikiRoot(cwd);
+  const file = path.join(root, ".viki", "config.json");
   if (!fs.existsSync(file)) return { ...DEFAULTS };
   try {
     const raw = fs.readFileSync(file, "utf-8");
-    return { ...DEFAULTS, ...JSON.parse(raw) } as TeamAgentConfig;
+    return { ...DEFAULTS, ...JSON.parse(raw) } as VikiConfig;
   } catch {
     return { ...DEFAULTS };
   }
 }
 
-export function writeTeamAgentConfig(cwd: string, patch: Partial<TeamAgentConfig>): void {
-  const dir = path.join(cwd, ".teamagent");
+export function writeVikiConfig(cwd: string, patch: Partial<VikiConfig>): void {
+  const dir = path.join(cwd, ".viki");
   const file = path.join(dir, "config.json");
   fs.mkdirSync(dir, { recursive: true });
-  const existing = readTeamAgentConfig(cwd);
+  const existing = readVikiConfig(cwd);
   const merged = { ...existing, ...patch };
   fs.writeFileSync(file, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 }
@@ -51,12 +51,12 @@ export function executeConfig(opts: ConfigOptions): string {
     if (val !== "sync" && val !== "async") {
       throw new Error(`Invalid stop-mode value: "${val}". Use "sync" or "async".`);
     }
-    writeTeamAgentConfig(cwd, { stop_mode: val });
+    writeVikiConfig(cwd, { stop_mode: val });
     return `stop_mode set to "${val}"`;
   }
 
   if (opts.subcommand === "show") {
-    const cfg = readTeamAgentConfig(cwd);
+    const cfg = readVikiConfig(cwd);
     return JSON.stringify(cfg, null, 2);
   }
 

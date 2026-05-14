@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   runLLMClientContract,
   type LLMBehavior,
-} from "@teamagent/ports/contracts";
+} from "@viki/ports/contracts";
 import {
   ClaudeCodeLLMClient,
   defaultSpawnerOptions,
@@ -10,7 +10,7 @@ import {
   type Spawner,
   type SpawnResult,
 } from "../claude-code-client.js";
-import { LLMClientError } from "@teamagent/ports";
+import { LLMClientError } from "@viki/ports";
 
 /** 按 behavior 指令构造 fake spawner。 */
 function makeSpawner(behavior: LLMBehavior): Spawner {
@@ -111,8 +111,8 @@ describe("ClaudeCodeLLMClient", () => {
     });
 
     it("omits --model when model option not provided (no env set)", async () => {
-      const origEnv = process.env.TEAMAGENT_LLM_MODEL;
-      delete process.env.TEAMAGENT_LLM_MODEL;
+      const origEnv = process.env.VIKI_LLM_MODEL;
+      delete process.env.VIKI_LLM_MODEL;
       try {
         let capturedArgs: string[] = [];
         const spawner: Spawner = async (_cmd, args, _opts) => {
@@ -128,12 +128,12 @@ describe("ClaudeCodeLLMClient", () => {
         await client.complete("x");
         expect(capturedArgs).not.toContain("--model");
       } finally {
-        if (origEnv !== undefined) process.env.TEAMAGENT_LLM_MODEL = origEnv;
+        if (origEnv !== undefined) process.env.VIKI_LLM_MODEL = origEnv;
       }
     });
 
-    it("reads TEAMAGENT_LLM_MODEL env as default model", async () => {
-      process.env.TEAMAGENT_LLM_MODEL = "sonnet";
+    it("reads VIKI_LLM_MODEL env as default model", async () => {
+      process.env.VIKI_LLM_MODEL = "sonnet";
       try {
         let capturedArgs: string[] = [];
         const spawner: Spawner = async (_cmd, args, _opts) => {
@@ -151,7 +151,7 @@ describe("ClaudeCodeLLMClient", () => {
         expect(idx).toBeGreaterThanOrEqual(0);
         expect(capturedArgs[idx + 1]).toBe("sonnet");
       } finally {
-        delete process.env.TEAMAGENT_LLM_MODEL;
+        delete process.env.VIKI_LLM_MODEL;
       }
     });
   });

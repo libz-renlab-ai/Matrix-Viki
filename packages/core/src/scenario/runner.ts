@@ -1,10 +1,10 @@
 import type {
   KnowledgeExtractor,
   KnowledgeStore,
-} from "@teamagent/ports";
+} from "@viki/ports";
 import type { CorrectionDetector } from "../correction-detector/rule-based.js";
-import type { KnowledgeEntry, ParsedSession, Scope } from "@teamagent/types";
-import { computeEnforcement } from "@teamagent/types";
+import type { KnowledgeEntry, ParsedSession, Scope } from "@viki/types";
+import { computeEnforcement } from "@viki/types";
 import { matchRules } from "../matcher/legacy/keyword-matcher.js";
 import { runExtractPipeline } from "../pipeline/extract-pipeline.js";
 import type {

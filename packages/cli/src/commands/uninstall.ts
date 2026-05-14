@@ -3,9 +3,9 @@ import path from "node:path";
 import os from "node:os";
 import { installHook, uninstallHook } from "./install-hook.js";
 
-/** 宽松匹配 TEAMAGENT 区块标记；comment 中间可以是任何说明文字。 */
-const BLOCK_START_RE = /<!--\s*TEAMAGENT:START[^>]*-->/;
-const BLOCK_END_RE = /<!--\s*TEAMAGENT:END[^>]*-->/;
+/** 宽松匹配 VIKI 区块标记；comment 中间可以是任何说明文字。 */
+const BLOCK_START_RE = /<!--\s*VIKI:START[^>]*-->/;
+const BLOCK_END_RE = /<!--\s*VIKI:END[^>]*-->/;
 
 export interface DisableEnableOptions {
   cwd?: string;
@@ -46,8 +46,8 @@ export function enable(opts: DisableEnableOptions = {}): {
 /**
  * 完全卸载：
  * - 移除 .claude/settings.local.json 的 hook 注册
- * - 移除 CLAUDE.md 里的 TEAMAGENT:START/END 区块（保留其他内容）
- * - 可选：--delete-data 把 ~/.teamagent + ./.teamagent 全删掉
+ * - 移除 CLAUDE.md 里的 VIKI:START/END 区块（保留其他内容）
+ * - 可选：--delete-data 把 ~/.viki + ./.viki 全删掉
  *
  * 失败处理：单步失败只 warn，不中止；actions 逐条列出实际做了什么，
  * 对齐设计文档"不承诺原子性"的哲学。
@@ -62,7 +62,7 @@ export function uninstall(opts: UninstallOptions = {}): UninstallResult {
   const settingsPath = path.join(cwd, ".claude", "settings.local.json");
   if (fs.existsSync(settingsPath)) {
     if (dryRun) {
-      actions.push(`(dry-run) 会从 ${settingsPath} 移除 TeamAgent hook`);
+      actions.push(`(dry-run) 会从 ${settingsPath} 移除 Viki hook`);
     } else {
       try {
         const r = uninstallHook({ cwd });
@@ -79,28 +79,28 @@ export function uninstall(opts: UninstallOptions = {}): UninstallResult {
     actions.push(`无 .claude/settings.local.json，跳过 hook 卸载`);
   }
 
-  // 2. 移除 CLAUDE.md 的 TEAMAGENT 区块
+  // 2. 移除 CLAUDE.md 的 VIKI 区块
   const claudeMd = path.join(cwd, "CLAUDE.md");
   if (fs.existsSync(claudeMd)) {
     if (dryRun) {
-      actions.push(`(dry-run) 会从 ${claudeMd} 移除 TEAMAGENT 区块`);
+      actions.push(`(dry-run) 会从 ${claudeMd} 移除 VIKI 区块`);
     } else {
       try {
-        const stripped = stripTeamagentBlock(
+        const stripped = stripVikiBlock(
           fs.readFileSync(claudeMd, "utf-8"),
         );
         if (stripped.changed) {
-          // 如果剥掉 TEAMAGENT 区块后只剩空白（仅换行/空格），干脆删 CLAUDE.md：
+          // 如果剥掉 VIKI 区块后只剩空白（仅换行/空格），干脆删 CLAUDE.md：
           // 留一个 1-byte 空文件给用户的工作区只是垃圾，且 init 会重建。
           if (stripped.content.trim().length === 0) {
             fs.unlinkSync(claudeMd);
-            actions.push(`已从 CLAUDE.md 移除 TEAMAGENT 区块（剩余空白，已删除空文件）`);
+            actions.push(`已从 CLAUDE.md 移除 VIKI 区块（剩余空白，已删除空文件）`);
           } else {
             fs.writeFileSync(claudeMd, stripped.content, "utf-8");
-            actions.push(`已从 CLAUDE.md 移除 TEAMAGENT 区块`);
+            actions.push(`已从 CLAUDE.md 移除 VIKI 区块`);
           }
         } else {
-          actions.push(`CLAUDE.md 无 TEAMAGENT 区块，跳过`);
+          actions.push(`CLAUDE.md 无 VIKI 区块，跳过`);
         }
       } catch (err) {
         actions.push(`⚠ 处理 CLAUDE.md 失败: ${String(err).slice(0, 160)}`);
@@ -113,8 +113,8 @@ export function uninstall(opts: UninstallOptions = {}): UninstallResult {
   // 3. 可选：删数据
   if (opts.deleteData) {
     const dirs = [
-      path.join(home, ".teamagent"),
-      path.join(cwd, ".teamagent"),
+      path.join(home, ".viki"),
+      path.join(cwd, ".viki"),
     ];
     for (const d of dirs) {
       if (!fs.existsSync(d)) {
@@ -134,7 +134,7 @@ export function uninstall(opts: UninstallOptions = {}): UninstallResult {
     }
   } else {
     actions.push(
-      "保留知识数据（~/.teamagent 和 ./.teamagent）。加 --delete-data 同时清理",
+      "保留知识数据（~/.viki 和 ./.viki）。加 --delete-data 同时清理",
     );
   }
 
@@ -142,10 +142,10 @@ export function uninstall(opts: UninstallOptions = {}): UninstallResult {
 }
 
 /**
- * 从 CLAUDE.md 内容里剥掉 <!-- TEAMAGENT:START --> … <!-- TEAMAGENT:END --> 整段。
+ * 从 CLAUDE.md 内容里剥掉 <!-- VIKI:START --> … <!-- VIKI:END --> 整段。
  * 保留上下文的空白结构（把 block 前后合并成单空行）。
  */
-export function stripTeamagentBlock(content: string): {
+export function stripVikiBlock(content: string): {
   content: string;
   changed: boolean;
 } {
@@ -184,7 +184,7 @@ export function parseUninstallArgs(argv: string[]): UninstallOptions {
       const base = a.split("=")[0]!;
       if (!UNINSTALL_KNOWN_FLAGS.has(base)) {
         throw new UninstallArgError(
-          `uninstall: unknown flag "${a}". Run 'teamagent --help' for valid flags.`,
+          `uninstall: unknown flag "${a}". Run 'viki --help' for valid flags.`,
         );
       }
     }
@@ -194,7 +194,7 @@ export function parseUninstallArgs(argv: string[]): UninstallOptions {
 
 export function renderUninstallResult(r: UninstallResult): string {
   const lines: string[] = [];
-  lines.push(r.dryRun ? "🔍 TeamAgent Uninstall (dry-run)" : "🗑️  TeamAgent Uninstall");
+  lines.push(r.dryRun ? "🔍 Viki Uninstall (dry-run)" : "🗑️  Viki Uninstall");
   lines.push("");
   for (const a of r.actions) lines.push(`  ${a}`);
   lines.push("");
@@ -206,8 +206,8 @@ export function renderUninstallResult(r: UninstallResult): string {
     !r.dryRun && r.actions.some((a) => a.startsWith("已"));
   if (removedSomething) {
     lines.push("🔁 想恢复（重新启用 statusline + PreToolUse / PostToolUse / UserPromptSubmit / Stop hooks）？跑：");
-    lines.push("    pnpm teamagent install-hook    # 仅重装 hook + statusline，最小改动");
-    lines.push("    pnpm teamagent init             # 顺便重新预热向量模型 + 注入 universal pack");
+    lines.push("    pnpm viki install-hook    # 仅重装 hook + statusline，最小改动");
+    lines.push("    pnpm viki init             # 顺便重新预热向量模型 + 注入 universal pack");
     lines.push("");
   }
 

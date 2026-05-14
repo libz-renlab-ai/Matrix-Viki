@@ -15,20 +15,20 @@ intro paragraph
 
 ### Fixed
 
-- **Issue #158**: Windows install no longer destroys prior teamagent install (#158)
+- **Issue #158**: Windows install no longer destroys prior viki install (#158)
   This is a continuation line indented under the bullet that should not surface
 - **Issue #160**: warmup now exits 0 with friendly skip message
 
 ### Changed
 
-- Hooks bundled at \`~/.teamagent/hooks/\` so worktree cleanup doesn't break them
+- Hooks bundled at \`~/.viki/hooks/\` so worktree cleanup doesn't break them
 
 ## [0.10.2] — 2026-05-01
 
 ### Added
 
 - Vector matcher BM25+dense RRF
-- Stack packs first-class: \`teamagent pack list\`
+- Stack packs first-class: \`viki pack list\`
 
 ## [0.10.1] — 2026-04-25
 

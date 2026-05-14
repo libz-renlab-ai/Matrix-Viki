@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ExtractionInput } from "@teamagent/ports";
+import type { ExtractionInput } from "@viki/ports";
 
 /**
  * Claude Code /insights 报告的宽松解析。

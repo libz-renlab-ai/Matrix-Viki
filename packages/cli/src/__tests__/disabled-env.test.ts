@@ -6,10 +6,10 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 /**
- * Issue #343 PR-1: TEAMAGENT_DISABLED=1 master kill switch.
+ * Issue #343 PR-1: VIKI_DISABLED=1 master kill switch.
  *
  * Each hook handler must early-return when this env is set, without:
- *   - touching ~/.teamagent state
+ *   - touching ~/.viki state
  *   - emitting AttributionBus events
  *   - producing TB-specific stderr (matcher / M5 / analyze / embedder noise)
  *
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
  * if disabled mode is not byte-for-byte indistinguishable from "TB not
  * installed", the cost delta measurement is biased.
  *
- * The test spawns each built hook bundle with TEAMAGENT_DISABLED=1 and a
+ * The test spawns each built hook bundle with VIKI_DISABLED=1 and a
  * minimal valid stdin payload, then asserts exit 0 + no TB-specific noise.
  */
 
@@ -45,10 +45,10 @@ async function spawnHook(
   return new Promise<SpawnReport>((resolve) => {
     const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
     // Strip env that would change hook decisioning (we want a clean
-    // single-variable measurement: TEAMAGENT_DISABLED only).
+    // single-variable measurement: VIKI_DISABLED only).
     delete env.CLAUDE_PROJECT_DIR;
-    delete env.TEAMAGENT_ALLOW_BARE_SESSIONSTART;
-    delete env.TEAMAGENT_STOP_PIPELINE;
+    delete env.VIKI_ALLOW_BARE_SESSIONSTART;
+    delete env.VIKI_STOP_PIPELINE;
 
     const t0 = Date.now();
     const child = spawn(process.execPath, [staged], {
@@ -124,7 +124,7 @@ const BUNDLES_EXIST = [
   DIGITAL_TWIN_TAP_BIN,
 ].every((bin) => fs.existsSync(bin));
 
-describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () => {
+describe.skipIf(!BUNDLES_EXIST)("VIKI_DISABLED=1 master kill switch", () => {
   it("SessionStart hook returns silently without TB runtime work", async () => {
     const report = await spawnHook(
       SESSION_START_BIN,
@@ -133,7 +133,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
         session_id: "issue-343-disabled-session",
         cwd: process.cwd(),
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -149,7 +149,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
         tool_name: "Read",
         tool_input: { file_path: "/tmp/issue-343-disabled-probe.txt" },
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -167,7 +167,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
           `issue-343-disabled-nonexistent-${Date.now()}.jsonl`,
         ),
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -182,7 +182,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
         cwd: process.cwd(),
         prompt: "hello world",
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -199,7 +199,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
         tool_input: { file_path: "/tmp/x" },
         tool_response: "ok",
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -217,7 +217,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
           `issue-343-disabled-precompact-${Date.now()}.jsonl`,
         ),
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -235,7 +235,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
           `issue-343-disabled-sessionend-${Date.now()}.jsonl`,
         ),
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);
@@ -253,7 +253,7 @@ describe.skipIf(!BUNDLES_EXIST)("TEAMAGENT_DISABLED=1 master kill switch", () =>
           `issue-343-disabled-digital-twin-${Date.now()}.jsonl`,
         ),
       }),
-      { TEAMAGENT_DISABLED: "1" },
+      { VIKI_DISABLED: "1" },
     );
     expect(report.exitCode).toBe(0);
     assertNoTbRuntimeNoise(report.stderr);

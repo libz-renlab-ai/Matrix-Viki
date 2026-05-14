@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** 一条规则编译出的 skill artifact。Adapter 负责写到 skills 目录。 */
 export interface SkillArtifact {

@@ -13,9 +13,9 @@ import { DEFAULT_CODE_FILE_TYPES } from "../packages/core/src/index.js";
 const DRY = process.argv.includes("--dry-run");
 const home = os.homedir();
 const stores = [
-  path.resolve("./.teamagent/knowledge.jsonl"),
-  path.join(home, ".teamagent", "personal", "knowledge.jsonl"),
-  path.join(home, ".teamagent", "global", "knowledge.jsonl"),
+  path.resolve("./.viki/knowledge.jsonl"),
+  path.join(home, ".viki", "personal", "knowledge.jsonl"),
+  path.join(home, ".viki", "global", "knowledge.jsonl"),
 ];
 
 let total = 0;

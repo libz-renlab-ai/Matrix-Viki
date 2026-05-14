@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Goal: V1=1 (issue #155 grill Q4) — under Claude Code's strict permission mode,
 # the AI invokes Bash *once*, this script then runs `pnpm install` → `pnpm build`
-# → `pnpm teamagent init` in-process (no further Bash prompts), achieving
+# → `pnpm viki init` in-process (no further Bash prompts), achieving
 # end-to-end install in one user-authorized Bash call.
 #
 # Path B (contributor / source) entry point. Contrast with `release/install.sh`
@@ -40,10 +40,10 @@ for arg in "$@"; do
 usage: bash scripts/bootstrap.sh [--preview] [--skip-vector-model] [--skip-init]
 
   --preview            print 5-section install manifest and exit 0 (no install)
-  --skip-vector-model  opt-out of the 120 MB vector model load (writes ~/.teamagent/.skip-vector-model)
-  --skip-init          run pnpm install + pnpm build but skip `pnpm teamagent init`
+  --skip-vector-model  opt-out of the 120 MB vector model load (writes ~/.viki/.skip-vector-model)
+  --skip-init          run pnpm install + pnpm build but skip `pnpm viki init`
 
-After successful run, you have a working `pnpm teamagent` CLI in this checkout.
+After successful run, you have a working `pnpm viki` CLI in this checkout.
 HELP_EOF
       exit 0
       ;;
@@ -100,27 +100,27 @@ pnpm install
 printf '\n[bootstrap] [2/3] pnpm build...\n'
 pnpm build
 
-# ── Step 3: pnpm teamagent init (with skip-vector-model honored) ─────────────
+# ── Step 3: pnpm viki init (with skip-vector-model honored) ─────────────
 # Idempotent: init checks for existing hook registrations and skips re-doing.
 # Per ADR-0011, no resume notebook needed.
 if [ "$SKIP_INIT" -eq 1 ]; then
-  printf '\n[bootstrap] --skip-init given; pnpm install + pnpm build done. Run init manually: pnpm teamagent init\n'
+  printf '\n[bootstrap] --skip-init given; pnpm install + pnpm build done. Run init manually: pnpm viki init\n'
   exit 0
 fi
 
 if [ "$SKIP_VECTOR_MODEL" -eq 1 ]; then
-  mkdir -p "$HOME/.teamagent"
-  printf 'created by bootstrap.sh --skip-vector-model on %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$HOME/.teamagent/.skip-vector-model"
-  printf '[bootstrap] skip-vector-model marker written to %s/.teamagent/.skip-vector-model\n' "$HOME"
+  mkdir -p "$HOME/.viki"
+  printf 'created by bootstrap.sh --skip-vector-model on %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$HOME/.viki/.skip-vector-model"
+  printf '[bootstrap] skip-vector-model marker written to %s/.viki/.skip-vector-model\n' "$HOME"
   printf '[bootstrap] (intent recorded; current daemon does not yet read this marker — see issue #155 follow-up)\n'
 fi
 
-printf '\n[bootstrap] [3/3] pnpm teamagent init...\n'
+printf '\n[bootstrap] [3/3] pnpm viki init...\n'
 if [ "$SKIP_VECTOR_MODEL" -eq 1 ]; then
-  TEAMAGENT_SKIP_VECTOR_MODEL=1 pnpm teamagent init
+  VIKI_SKIP_VECTOR_MODEL=1 pnpm viki init
 else
-  pnpm teamagent init
+  pnpm viki init
 fi
 
 printf '\n[bootstrap] ✓ TeamBrain installed from source. (V1=1 single-prompt path complete)\n'
-printf '[bootstrap] Try: pnpm teamagent --help\n'
+printf '[bootstrap] Try: pnpm viki --help\n'

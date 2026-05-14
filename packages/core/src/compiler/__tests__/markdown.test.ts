@@ -2,21 +2,21 @@ import { describe, it, expect } from "vitest";
 import {
   compileMarkdownBlock,
   injectBlockIntoDoc,
-  stripLegacyTeamagentBlock,
+  stripLegacyVikiBlock,
   BLOCK_START,
   BLOCK_END,
 } from "../markdown.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
-describe("stripLegacyTeamagentBlock", () => {
+describe("stripLegacyVikiBlock", () => {
   it("returns input unchanged when no markers present", () => {
     const doc = "# Project\n\nSome content.\n";
-    expect(stripLegacyTeamagentBlock(doc)).toBe(doc);
+    expect(stripLegacyVikiBlock(doc)).toBe(doc);
   });
 
   it("returns input unchanged when only START is present (malformed)", () => {
     const doc = `# Project\n\n${BLOCK_START}\nrules but no end\n`;
-    expect(stripLegacyTeamagentBlock(doc)).toBe(doc);
+    expect(stripLegacyVikiBlock(doc)).toBe(doc);
   });
 
   it("strips a well-formed block and surrounding blank lines", () => {
@@ -26,14 +26,14 @@ describe("stripLegacyTeamagentBlock", () => {
       "Pre block.\n" +
       "\n" +
       `${BLOCK_START}\n` +
-      "## TeamAgent 经验\n" +
+      "## Viki 经验\n" +
       "- rule 1\n" +
       `${BLOCK_END}\n` +
       "\n" +
       "Post block.\n";
-    const out = stripLegacyTeamagentBlock(doc);
-    expect(out).not.toContain("TEAMAGENT:START");
-    expect(out).not.toContain("TEAMAGENT:END");
+    const out = stripLegacyVikiBlock(doc);
+    expect(out).not.toContain("VIKI:START");
+    expect(out).not.toContain("VIKI:END");
     expect(out).toContain("Pre block.");
     expect(out).toContain("Post block.");
     expect(out).not.toMatch(/\n\n\n/); // no triple-blank gap
@@ -41,7 +41,7 @@ describe("stripLegacyTeamagentBlock", () => {
 
   it("collapses to empty string when file is just the block", () => {
     const doc = `${BLOCK_START}\n## rules\n${BLOCK_END}\n`;
-    expect(stripLegacyTeamagentBlock(doc)).toBe("");
+    expect(stripLegacyVikiBlock(doc)).toBe("");
   });
 
   it("removes multiple blocks defensively", () => {
@@ -49,8 +49,8 @@ describe("stripLegacyTeamagentBlock", () => {
       `${BLOCK_START}\nfirst\n${BLOCK_END}\n` +
       "middle\n" +
       `${BLOCK_START}\nsecond\n${BLOCK_END}\n`;
-    const out = stripLegacyTeamagentBlock(doc);
-    expect(out).not.toContain("TEAMAGENT:START");
+    const out = stripLegacyVikiBlock(doc);
+    expect(out).not.toContain("VIKI:START");
     expect(out).toContain("middle");
   });
 });
@@ -397,16 +397,16 @@ describe("injectBlockIntoDoc", () => {
   });
 });
 
-describe("B-062: TEAMAGENT:END injection in entry content", () => {
-  it("entry containing TEAMAGENT:END does not corrupt injectBlockIntoDoc on re-compile", () => {
+describe("B-062: VIKI:END injection in entry content", () => {
+  it("entry containing VIKI:END does not corrupt injectBlockIntoDoc on re-compile", () => {
     // The evil entry's correct_pattern contains the full HTML comment that matches BLOCK_END.
     // When formatEntry embeds it in a bullet, the compiled block will contain
-    // "<!-- TEAMAGENT:END -->" inside the entry text — creating a false end marker.
+    // "<!-- VIKI:END -->" inside the entry text — creating a false end marker.
     // On the second inject, injectBlockIntoDoc finds that false marker instead of the real
     // BLOCK_END, causing the text after it to leak into the document body.
     const evilEntry = makeEntry({
-      trigger: "never use TEAMAGENT markers",
-      correct_pattern: "<!-- TEAMAGENT:END --> must not appear in entry text",
+      trigger: "never use VIKI markers",
+      correct_pattern: "<!-- VIKI:END --> must not appear in entry text",
       wrong_pattern: "moment",
     });
 
@@ -425,8 +425,8 @@ describe("B-062: TEAMAGENT:END injection in entry content", () => {
     // evil bullet text ("must not appear in entry text 而非 moment——lighter [0.80]")
     // gets appended to block2, surfacing right after the injected BLOCK_END tag.
     // A corrupted doc2 looks like:
-    //   <!-- TEAMAGENT:END --> must not appear in entry text 而非 moment——lighter [0.80]
-    //   <!-- TEAMAGENT:END -->
+    //   <!-- VIKI:END --> must not appear in entry text 而非 moment——lighter [0.80]
+    //   <!-- VIKI:END -->
     // The BLOCK_END tag must not be followed by non-whitespace on the same line.
     const lines = doc2.split("\n");
     const blockEndLineIdx = lines.findIndex((l) => l.startsWith(BLOCK_END));
@@ -487,10 +487,10 @@ describe("compileMarkdownBlock — presetOnly", () => {
     expect(block).not.toContain("user rule");
   });
 
-  it("with presetOnly=true, header says TeamAgent 元原则", () => {
+  it("with presetOnly=true, header says Viki 元原则", () => {
     const entries = [makeTestEntry({ source: "preset" })];
     const block = compileMarkdownBlock(entries, NOW, { presetOnly: true });
-    expect(block).toContain("## TeamAgent 元原则");
+    expect(block).toContain("## Viki 元原则");
   });
 
   it("without presetOnly, includes all active entries (existing behavior)", () => {

@@ -36,12 +36,12 @@ function mkPhase1Entry(id: string, extra: Record<string, unknown> = {}): any {
 }
 
 beforeEach(() => {
-  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-migrate-home-"));
-  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-migrate-cwd-"));
+  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-migrate-home-"));
+  tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "viki-migrate-cwd-"));
 
-  const personalPath = path.join(tmpHome, ".teamagent", "personal", "knowledge.jsonl");
-  const teamPath = path.join(tmpCwd, ".teamagent", "knowledge.jsonl");
-  const globalPath = path.join(tmpHome, ".teamagent", "global", "knowledge.jsonl");
+  const personalPath = path.join(tmpHome, ".viki", "personal", "knowledge.jsonl");
+  const teamPath = path.join(tmpCwd, ".viki", "knowledge.jsonl");
+  const globalPath = path.join(tmpHome, ".viki", "global", "knowledge.jsonl");
 
   fs.mkdirSync(path.dirname(personalPath), { recursive: true });
   fs.mkdirSync(path.dirname(teamPath), { recursive: true });
@@ -73,12 +73,12 @@ describe("executeMigrate", () => {
 
   it("dry-run does not write to SQLite", async () => {
     await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: true });
-    const newDbPath = path.join(tmpCwd, ".teamagent", "knowledge.db");
+    const newDbPath = path.join(tmpCwd, ".viki", "knowledge.db");
     expect(fs.existsSync(newDbPath)).toBe(false);
   });
 
   it("handles empty / missing JSONL gracefully", async () => {
-    fs.rmSync(path.join(tmpHome, ".teamagent", "personal", "knowledge.jsonl"));
+    fs.rmSync(path.join(tmpHome, ".viki", "personal", "knowledge.jsonl"));
     const r = await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: true });
     expect(r.readEntries).toBeGreaterThanOrEqual(2);
     expect(r.byScope.personal).toBe(0);
@@ -90,8 +90,8 @@ describe("executeMigrate write-side", () => {
     const r = await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: false });
     expect(r.written).toBeGreaterThan(0);
 
-    const projectDb = path.join(tmpCwd, ".teamagent", "knowledge.db");
-    const globalDb = path.join(tmpHome, ".teamagent", "global.db");
+    const projectDb = path.join(tmpCwd, ".viki", "knowledge.db");
+    const globalDb = path.join(tmpHome, ".viki", "global.db");
     expect(fs.existsSync(projectDb)).toBe(true);
     expect(fs.existsSync(globalDb)).toBe(true);
   });
@@ -99,8 +99,8 @@ describe("executeMigrate write-side", () => {
   it("Q5 决策 B: all migrated entries → experimental tier, confidence=0, demerit=0", async () => {
     await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: false });
 
-    const { openDb } = await import("@teamagent/adapters/storage/sqlite/schema");
-    const projectDb = openDb(path.join(tmpCwd, ".teamagent", "knowledge.db"));
+    const { openDb } = await import("@viki/adapters/storage/sqlite/schema");
+    const projectDb = openDb(path.join(tmpCwd, ".viki", "knowledge.db"));
     const rows = projectDb.prepare("SELECT id, current_tier, confidence, demerit FROM knowledge").all() as any[];
     for (const r of rows) {
       expect(r.current_tier).toBe("experimental");
@@ -112,8 +112,8 @@ describe("executeMigrate write-side", () => {
 
   it("preserves hit_count/last_hit_at in tags for reference", async () => {
     await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: false });
-    const { openDb } = await import("@teamagent/adapters/storage/sqlite/schema");
-    const projectDb = openDb(path.join(tmpCwd, ".teamagent", "knowledge.db"));
+    const { openDb } = await import("@viki/adapters/storage/sqlite/schema");
+    const projectDb = openDb(path.join(tmpCwd, ".viki", "knowledge.db"));
     const row = projectDb.prepare("SELECT tags FROM knowledge WHERE id = 'r-p1'").get() as any;
     const tags = JSON.parse(row.tags);
     expect(tags).toContain("phase1_hit_count:5");
@@ -123,8 +123,8 @@ describe("executeMigrate write-side", () => {
 
   it("preserves team-scoped Phase 1 entries in the project DB", async () => {
     await executeMigrate({ homeDir: tmpHome, cwd: tmpCwd, dryRun: false });
-    const { openDb } = await import("@teamagent/adapters/storage/sqlite/schema");
-    const projectDb = openDb(path.join(tmpCwd, ".teamagent", "knowledge.db"));
+    const { openDb } = await import("@viki/adapters/storage/sqlite/schema");
+    const projectDb = openDb(path.join(tmpCwd, ".viki", "knowledge.db"));
     const row = projectDb.prepare("SELECT id, scope_level FROM knowledge WHERE id = 'r-t1'").get() as any;
     expect(row.scope_level).toBe("team");
     projectDb.close();

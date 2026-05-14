@@ -4,19 +4,19 @@
  * Produces the multi-line stderr banner the SessionStart hook surfaces
  * when an upgrade is available and the user hasn't snoozed/never'd.
  *
- * Layout (mirrors gstack with TeamAgent's CLI vocabulary):
+ * Layout (mirrors gstack with Viki's CLI vocabulary):
  *
  *   ┌─────────────────────────────────────────┐
- *   │ ✨ TeamAgent v0.10.5 available          │
+ *   │ ✨ Viki v0.10.5 available          │
  *   │                                         │
  *   │ 你装的是 v0.10.1 (落后 4 个版本):       │
  *   │   • bullet1                             │
  *   │   • bullet2                             │
  *   │   • bullet3                             │
  *   │                                         │
- *   │ A) teamagent update --now    立刻升级   │
- *   │ B) teamagent update --snooze 下次再说   │
- *   │ C) teamagent update --never  永远别问   │
+ *   │ A) viki update --now    立刻升级   │
+ *   │ B) viki update --snooze 下次再说   │
+ *   │ C) viki update --never  永远别问   │
  *   └─────────────────────────────────────────┘
  *
  * No box-drawing — Unicode boxes break in some Windows terminals; use plain
@@ -47,7 +47,7 @@ export function renderUpgradePrompt(input: RenderUpgradePromptInput): string {
   const sep = "━".repeat(48);
   lines.push("");
   lines.push(sep);
-  lines.push(`✨ TeamAgent ${toVersion} 可用 (你装的是 ${fromVersion || "(unknown)"})`);
+  lines.push(`✨ Viki ${toVersion} 可用 (你装的是 ${fromVersion || "(unknown)"})`);
   lines.push(sep);
 
   if (bullets.length > 0) {
@@ -61,9 +61,9 @@ export function renderUpgradePrompt(input: RenderUpgradePromptInput): string {
 
   lines.push("");
   lines.push("三选一:");
-  lines.push("  A) teamagent update --now      立刻升级 (前台执行, 几十秒)");
-  lines.push("  B) teamagent update --snooze   下次再说 (24h → 48h → 7d 退避)");
-  lines.push("  C) teamagent update --never    永远别问 (--enable 可恢复)");
+  lines.push("  A) viki update --now      立刻升级 (前台执行, 几十秒)");
+  lines.push("  B) viki update --snooze   下次再说 (24h → 48h → 7d 退避)");
+  lines.push("  C) viki update --never    永远别问 (--enable 可恢复)");
 
   if (snoozeLevel > 0) {
     lines.push("");
@@ -78,9 +78,9 @@ export function renderUpgradePrompt(input: RenderUpgradePromptInput): string {
 
 /**
  * Compact post-init "what's new" tail (no decision buttons; just a digest
- * appended to `teamagent init` ok-path output). Same bullet list, no box.
+ * appended to `viki init` ok-path output). Same bullet list, no box.
  *
- * Used by `renderInitResult` and `teamagent whatsnew`.
+ * Used by `renderInitResult` and `viki whatsnew`.
  */
 export function renderWhatsNewTail(input: {
   installedVersion: string;
@@ -98,7 +98,7 @@ export function renderWhatsNewTail(input: {
     lines.push(`  • ${themePrefix}${b.bullet}`);
   }
   lines.push("");
-  lines.push("详情: teamagent whatsnew");
+  lines.push("详情: viki whatsnew");
   lines.push("━".repeat(48));
   return lines.join("\n");
 }

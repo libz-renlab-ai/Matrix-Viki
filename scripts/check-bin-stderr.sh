@@ -3,13 +3,13 @@
 #
 # Lint rule per ADR-0008: hook channel binaries (`packages/cli/src/bin-*.ts`)
 # must not call `process.stderr.write` with user-visible system attribution
-# text. User-visible "what TeamAgent did" must go through `ctx.bus.emit({...})`,
+# text. User-visible "what Viki did" must go through `ctx.bus.emit({...})`,
 # which the HookShell routes to `StdoutRenderer` and on to stderr per the
-# `TEAMAGENT_VISIBILITY` mode.
+# `VIKI_VISIBILITY` mode.
 #
 # Allowed in bin-*.ts:
 # - `process.stderr.write` inside debug-only fallback paths (e.g., the
-#   "teamagent <hook>: <error stack>" log line that fires when the handler
+#   "viki <hook>: <error stack>" log line that fires when the handler
 #   throws). These are caught at the shell layer and not part of normal
 #   user-visible attribution.
 # - `process.stderr.write` for protocol-mandated stderr mirroring of
@@ -18,7 +18,7 @@
 #   identically. Direct writes are flagged.
 #
 # This script greps for user-visible markers (Chinese rendering header
-# `◈`/`⚠`/`✓` and the "TeamAgent:" prefix) inside bin-*.ts files. Any match
+# `◈`/`⚠`/`✓` and the "Viki:" prefix) inside bin-*.ts files. Any match
 # is a violation.
 #
 # Exit 0 — no violations.
@@ -33,7 +33,7 @@ cd "$(dirname "$0")/.."
 # `//` or multi-line `*` continuation in a JSDoc) — those are documentation
 # referring to the original code, not active calls.
 matches=$(
-  grep -nE 'process\.stderr\.write\(.*("◈|"⚠|"✓|"TeamAgent:|`◈|`⚠|`✓|`TeamAgent:)' \
+  grep -nE 'process\.stderr\.write\(.*("◈|"⚠|"✓|"Viki:|`◈|`⚠|`✓|`Viki:)' \
     packages/cli/src/bin-*.ts 2>/dev/null \
     | grep -vE ':[0-9]+:[[:space:]]*(//|\*)' \
     || true
@@ -42,7 +42,7 @@ matches=$(
 if [ -n "$matches" ]; then
   echo "ERROR: bin-*.ts must not write user-visible text to stderr directly." >&2
   echo "Use ctx.bus.emit({ kind: '...', ... }) — HookShell's StdoutRenderer" >&2
-  echo "routes to stderr per TEAMAGENT_VISIBILITY mode (per ADR-0008)." >&2
+  echo "routes to stderr per VIKI_VISIBILITY mode (per ADR-0008)." >&2
   echo "" >&2
   echo "Violations:" >&2
   echo "$matches" >&2

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { makeFallbackLLMClient } from "../llm-with-fallback.js";
-import { LLMClientError, type LLMClient } from "@teamagent/ports";
+import { LLMClientError, type LLMClient } from "@viki/ports";
 
 function makeStub(
   behaviors: Array<{ kind: "ok"; text: string } | { kind: "throw"; err: unknown }>,

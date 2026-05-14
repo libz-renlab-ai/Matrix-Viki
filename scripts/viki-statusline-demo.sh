@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Live demo for `scripts/teamagent-statusline.cjs`.
+# Live demo for `scripts/viki-statusline.cjs`.
 #
 # Builds an isolated sandbox under /tmp, seeds project/global/events
 # SQLite DBs, then opens tmux sessions that:
@@ -17,25 +17,25 @@
 # window pops for each. Pass --no-popup to skip osascript.
 #
 # Usage:
-#   teamagent-statusline-demo.sh              # both watch + claude, popup Terminal
-#   teamagent-statusline-demo.sh --watch      # only the 4-scenario watch
-#   teamagent-statusline-demo.sh --claude     # only the real-claude TUI
-#   teamagent-statusline-demo.sh --no-popup   # build sessions, don't open Terminal
-#   teamagent-statusline-demo.sh --cleanup    # kill sessions, remove sandbox
+#   viki-statusline-demo.sh              # both watch + claude, popup Terminal
+#   viki-statusline-demo.sh --watch      # only the 4-scenario watch
+#   viki-statusline-demo.sh --claude     # only the real-claude TUI
+#   viki-statusline-demo.sh --no-popup   # build sessions, don't open Terminal
+#   viki-statusline-demo.sh --cleanup    # kill sessions, remove sandbox
 #
-# The sandbox lives at /tmp/teamagent-statusline-demo and is fully
-# disposable; the user's real ~/.teamagent is never touched.
+# The sandbox lives at /tmp/viki-statusline-demo and is fully
+# disposable; the user's real ~/.viki is never touched.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STATUSLINE_PRODUCTION="$REPO_ROOT/scripts/teamagent-statusline.cjs"
-SEEDER="$REPO_ROOT/scripts/teamagent-statusline-demo-seed.cjs"
-WATCHER="$REPO_ROOT/scripts/teamagent-statusline-demo-watch.sh"
+STATUSLINE_PRODUCTION="$REPO_ROOT/scripts/viki-statusline.cjs"
+SEEDER="$REPO_ROOT/scripts/viki-statusline-demo-seed.cjs"
+WATCHER="$REPO_ROOT/scripts/viki-statusline-demo-watch.sh"
 
-SANDBOX="${TEAMAGENT_DEMO_SANDBOX_DIR:-/tmp/teamagent-statusline-demo}"
-WATCH_SESSION="${TEAMAGENT_DEMO_WATCH_SESSION:-statusline-live}"
-CLAUDE_SESSION="${TEAMAGENT_DEMO_CLAUDE_SESSION:-statusline-claude}"
+SANDBOX="${VIKI_DEMO_SANDBOX_DIR:-/tmp/viki-statusline-demo}"
+WATCH_SESSION="${VIKI_DEMO_WATCH_SESSION:-statusline-live}"
+CLAUDE_SESSION="${VIKI_DEMO_CLAUDE_SESSION:-statusline-claude}"
 
 MODE="all"
 POPUP="yes"
@@ -87,8 +87,8 @@ fi
 
 # Replace any prior sandbox; idempotent.
 rm -rf "$SANDBOX"
-mkdir -p "$SANDBOX/home/.teamagent" \
-         "$SANDBOX/project/.teamagent" \
+mkdir -p "$SANDBOX/home/.viki" \
+         "$SANDBOX/project/.viki" \
          "$SANDBOX/project-no-db" \
          "$SANDBOX/non-project" \
          "$SANDBOX/empty-home" \
@@ -105,7 +105,7 @@ WEEKAGO="$(date -u -v-3d +%Y-%m-%dT12:00:00Z 2>/dev/null \
         || date -u -d '3 days ago' +%Y-%m-%dT12:00:00Z)"
 
 # Seed project knowledge.db: 2 active non-wiki + 1 active wiki + 1 archived.
-node "$SEEDER" "$SANDBOX/project/.teamagent/knowledge.db" knowledge "[
+node "$SEEDER" "$SANDBOX/project/.viki/knowledge.db" knowledge "[
   {\"status\":\"active\",\"type\":\"avoidance\",\"created_at\":\"$TODAY\"},
   {\"status\":\"active\",\"type\":\"practice\",\"created_at\":\"$WEEKAGO\"},
   {\"status\":\"active\",\"type\":\"wiki\",\"created_at\":\"$TODAY\"},
@@ -113,7 +113,7 @@ node "$SEEDER" "$SANDBOX/project/.teamagent/knowledge.db" knowledge "[
 ]" >/dev/null
 
 # Seed sandbox global.db: 3 active non-wiki + 1 active wiki.
-node "$SEEDER" "$SANDBOX/home/.teamagent/global.db" knowledge "[
+node "$SEEDER" "$SANDBOX/home/.viki/global.db" knowledge "[
   {\"status\":\"active\",\"type\":null,\"created_at\":\"$TODAY\"},
   {\"status\":\"active\",\"type\":\"avoidance\",\"created_at\":\"$WEEKAGO\"},
   {\"status\":\"active\",\"type\":\"practice\",\"created_at\":\"$WEEKAGO\"},
@@ -121,7 +121,7 @@ node "$SEEDER" "$SANDBOX/home/.teamagent/global.db" knowledge "[
 ]" >/dev/null
 
 # Seed events.db so helped/risk/hint render real values.
-node "$SEEDER" "$SANDBOX/home/.teamagent/events.db" events "[
+node "$SEEDER" "$SANDBOX/home/.viki/events.db" events "[
   {\"kind\":\"hook-pre.matched\",\"timestamp\":\"$TODAY\"},
   {\"kind\":\"hook-pre.warned\",\"timestamp\":\"$TODAY\"},
   {\"kind\":\"hook-post.result\",\"timestamp\":\"$WEEKAGO\"},
@@ -132,8 +132,8 @@ node "$SEEDER" "$SANDBOX/home/.teamagent/events.db" events "[
 build_watch_session() {
   tmux kill-session -t "$WATCH_SESSION" 2>/dev/null || true
 
-  local env_prefix="TEAMAGENT_DEMO_SANDBOX='$SANDBOX' \
-TEAMAGENT_DEMO_STATUSLINE='$STATUSLINE_PRODUCTION'"
+  local env_prefix="VIKI_DEMO_SANDBOX='$SANDBOX' \
+VIKI_DEMO_STATUSLINE='$STATUSLINE_PRODUCTION'"
 
   tmux new-session -d -s "$WATCH_SESSION" -n "1·full-state" -x 220 -y 60 \
     "env $env_prefix bash '$WATCHER' full-state"
@@ -155,13 +155,13 @@ build_claude_session() {
 
   local demo="$SANDBOX/claude-demo"
   rm -rf "$demo"
-  mkdir -p "$demo/.teamagent" "$demo/.claude"
+  mkdir -p "$demo/.viki" "$demo/.claude"
   echo '{"name":"statusline-claude-demo","version":"1.0.0"}' > "$demo/package.json"
   echo '# Statusline live demo project' > "$demo/README.md"
 
   # Seed a small project DB so the rules: count is non-zero even before
-  # the user's real ~/.teamagent is consulted.
-  node "$SEEDER" "$demo/.teamagent/knowledge.db" knowledge "[
+  # the user's real ~/.viki is consulted.
+  node "$SEEDER" "$demo/.viki/knowledge.db" knowledge "[
     {\"status\":\"active\",\"type\":\"avoidance\",\"created_at\":\"$TODAY\"},
     {\"status\":\"active\",\"type\":\"practice\",\"created_at\":\"$WEEKAGO\"},
     {\"status\":\"active\",\"type\":\"practice\",\"created_at\":\"$WEEKAGO\"},
@@ -173,7 +173,7 @@ build_claude_session() {
   "statusLine": {
     "type": "command",
     "command": "node $STATUSLINE_PRODUCTION",
-    "_teamagentTag": "teamagent-statusline"
+    "_vikiTag": "viki-statusline"
   }
 }
 JSON
@@ -187,7 +187,7 @@ JSON
      sleep 1; \
      cd '$demo' && claude --add-dir '$demo'"
   tmux new-window -t "$CLAUDE_SESSION" -n "raw-script" \
-    "env TEAMAGENT_DEMO_SANDBOX='$SANDBOX' TEAMAGENT_DEMO_STATUSLINE='$STATUSLINE_PRODUCTION' \
+    "env VIKI_DEMO_SANDBOX='$SANDBOX' VIKI_DEMO_STATUSLINE='$STATUSLINE_PRODUCTION' \
      bash '$WATCHER' full-state"
   tmux select-window -t "$CLAUDE_SESSION:0"
   printf 'tmux session built: %s (real claude in window 0, raw script in window 1)\n' \

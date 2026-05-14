@@ -19,8 +19,8 @@ import {
   scanNarrative,
   type PendingWarning,
   type NarrativeHit,
-} from "@teamagent/core";
-import { normalizeChannel, type KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import { normalizeChannel, type KnowledgeEntry } from "@viki/types";
 
 export interface BuildInjectionArgs {
   sessionsDir: string;
@@ -97,7 +97,7 @@ export function scanUserInput(
 export function formatUserInputFlag(hits: NarrativeHit[]): string {
   if (hits.length === 0) return "";
   const lines = [
-    "◈ TeamAgent user-input flag",
+    "◈ Viki user-input flag",
     "The following tokens in the user prompt are automation noise — treat as noise, not intent:",
   ];
   for (const h of hits) {

@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { KnowledgeEntry } from "@teamagent/types";
-import { detectStack, semanticMatch, rerankByConfidence } from "@teamagent/core";
+import type { KnowledgeEntry } from "@viki/types";
+import { detectStack, semanticMatch, rerankByConfidence } from "@viki/core";
 import {
   SqliteSemanticRetriever,
   openDb,
-} from "@teamagent/adapters";
-import type { RuleEmbedder } from "@teamagent/ports";
-import type { SemanticMatch } from "@teamagent/core";
+} from "@viki/adapters";
+import type { RuleEmbedder } from "@viki/ports";
+import type { SemanticMatch } from "@viki/core";
 
 const TOP_K = 3;
 const MIN_SCORE = 0.35;
@@ -96,7 +96,7 @@ export function buildTerminalSummary(tier1: KnowledgeEntry[], tier2: KnowledgeEn
       ? `${content.slice(0, maxContentLength - 3)}...`
       : content;
   return [
-    "========|| TeamAgent ||========",
+    "========|| Viki ||========",
     `|| ${clipped} ||`,
     "========||===========||========",
   ].join("\n");
@@ -104,14 +104,14 @@ export function buildTerminalSummary(tier1: KnowledgeEntry[], tier2: KnowledgeEn
 
 export function formatRuleInjection(rules: KnowledgeEntry[], tier: "T1" | "T2"): string {
   if (rules.length === 0) return "";
-  const lines = [`◈ TeamAgent 相关经验（语义检索 ${tier}）`];
+  const lines = [`◈ Viki 相关经验（语义检索 ${tier}）`];
   for (const r of rules) {
     const conf = r.confidence.toFixed(2);
     lines.push(`- [${r.trigger.slice(0, 50)}] → ${r.correct_pattern.slice(0, 80)} (conf ${conf})`);
   }
   // 让 AI 在回复开头主动复述，绕过 CC 2.1.x systemMessage 不显示的 UI bug。
-  // 通过对话渠道让用户感知到本次激活了哪些规则。可用 TEAMAGENT_AI_ANNOUNCE=0 关闭。
-  if (process.env.TEAMAGENT_AI_ANNOUNCE !== "0") {
+  // 通过对话渠道让用户感知到本次激活了哪些规则。可用 VIKI_AI_ANNOUNCE=0 关闭。
+  if (process.env.VIKI_AI_ANNOUNCE !== "0") {
     const triggers = rules.map((r) => r.trigger.slice(0, 30)).join(" / ");
     lines.push("");
     lines.push(`【显示要求】请在你回复的最开头单独用一行写："📋 本次参考: ${triggers}"，让用户知道这些经验影响了你的回答。然后再正常回复。`);

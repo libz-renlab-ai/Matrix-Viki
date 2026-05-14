@@ -1,4 +1,4 @@
-import type { Tier } from "@teamagent/ports";
+import type { Tier } from "@viki/ports";
 
 export const TIER_ORDER: Exclude<Tier, "dormant">[] = [
   "experimental",

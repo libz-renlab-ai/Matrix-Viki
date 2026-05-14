@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { validateLevel0 } from "../l0.js";
-import type { ValidateL0Input } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { ValidateL0Input } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 const baseAvoidance: Partial<KnowledgeEntry> = {
   id: "r1",
@@ -110,7 +110,7 @@ describe("validateLevel0 — check 2: import_path format", () => {
       baseInput({
         entry: {
           ...baseAvoidance,
-          correct_pattern_import_path: "@teamagent/core",
+          correct_pattern_import_path: "@viki/core",
         } as Partial<KnowledgeEntry>,
       }),
     );

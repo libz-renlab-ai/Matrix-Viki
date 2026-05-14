@@ -2,8 +2,8 @@ import type {
   AppliedSignal,
   CalibrationResult,
   Calibrator,
-} from "@teamagent/ports";
-import type { KnowledgeEntry, PersistedEvent } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry, PersistedEvent } from "@viki/types";
 
 /**
  * 默认（rule-based）Calibrator。纯函数。
@@ -63,8 +63,8 @@ function isDocOrTestContext(event: PersistedEvent): boolean {
   ) {
     return true;
   }
-  // teamagent 自身数据 / 配置文件
-  if (fp.includes("/.teamagent/") || fp.includes("\\.teamagent\\")) return true;
+  // viki 自身数据 / 配置文件
+  if (fp.includes("/.viki/") || fp.includes("\\.viki\\")) return true;
   return false;
 }
 

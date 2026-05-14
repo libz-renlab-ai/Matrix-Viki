@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import { scoreEntry } from "../scorer.js";
 
 /**
@@ -36,7 +36,7 @@ export const NESTED_TIERS: ReadonlyArray<NonNullable<KnowledgeEntry["current_tie
 /**
  * 把一条 KnowledgeEntry 渲染为 standalone markdown 文件。纯函数。
  *
- * 与 SKILL.md 不同——没有 frontmatter，纯文档化展示，便于 `~/.claude/teamagent/rules/` 做人审。
+ * 与 SKILL.md 不同——没有 frontmatter，纯文档化展示，便于 `~/.claude/viki/rules/` 做人审。
  */
 export function formatRuleAsMarkdown(entry: KnowledgeEntry): string {
   const lines: string[] = [];
@@ -129,7 +129,7 @@ export function formatRootIndex(entries: KnowledgeEntry[], now: string): string 
     }
   }
   const lines: string[] = [];
-  lines.push("# TeamAgent Rules");
+  lines.push("# Viki Rules");
   lines.push("");
   lines.push(`Last compiled: ${now}`);
   lines.push(`Total active: ${active.length}`);
@@ -142,7 +142,7 @@ export function formatRootIndex(entries: KnowledgeEntry[], now: string): string 
     lines.push(`- [${t}](./${t}/INDEX.md) — ${n} ${noun}`);
   }
   lines.push("");
-  lines.push("> 由 `teamagent compile` 自动维护，请勿手动编辑该目录内文件。");
+  lines.push("> 由 `viki compile` 自动维护，请勿手动编辑该目录内文件。");
   lines.push("");
   return lines.join("\n");
 }
@@ -277,7 +277,7 @@ function oneLineTldr(entry: KnowledgeEntry): string {
   return sanitized.length > 80 ? sanitized.slice(0, 79) + "…" : sanitized;
 }
 
-/** 与 markdown.ts 相同：阻止用户字段里嵌入 TEAMAGENT block 标记伪装区块边界。*/
+/** 与 markdown.ts 相同：阻止用户字段里嵌入 VIKI block 标记伪装区块边界。*/
 function sanitizeBlockMarkers(text: string): string {
-  return text.replace(/TEAMAGENT:(START|END)/g, "TEAMAGENT​:$1");
+  return text.replace(/VIKI:(START|END)/g, "VIKI​:$1");
 }

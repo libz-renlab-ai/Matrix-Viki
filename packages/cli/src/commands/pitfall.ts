@@ -10,13 +10,13 @@ import {
   syncRuleVectors,
   syncToolVector,
   XenovaRuleEmbedder,
-} from "@teamagent/adapters";
-import { runCompile } from "@teamagent/core";
+} from "@viki/adapters";
+import { runCompile } from "@viki/core";
 import {
   computeEnforcement,
   parseVisibilityMode,
   type KnowledgeEntry,
-} from "@teamagent/types";
+} from "@viki/types";
 import { buildFallbackDescriptions } from "./migrate-v6.js";
 import { scheduleDocsPropagation } from "./docs-propagate.js";
 import { runM5Share, type M5ShareResult } from "./m5-share.js";
@@ -40,9 +40,9 @@ export interface PitfallInput {
 }
 
 export interface PitfallOptions {
-  /** 项目知识 DB，默认 {cwd}/.teamagent/knowledge.db */
+  /** 项目知识 DB，默认 {cwd}/.viki/knowledge.db */
   projectDbPath?: string;
-  /** global 知识 DB，默认 ~/.teamagent/global.db */
+  /** global 知识 DB，默认 ~/.viki/global.db */
   userGlobalDbPath?: string;
   /** @deprecated 新规则路径不再写 CLAUDE.md；保留字段仅为兼容旧测试/调用方。 */
   claudeMdPath?: string;
@@ -62,11 +62,11 @@ function resolvePaths(opts: PitfallOptions) {
   const cwd = opts.cwd ?? process.cwd();
   return {
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
     claudeMdPath: opts.claudeMdPath ?? path.join(cwd, "CLAUDE.md"),
-    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "teamagent"),
+    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "viki"),
   };
 }
 
@@ -131,7 +131,7 @@ export async function executePitfall(
   const paths = resolvePaths(opts);
   const now = (opts.now ?? (() => new Date().toISOString()))();
   const env = opts.env ?? process.env;
-  const mode = parseVisibilityMode(env.TEAMAGENT_VISIBILITY);
+  const mode = parseVisibilityMode(env.VIKI_VISIBILITY);
 
   fs.mkdirSync(path.dirname(paths.projectDbPath), { recursive: true });
   fs.mkdirSync(path.dirname(paths.userGlobalDbPath), { recursive: true });
@@ -147,10 +147,10 @@ export async function executePitfall(
   store.add(entry);
 
   // M5 自动管线（best-effort，不阻塞）：每条新规则跑闸门 1+2，
-  // 如判定 shareable 则自动 promote 到 .teamagent/team/<author>/
-  // 关闭：env TEAMAGENT_M5_AUTOSHARE=0
+  // 如判定 shareable 则自动 promote 到 .viki/team/<author>/
+  // 关闭：env VIKI_M5_AUTOSHARE=0
   let m5Share: M5ShareResult | undefined;
-  if (env.TEAMAGENT_M5_AUTOSHARE !== "0") {
+  if (env.VIKI_M5_AUTOSHARE !== "0") {
     try {
       const cwd = opts.cwd ?? process.cwd();
       const summary = entry.reasoning || entry.correct_pattern || entry.trigger;
@@ -196,7 +196,7 @@ export async function executePitfall(
 
   // 异步生成 tool_context_description（不阻塞，后台写入）。
   // 测试注入 embedder 时避免启动隐藏的真实 LLM/native embedder 后台工作。
-  if (!opts.embedder && process.env.VITEST !== "true" && env.TEAMAGENT_DISABLE_TOOL_CONTEXT !== "1") {
+  if (!opts.embedder && process.env.VITEST !== "true" && env.VIKI_DISABLE_TOOL_CONTEXT !== "1") {
     generateToolContextAsync(entry, paths.projectDbPath).catch(() => {/* best-effort */});
   }
 
@@ -327,7 +327,7 @@ async function generateToolContextAsync(
   entry: KnowledgeEntry,
   projectDbPath: string,
 ): Promise<void> {
-  const { ClaudeCodeLLMClient, XenovaRuleEmbedder: EmbedderClass, openDb: openDatabase } = await import("@teamagent/adapters");
+  const { ClaudeCodeLLMClient, XenovaRuleEmbedder: EmbedderClass, openDb: openDatabase } = await import("@viki/adapters");
   const llm = new ClaudeCodeLLMClient({ model: "haiku" });
   const desc = await llm.complete(buildToolContextPrompt(entry));
   if (!desc || desc.trim().length < 5) return;
@@ -360,7 +360,7 @@ export class PitfallValidationError extends Error {
   constructor(public readonly missing: string[]) {
     super(
       `pitfall --non-interactive 缺少必填字段: ${missing.join(", ")}\n` +
-        `用法: teamagent pitfall --non-interactive --trigger=... --correct=... --reason=... [--wrong=...]`,
+        `用法: viki pitfall --non-interactive --trigger=... --correct=... --reason=... [--wrong=...]`,
     );
     this.name = "PitfallValidationError";
   }

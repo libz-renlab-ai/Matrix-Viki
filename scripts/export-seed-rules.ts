@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 /**
- * 把开发者本机活跃规则导出成 seed/rules.jsonl，跟 teamagent tarball 一起发。
+ * 把开发者本机活跃规则导出成 seed/rules.jsonl，跟 viki tarball 一起发。
  *
  * 用法:
  *   pnpm tsx scripts/export-seed-rules.ts --dry-run   # 只打印过滤后计数+前 5 条样本
- *   pnpm tsx scripts/export-seed-rules.ts             # 实际写入 packages/teamagent/seed/rules.jsonl
+ *   pnpm tsx scripts/export-seed-rules.ts             # 实际写入 packages/viki/seed/rules.jsonl
  *
  * 过滤策略:
  *   1. status=active
@@ -26,10 +26,10 @@ const PROJECT_PATH_PATTERNS = [
   /C:[\\/]bzli/i,
   /\/c\/bzli/i,
   /\bpackages\/[a-z]+\/src/i,        // packages/<pkg>/src/* 路径
-  /\.teamagent\/(knowledge|global)/i, // 内部 DB 路径
+  /\.viki\/(knowledge|global)/i, // 内部 DB 路径
   /bin-[a-z-]+\.cjs/i,                // hook bundle 文件名
-  /pnpm --filter @teamagent/i,         // 项目专属命令
-  /@teamagent\/(cli|core|adapters|ports|types)/i, // 内部包名
+  /pnpm --filter @viki/i,         // 项目专属命令
+  /@viki\/(cli|core|adapters|ports|types)/i, // 内部包名
 ];
 
 function normalize(s: string): string {
@@ -49,9 +49,9 @@ function isProjectSpecific(e: KnowledgeEntry): boolean {
 function main(): void {
   const dryRun = process.argv.includes("--dry-run");
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const projectDbPath = path.join(repoRoot, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(os.homedir(), ".teamagent", "global.db");
-  const outDir = path.join(repoRoot, "packages", "teamagent", "seed");
+  const projectDbPath = path.join(repoRoot, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(os.homedir(), ".viki", "global.db");
+  const outDir = path.join(repoRoot, "packages", "viki", "seed");
   const outPath = path.join(outDir, "rules.jsonl");
 
   console.log(`reading project db: ${projectDbPath}`);

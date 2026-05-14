@@ -28,12 +28,12 @@ describe("installUserHook", () => {
 
     const settings = JSON.parse(fs.readFileSync(r.settingsPath, "utf-8"));
     expect(settings.hooks?.SessionStart).toHaveLength(1);
-    expect(settings.hooks.SessionStart[0]._teamagentTag).toBe("teamagent-session-start");
+    expect(settings.hooks.SessionStart[0]._vikiTag).toBe("viki-session-start");
     expect(settings.hooks.SessionStart[0].hooks[0].command).toContain("bin-session-start.cjs");
   });
 
   // Issue #209: SessionStart command must be wrapped in the graceful shim so a
-  // missing ~/.teamagent/hooks/bin-session-start.cjs (manual rm -rf, partial
+  // missing ~/.viki/hooks/bin-session-start.cjs (manual rm -rf, partial
   // install) exits 0 silently instead of dumping MODULE_NOT_FOUND on every
   // Claude Code launch.
   it("SessionStart command is wrapped in `bash -c '[ -f X ] || exit 0; exec node X'` shim", () => {
@@ -79,7 +79,7 @@ describe("installUserHook", () => {
     expect(r2.alreadyInstalled).toBe(true);
     const settings = JSON.parse(fs.readFileSync(r2.settingsPath, "utf-8"));
     const ourHooks = settings.hooks.SessionStart.filter(
-      (h: any) => h._teamagentTag === "teamagent-session-start",
+      (h: any) => h._vikiTag === "viki-session-start",
     );
     expect(ourHooks).toHaveLength(1);
   });
@@ -107,11 +107,11 @@ describe("installUserHook", () => {
     expect(after.hooks.SessionStart[0].hooks[0].command).toBe("echo unrelated");
   });
 
-  // B-086: legacy entries written before _teamagentTag was added (or via
+  // B-086: legacy entries written before _vikiTag was added (or via
   // npm tarball install pre-tag, or via older monorepo install path) leave
   // orphan SessionStart entries that point at bin-session-start.cjs in some
   // path. installUserHook must replace them, and uninstallUserHook must
-  // remove them — otherwise users accumulate stale teamagent hooks across
+  // remove them — otherwise users accumulate stale viki hooks across
   // reinstalls and uninstall leaves them dangling.
   it("install 清理 untagged 但指向 bin-session-start.cjs 的旧条目", () => {
     const settingsPath = path.join(home, ".claude", "settings.json");
@@ -131,10 +131,10 @@ describe("installUserHook", () => {
 
     installUserHook({ homeDir: home, sessionStartEntry });
     const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    // 2 untagged teamagent legacy entries removed, unrelated kept, new tagged entry added
+    // 2 untagged viki legacy entries removed, unrelated kept, new tagged entry added
     expect(settings.hooks.SessionStart).toHaveLength(2);
     expect(settings.hooks.SessionStart[0].hooks[0].command).toBe("echo unrelated");
-    expect(settings.hooks.SessionStart[1]._teamagentTag).toBe("teamagent-session-start");
+    expect(settings.hooks.SessionStart[1]._vikiTag).toBe("viki-session-start");
   });
 
   it("uninstall 清理 untagged 但指向 bin-session-start.cjs 的旧条目", () => {
@@ -146,7 +146,7 @@ describe("installUserHook", () => {
         hooks: {
           SessionStart: [
             { hooks: [{ type: "command", command: "node /tmp/old/bin-session-start.cjs" }] },
-            { _teamagentTag: "teamagent-session-start", hooks: [{ type: "command", command: "node /current/bin-session-start.cjs" }] },
+            { _vikiTag: "viki-session-start", hooks: [{ type: "command", command: "node /current/bin-session-start.cjs" }] },
             { hooks: [{ type: "command", command: "echo unrelated" }] },
           ],
         },
@@ -164,16 +164,16 @@ describe("installUserHook", () => {
   // the bundle path inside whichever node_modules / tmp clone happened to
   // run install-user-hook. Otherwise nvm version switches, npm reinstalls,
   // or `/private/tmp/<repo>` clones being cleaned all break the hook.
-  // Repro: previously a `pnpm teamagent install-user-hook` from a tmp clone
-  // wrote `node /private/tmp/TeamBrain/packages/teamagent/dist/bin-session-start.cjs`
+  // Repro: previously a `pnpm viki install-user-hook` from a tmp clone
+  // wrote `node /private/tmp/TeamBrain/packages/viki/dist/bin-session-start.cjs`
   // into ~/.claude/settings.json; once /tmp was cleaned, every Claude Code
   // session opened with `Cannot find module ...bin-session-start.cjs`.
   describe("稳定路径 (B-091)", () => {
-    it("把 bundle 复制到 ~/.teamagent/hooks/ 并写入稳定路径", () => {
+    it("把 bundle 复制到 ~/.viki/hooks/ 并写入稳定路径", () => {
       fs.writeFileSync(sessionStartEntry, "// fresh bundle content");
       const r = installUserHook({ homeDir: home, sessionStartEntry });
 
-      const stagedPath = path.join(home, ".teamagent", "hooks", "bin-session-start.cjs");
+      const stagedPath = path.join(home, ".viki", "hooks", "bin-session-start.cjs");
       expect(fs.existsSync(stagedPath)).toBe(true);
       expect(fs.readFileSync(stagedPath, "utf-8")).toBe("// fresh bundle content");
 
@@ -187,10 +187,10 @@ describe("installUserHook", () => {
     it("重装时刷新已暂存的 hook bundle (内容更新流到 stable path)", () => {
       fs.writeFileSync(sessionStartEntry, "// v1");
       installUserHook({ homeDir: home, sessionStartEntry });
-      const stagedPath = path.join(home, ".teamagent", "hooks", "bin-session-start.cjs");
+      const stagedPath = path.join(home, ".viki", "hooks", "bin-session-start.cjs");
       expect(fs.readFileSync(stagedPath, "utf-8")).toBe("// v1");
 
-      // Simulate teamagent upgrade: source bundle content changes
+      // Simulate viki upgrade: source bundle content changes
       fs.writeFileSync(sessionStartEntry, "// v2 with bug fix");
       installUserHook({ homeDir: home, sessionStartEntry });
       expect(fs.readFileSync(stagedPath, "utf-8")).toBe("// v2 with bug fix");
@@ -198,10 +198,10 @@ describe("installUserHook", () => {
 
     it("源 bundle 在临时目录清理后, hook 仍可解析 (路径不依赖源)", () => {
       installUserHook({ homeDir: home, sessionStartEntry });
-      const stagedPath = path.join(home, ".teamagent", "hooks", "bin-session-start.cjs");
+      const stagedPath = path.join(home, ".viki", "hooks", "bin-session-start.cjs");
 
       // Wipe the source bundle (simulates `/private/tmp/TeamBrain` being cleaned,
-      // or `npm uninstall -g teamagent` followed by switching nvm versions)
+      // or `npm uninstall -g viki` followed by switching nvm versions)
       fs.rmSync(path.dirname(sessionStartEntry), { recursive: true, force: true });
 
       // Staged copy survives — that's the whole point of the stable path

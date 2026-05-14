@@ -9,7 +9,7 @@
  * are atomic (tmp + rename), the *sequence* is not — two callers can read the
  * same baseline, then write back two divergent mutations, and the second
  * write silently overwrites the first ("lost update"). Concrete failure: a
- * user runs `teamagent update --snooze` while a SessionStart in another
+ * user runs `viki update --snooze` while a SessionStart in another
  * window is persisting `last_check_ts`; whichever finishes second wins and
  * the snooze (or the timestamp) is lost.
  *
@@ -42,7 +42,7 @@ import {
   parseUpdateState,
   serializeUpdateState,
   type UpdateState,
-} from "@teamagent/core";
+} from "@viki/core";
 
 const LOCK_FILENAME = "update-state.lock";
 const STATE_FILENAME = "update-state.json";

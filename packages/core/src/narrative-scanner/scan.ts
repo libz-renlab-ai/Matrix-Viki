@@ -1,5 +1,5 @@
-import type { KnowledgeEntry } from "@teamagent/types";
-import { normalizeChannel } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
+import { normalizeChannel } from "@viki/types";
 
 /**
  * M4-A 叙事扫描器。

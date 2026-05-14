@@ -10,14 +10,14 @@
  *
  *   1. Foreground hook entry (Claude Code → stdin JSON). Reads input via
  *      `runHook`, spawns a detached child re-entering this same bundle with
- *      env flag `TEAMAGENT_PRE_COMPACT_PIPELINE=1` + the JSON payload as
+ *      env flag `VIKI_PRE_COMPACT_PIPELINE=1` + the JSON payload as
  *      argv[2]. Returns immediately so compaction UX is never blocked.
  *
  *   2. Detached child (env flag set + argv[2] holds the JSON payload). Skips
  *      HookShell entirely and calls `runFullRescanPipeline` directly — that
  *      pipeline opens its own DualLayerStore / SqliteEventLog / bus and emits
  *      its own AttributionEvents. Wrapping it in `runHook` would double-open
- *      sqlite handles and contend on .teamagent locks for no benefit.
+ *      sqlite handles and contend on .viki locks for no benefit.
  *
  * Why `runHook` (not `runAdvancedHook`) for the foreground branch: the
  * foreground only spawns a child and returns; HookShell's eager store /
@@ -56,7 +56,7 @@ function isValidStopHookInput(v: unknown): v is StopHookInput {
 async function main(): Promise<void> {
   // Detached child branch: bypass HookShell entirely. The pipeline body
   // opens its own resources and emits its own AttributionEvents.
-  if (process.env["TEAMAGENT_PRE_COMPACT_PIPELINE"] === "1") {
+  if (process.env["VIKI_PRE_COMPACT_PIPELINE"] === "1") {
     const input = JSON.parse(process.argv[2] ?? "{}") as StopHookInput;
     await runFullRescanPipeline(input);
     return;
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   // `escape.manualResources: true` (performance-specialist finding on PR #152
   // /review, same root cause as Codex P1 for bin-updater): default `runHook`
   // eagerly opens DualLayerStore + SqliteEventLog before the handler runs,
-  // and DualLayerStore's ctor creates `<cwd>/.teamagent/knowledge.db` even
+  // and DualLayerStore's ctor creates `<cwd>/.viki/knowledge.db` even
   // when no rows are written. Foreground PreCompact only spawns a detached
   // child and returns — never touches `ctx.store` / `ctx.eventLog` — so
   // opening sqlite is wasted work AND has the side effect of marking a
@@ -85,12 +85,12 @@ async function main(): Promise<void> {
     parseInput: (raw) => (isValidStopHookInput(raw) ? raw : null),
     escape: { manualResources: true },
     handler: (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // PreCompact hook bails before scheduling the detached child re-entry,
       // so no compact-time analyze pipeline runs. PreCompact's handler type
       // signature (declared above) intentionally narrows ctx to { input, cwd }
       // without env, so read process.env directly here.
-      if (process.env.TEAMAGENT_DISABLED === "1") {
+      if (process.env.VIKI_DISABLED === "1") {
         return undefined;
       }
       const selfPath = process.argv[1]!;
@@ -101,7 +101,7 @@ async function main(): Promise<void> {
           detached: true,
           stdio: "ignore",
           cwd: ctx.cwd,
-          env: { ...process.env, TEAMAGENT_PRE_COMPACT_PIPELINE: "1" },
+          env: { ...process.env, VIKI_PRE_COMPACT_PIPELINE: "1" },
           windowsHide: true,
         },
       );
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
 
 main().catch((e) => {
   try {
-    const logPath = path.join(os.homedir(), ".teamagent", "stop-errors.log");
+    const logPath = path.join(os.homedir(), ".viki", "stop-errors.log");
     appendFileSync(
       logPath,
       `[${new Date().toISOString()}] pre-compact-crash err=${String(e)}\n`,

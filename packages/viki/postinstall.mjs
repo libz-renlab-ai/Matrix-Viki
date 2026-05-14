@@ -19,7 +19,7 @@ import os from "node:os";
  *
  * Uses bounded fs.existsSync rather than createRequire walks: we must NOT find
  * a globally-installed @xenova in the user's nvm/node_modules; we want to know
- * specifically whether the optionals were installed alongside this teamagent
+ * specifically whether the optionals were installed alongside this viki
  * (npm hoists deps to <prefix>/lib/node_modules/ peer dirs in -g installs, or
  * to ./node_modules/ for local installs).
  */
@@ -70,7 +70,7 @@ function vectorOptionalsInstalled(pkgDir) {
       // createRequire path is best-effort; fall through to found=false
     }
   }
-  if (process.env.TEAMAGENT_POSTINSTALL_DEBUG === "1") {
+  if (process.env.VIKI_POSTINSTALL_DEBUG === "1") {
     process.stderr.write(`DEBUG postinstall pkgDir=${pkgDir} found=${found} (xenova=${hasXenova} onnx=${hasOnnx})\n`);
   }
   return found;
@@ -79,9 +79,9 @@ function vectorOptionalsInstalled(pkgDir) {
 /**
  * Issue #158: detect whether the optional tree-sitter native deps
  * (web-tree-sitter + tree-sitter-typescript + tree-sitter-python) are present.
- * They have been removed from packages/teamagent/package.json entirely because
+ * They have been removed from packages/viki/package.json entirely because
  * their install scripts spawn cmd.exe on Windows during npm reify (ENOENT) and
- * the partial install deletes the user's prior teamagent. Their absence is the
+ * the partial install deletes the user's prior viki. Their absence is the
  * default case post-#158; the matcher's `ast-context.ts:initAstMatcher` already
  * has a try/catch fallback that returns false → "conservative mode" (don't
  * filter comment/string false-positives). Surface the state in the banner so
@@ -145,14 +145,14 @@ function treesitterOptionalsInstalled(pkgDir) {
       // best-effort
     }
   }
-  if (process.env.TEAMAGENT_POSTINSTALL_DEBUG === "1") {
+  if (process.env.VIKI_POSTINSTALL_DEBUG === "1") {
     process.stderr.write(`DEBUG postinstall tree-sitter pkgDir=${pkgDir} found=${found} (wts=${hasWts} ts=${hasTs} py=${hasPy})\n`);
   }
   return found;
 }
 
 // --- duck-mode (issue #116) — inline because postinstall.mjs ships
-// standalone without bundled @teamagent/core. Full copy of the
+// standalone without bundled @viki/core. Full copy of the
 // authoritative table at packages/core/src/duck-mode/translations.ts.
 // Copying all entries future-proofs against banner copy changes (table
 // is small: ~25 entries × ~150 bytes ≈ 3 KB).
@@ -184,7 +184,7 @@ const POSTINSTALL_DUCK = [
   { term: "Codex", aliases: ["codex", ".codex/skills"], duck: "鸭鸭说: Codex 是另一个 AI 编程助手，鸭鸭也给它准备一份 Skills 让它读呷~" },
   { term: "plugins", aliases: ["plugin", "Plugin"], duck: "呷呷~ plugins 是给 Claude Code 装的小扩展包，鸭鸭借此让 Claude 多会几招呷~ (>ω<)" },
 ];
-const DUCK_KEY = "TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK";
+const DUCK_KEY = "VIKI_EXPLAIN_LIKE_CEO_DUCK";
 const isDuckModeOn = () => process["env"][DUCK_KEY] === "1";
 function duckify(text) {
   if (!isDuckModeOn()) return text;
@@ -213,7 +213,7 @@ const seedPath = path.join(pkgDir, "dist", "seed", "rules.jsonl");
 // something to work with. Without this every `userHookStatus="failed"` /
 // `warmupStatus="failed"` was a black box. File is rotated implicitly by
 // being overwritten on each install (single source = current install).
-const setupLogPath = path.join(os.homedir(), ".teamagent", "postinstall.log");
+const setupLogPath = path.join(os.homedir(), ".viki", "postinstall.log");
 function recordSetupFailure(stage, err) {
   try {
     fs.mkdirSync(path.dirname(setupLogPath), { recursive: true });
@@ -311,16 +311,16 @@ function spawnWithTimeout(cmd, args, { inheritStdio = false } = {}, timeoutMs) {
  *
  * Mirrors packages/cli/src/commands/init.ts:589 spawnDetachedWarmup +
  * packages/cli/src/warmup-state.ts writeInitialPlaceholder. postinstall.mjs is
- * standalone (no @teamagent/core import), so the schema is inlined.
+ * standalone (no @viki/core import), so the schema is inlined.
  */
 function spawnDetachedWarmup(binJsPath) {
-  const teamagentDir = path.join(os.homedir(), ".teamagent");
-  const statePath = path.join(teamagentDir, ".warmup-state.json");
-  const logPath = path.join(teamagentDir, "warmup.log");
+  const vikiDir = path.join(os.homedir(), ".viki");
+  const statePath = path.join(vikiDir, ".warmup-state.json");
+  const logPath = path.join(vikiDir, "warmup.log");
   try {
-    fs.mkdirSync(teamagentDir, { recursive: true });
+    fs.mkdirSync(vikiDir, { recursive: true });
   } catch (err) {
-    return { ok: false, detail: `mkdir ~/.teamagent failed: ${String(err).slice(0, 80)}` };
+    return { ok: false, detail: `mkdir ~/.viki failed: ${String(err).slice(0, 80)}` };
   }
   // 1) atomic placeholder so first reader (PreToolUse / doctor) sees
   //    status="downloading" rather than the moment-of-no-file.
@@ -367,7 +367,7 @@ async function main() {
   // === Stage 1: doctor + install-user-hook in parallel ===
   // 二者彼此不依赖；以前串行白白多花 ~5s（doctor 15s timeout + hook 10s timeout
   // 顺序跑）。并行后只算慢的那一个的 wall-clock。stdio:"pipe" 静默捕捉，避免
-  // 跟父进程 npm 的进度条互相干扰；失败时 stderr 落到 ~/.teamagent/postinstall.log。
+  // 跟父进程 npm 的进度条互相干扰；失败时 stderr 落到 ~/.viki/postinstall.log。
   process.stderr.write(duckify("[1/2] 自检 + 注册用户级 hook (并行)...\n"));
   const t1 = Date.now();
   const [doctorR, hookR] = await Promise.allSettled([
@@ -401,29 +401,29 @@ async function main() {
   // === Stage 2: warmup vector model (two-stage install — ADR 0001) ===
   // 关键资产：multilingual-e5-small ~120MB；首次会从 HuggingFace 拉。
   //
-  // 默认 detached：写一份 placeholder state 到 ~/.teamagent/.warmup-state.json
+  // 默认 detached：写一份 placeholder state 到 ~/.viki/.warmup-state.json
   // (status="downloading", pid=0)，spawn detached child + child.unref()，立即返回。
   // 主流程 wall-clock 不再卡在模型下载上 → install 进 30s（ADR 0001 promise）。
   // bin-pre-tool-use 在 status !== "ready" 时回退 legacy substring matcher，universal
   // pack 的 substring-friendly 关键词在 ~10 分钟下载完之前已能拦截高频陷阱。
   //
-  // postinstall.mjs 是 standalone（不能 import @teamagent/core / warmup-state.ts），
+  // postinstall.mjs 是 standalone（不能 import @viki/core / warmup-state.ts），
   // 所以这里 inline 复制 placeholder schema；与 packages/cli/src/warmup-state.ts
   // writeInitialPlaceholder 保持一致。
   //
   // 三个 env：
-  //   TEAMAGENT_SKIP_WARMUP=1     完全跳过（用户首次 PreToolUse 才按需下载）
-  //   TEAMAGENT_FOREGROUND_WARMUP=1   foreground 同步等齐（旧行为；适合 CI / 预热镜像）
+  //   VIKI_SKIP_WARMUP=1     完全跳过（用户首次 PreToolUse 才按需下载）
+  //   VIKI_FOREGROUND_WARMUP=1   foreground 同步等齐（旧行为；适合 CI / 预热镜像）
   //   (默认)                       detached 后台
   let warmupStatus = "skipped";
   const haveVectorOptionals = vectorOptionalsInstalled(pkgDir);
-  if (process.env.TEAMAGENT_SKIP_WARMUP === "1") {
+  if (process.env.VIKI_SKIP_WARMUP === "1") {
     // Issue #160: log BEFORE the user-visible message so a SIGINT / EPIPE
     // crash mid-banner still leaves `stage=warmup status=skipped` in
     // postinstall.log — the whole point of this entry is to disambiguate
     // "skipped on purpose" from "Stage 2 never reached."
     recordSetupStatus("warmup", "skipped", "env-skip-warmup");
-    process.stderr.write(duckify("[2/2] warmup: 跳过 (TEAMAGENT_SKIP_WARMUP=1)\n"));
+    process.stderr.write(duckify("[2/2] warmup: 跳过 (VIKI_SKIP_WARMUP=1)\n"));
   } else if (!haveVectorOptionals) {
     // Issue #164: defensive fallback. As of v0.10.x the vector deps ship by
     // default in `dependencies`, so reaching this branch means something
@@ -437,8 +437,8 @@ async function main() {
           "     恢复语义匹配：npm install -g @xenova/transformers@^2.17.0 onnxruntime-node@1.14.0\n",
       ),
     );
-  } else if (process.env.TEAMAGENT_FOREGROUND_WARMUP === "1") {
-    process.stderr.write(duckify("[2/2] 下载向量模型 (TEAMAGENT_FOREGROUND_WARMUP=1; ~120MB):\n"));
+  } else if (process.env.VIKI_FOREGROUND_WARMUP === "1") {
+    process.stderr.write(duckify("[2/2] 下载向量模型 (VIKI_FOREGROUND_WARMUP=1; ~120MB):\n"));
     const t2 = Date.now();
     try {
       await spawnWithTimeout(
@@ -468,7 +468,7 @@ async function main() {
         `     warmup: 后台 pid=${detach.pid} state=${detach.statePath} · ${Date.now() - t2}ms\n`,
       );
       // Issue #160: detached spawn succeeded; child's terminal status flips
-      // ~/.teamagent/.warmup-state.json once it lands. postinstall.log only
+      // ~/.viki/.warmup-state.json once it lands. postinstall.log only
       // records the parent decision (we forked the warmup; we did not block
       // on it).
       recordSetupStatus("warmup", "detached", "background");
@@ -482,13 +482,13 @@ async function main() {
   }
 
   // === Stage 3: update-state init (always, fast) ===
-  // Initialize ~/.teamagent/update-state.json with the release sha if release-meta.json
+  // Initialize ~/.viki/update-state.json with the release sha if release-meta.json
   // is present (i.e., installed from GitHub release branch).
   try {
     const releaseMeta = path.join(pkgDir, "release-meta.json");
     if (fs.existsSync(releaseMeta)) {
       const meta = JSON.parse(fs.readFileSync(releaseMeta, "utf-8"));
-      const home = path.join(os.homedir(), ".teamagent");
+      const home = path.join(os.homedir(), ".viki");
       fs.mkdirSync(home, { recursive: true });
       const statePath = path.join(home, "update-state.json");
       let state = {};
@@ -511,9 +511,9 @@ async function main() {
 
   // === Stage 4: tree-sitter AST matcher detection (issue #158) ===
   // The 3 tree-sitter packages (web-tree-sitter, tree-sitter-typescript,
-  // tree-sitter-python) were removed from packages/teamagent/package.json
+  // tree-sitter-python) were removed from packages/viki/package.json
   // because their native install scripts spawn cmd.exe on Windows and fail
-  // (ENOENT), and npm reify deletes the prior teamagent install before that
+  // (ENOENT), and npm reify deletes the prior viki install before that
   // failure surfaces — destroying user state. ast-context.ts:initAstMatcher
   // already has a try/catch fallback returning false when import fails (=>
   // matcher runs in conservative mode: comment/string false-positives are NOT
@@ -541,40 +541,40 @@ async function main() {
       : warmupStatus === "detached-failed"
         ? "向量模型: 后台启动失败, 首次 embed 会按需下载 (~5–10s)"
         : warmupStatus === "foreground-ok"
-          ? "向量模型已预热 (TEAMAGENT_FOREGROUND_WARMUP=1)"
+          ? "向量模型已预热 (VIKI_FOREGROUND_WARMUP=1)"
           : warmupStatus === "foreground-failed"
             ? "向量模型预热失败 (foreground 模式), 首次 embed 会按需下载 (~5–10s)"
             : warmupStatus === "vector-deps-absent"
               ? "向量模型: vector deps 缺失 (substring matcher 兜底; 跑 npm install -g @xenova/transformers onnxruntime-node 恢复)"
-              : "向量模型: 跳过预热 (TEAMAGENT_SKIP_WARMUP=1)";
+              : "向量模型: 跳过预热 (VIKI_SKIP_WARMUP=1)";
 
   // Issue #158: ast-matcher banner — symmetric to warmupMsg.
   const astMsg =
     astMatcherStatus === "ready"
       ? "AST 精准过滤已启用 (web-tree-sitter)"
-      : "AST 过滤: 未安装 (matcher 跑保守模式; 注释/字符串里的关键词也会触发提醒)\n     · 启用精准过滤: npm install -g teamagent web-tree-sitter@^0.26 tree-sitter-typescript@^0.23 tree-sitter-python@^0.23";
+      : "AST 过滤: 未安装 (matcher 跑保守模式; 注释/字符串里的关键词也会触发提醒)\n     · 启用精准过滤: npm install -g viki web-tree-sitter@^0.26 tree-sitter-typescript@^0.23 tree-sitter-python@^0.23";
 
-  // B-152: previously the banner always said "✨ TeamAgent 安装成功" even when
+  // B-152: previously the banner always said "✨ Viki 安装成功" even when
   // install-user-hook failed (e.g., monorepo dev mode where dist/bin.js is
   // missing). That misled users into thinking SessionStart would auto-trigger.
   // Now the banner reflects the real state.
   const hookOk = userHookStatus === "registered";
   const headerLine = hookOk
-    ? "✨ TeamAgent 安装成功"
-    : "⚠️  TeamAgent 部分安装 — 用户级 hook 注册失败";
+    ? "✨ Viki 安装成功"
+    : "⚠️  Viki 部分安装 — 用户级 hook 注册失败";
   const closingLine = hookOk
     ? "✅ 装好啦 🎉 立刻可以做的 3 件事:"
     : "⚠️  装了但没完全跑通。SessionStart hook 没装 → 不会自动 init 新项目。详情:";
   const nextLine = hookOk
     ? "   · 下一步  : 直接打开 Claude Code, 任何项目首次开会自动 init"
-    : `   · 下一步  : 看 ${setupLogPath} 排查；修好后跑 \`teamagent install-user-hook\``;
+    : `   · 下一步  : 看 ${setupLogPath} 排查；修好后跑 \`viki install-user-hook\``;
 
   process.stdout.write(
     duckify([
       "",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       headerLine,
-      `   · 归因渲染: verbose 模式 (TEAMAGENT_VISIBILITY=smart 可调)`,
+      `   · 归因渲染: verbose 模式 (VIKI_VISIBILITY=smart 可调)`,
       `   · 知识种子: ${ruleMsg}`,
       `   · 自动初始化: ${userHookMsg}`,
       `   · 向量模型  : ${warmupMsg}`,
@@ -582,9 +582,9 @@ async function main() {
       nextLine,
       "",
       closingLine,
-      "   1. teamagent skeleton-demo   — 跑最小学习闭环 demo，看系统怎么记住一条经验",
-      "   2. teamagent stats           — 看自己 brain 学了多少经验",
-      "   3. teamagent --help          — 看完整命令列表",
+      "   1. viki skeleton-demo   — 跑最小学习闭环 demo，看系统怎么记住一条经验",
+      "   2. viki stats           — 看自己 brain 学了多少经验",
+      "   3. viki --help          — 看完整命令列表",
       "",
       "   📖 文档 & 反馈: https://github.com/libz-renlab-ai/TeamBrain",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
@@ -595,8 +595,8 @@ async function main() {
   if (doctorFailed) {
     process.stderr.write(
       duckify(
-        "ℹ️  TeamAgent doctor 有未通过项 (通常是 knowledge.db 未初始化，属正常)。\n" +
-          "   运行 `teamagent doctor` 查看详情\n\n",
+        "ℹ️  Viki doctor 有未通过项 (通常是 knowledge.db 未初始化，属正常)。\n" +
+          "   运行 `viki doctor` 查看详情\n\n",
       ),
     );
   }

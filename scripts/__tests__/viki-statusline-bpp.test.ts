@@ -1,11 +1,11 @@
-// Tests for scripts/teamagent-statusline-bpp.cjs.
+// Tests for scripts/viki-statusline-bpp.cjs.
 //
 // Verifies the statusline segment formula:
 //   📬 N pending best practices
 // where N = count of inbox items with `status === "pending"`.
 //
 // Run directly with:
-//   pnpm vitest run scripts/__tests__/teamagent-statusline-bpp.test.ts
+//   pnpm vitest run scripts/__tests__/viki-statusline-bpp.test.ts
 // (root vitest.config.ts `include` only covers packages/*/src/**, so this file
 //  is not picked up by `pnpm test`. Track in a follow-up PR if/when scripts/
 //  gains its own test surface.)
@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
-const SCRIPT = resolve(__dirname, '..', 'teamagent-statusline-bpp.cjs');
+const SCRIPT = resolve(__dirname, '..', 'viki-statusline-bpp.cjs');
 
 function runStatusline(stdin: string): string {
   // Use execFileSync with `input` to write to stdin; we want exact stdout
@@ -28,7 +28,7 @@ function runStatusline(stdin: string): string {
   return out;
 }
 
-describe('teamagent-statusline-bpp.cjs', () => {
+describe('viki-statusline-bpp.cjs', () => {
   it('empty inbox (array) → "📬 0"', () => {
     const out = runStatusline(JSON.stringify([]));
     expect(out).toContain('📬 0');

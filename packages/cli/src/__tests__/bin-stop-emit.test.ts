@@ -27,7 +27,7 @@ import { isDetachedPipelineInvocation } from "../bin-stop.js";
 describe("isDetachedPipelineInvocation — Stop hook foreground/detached gating", () => {
   let scratch: string;
   beforeEach(() => {
-    scratch = mkdtempSync(path.join(tmpdir(), "teamagent-bin-stop-emit-"));
+    scratch = mkdtempSync(path.join(tmpdir(), "viki-bin-stop-emit-"));
   });
   afterEach(() => {
     rmSync(scratch, { recursive: true, force: true });
@@ -40,13 +40,13 @@ describe("isDetachedPipelineInvocation — Stop hook foreground/detached gating"
   });
 
   it("returns false when env flag is set but argv tmp-file missing", () => {
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
+    const env = { VIKI_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
     const argv = ["node", "bin-stop.cjs"];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(false);
   });
 
   it("returns false when env flag is set, argv given, but tmp-file does not exist", () => {
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
+    const env = { VIKI_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
     const argv = ["node", "bin-stop.cjs", "/nonexistent/tmp-file.json"];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(false);
   });
@@ -54,7 +54,7 @@ describe("isDetachedPipelineInvocation — Stop hook foreground/detached gating"
   it("returns true when env flag is set AND tmp-file argv[2] exists", () => {
     const tmpFile = path.join(scratch, "payload.json");
     writeFileSync(tmpFile, "{}", "utf-8");
-    const env = { TEAMAGENT_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
+    const env = { VIKI_STOP_PIPELINE: "1" } as NodeJS.ProcessEnv;
     const argv = ["node", "bin-stop.cjs", tmpFile];
     expect(isDetachedPipelineInvocation(env, argv)).toBe(true);
   });
@@ -63,14 +63,14 @@ describe("isDetachedPipelineInvocation — Stop hook foreground/detached gating"
     const tmpFile = path.join(scratch, "payload.json");
     writeFileSync(tmpFile, "{}", "utf-8");
     const env = {
-      TEAMAGENT_SESSION_END_PIPELINE: "1",
+      VIKI_SESSION_END_PIPELINE: "1",
     } as NodeJS.ProcessEnv;
     const argv = ["node", "bin-session-end.cjs", tmpFile];
     expect(
-      isDetachedPipelineInvocation(env, argv, "TEAMAGENT_SESSION_END_PIPELINE"),
+      isDetachedPipelineInvocation(env, argv, "VIKI_SESSION_END_PIPELINE"),
     ).toBe(true);
     expect(
-      isDetachedPipelineInvocation(env, argv, "TEAMAGENT_STOP_PIPELINE"),
+      isDetachedPipelineInvocation(env, argv, "VIKI_STOP_PIPELINE"),
     ).toBe(false);
   });
 });
@@ -88,13 +88,13 @@ describe("Stop emit gating — foreground emits, detached does not", () => {
     expect(fgShouldEmit).toBe(true);
 
     const scratch = mkdtempSync(
-      path.join(tmpdir(), "teamagent-bin-stop-emit-gate-"),
+      path.join(tmpdir(), "viki-bin-stop-emit-gate-"),
     );
     try {
       const tmpFile = path.join(scratch, "payload.json");
       writeFileSync(tmpFile, "{}", "utf-8");
       const childEnv = {
-        TEAMAGENT_STOP_PIPELINE: "1",
+        VIKI_STOP_PIPELINE: "1",
       } as NodeJS.ProcessEnv;
       const childArgv = ["node", "bin-stop.cjs", tmpFile];
       const childShouldEmit = !isDetachedPipelineInvocation(

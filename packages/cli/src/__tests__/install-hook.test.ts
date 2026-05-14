@@ -33,7 +33,7 @@ describe("installHook", () => {
 
     const content = JSON.parse(fs.readFileSync(r.settingsPath, "utf-8"));
     expect(content.hooks.PreToolUse).toBeDefined();
-    expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     expect(content.hooks.PreToolUse[0].matcher).toContain("Bash");
     expect(content.hooks.PreToolUse[0].hooks[0].command).toContain("node");
     // command 会把反斜杠转为正斜杠
@@ -60,7 +60,7 @@ describe("installHook", () => {
     expect(content.someUserSetting).toBe("preserved");
     expect(content.hooks.PreToolUse).toHaveLength(2);
     expect(content.hooks.PreToolUse[0].hooks[0].command).toBe("user-hook.sh");
-    expect(content.hooks.PreToolUse[1]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[1]._vikiTag).toBe("viki-pre-tool-use");
   });
 
   it("idempotent: second install detects already-installed", () => {
@@ -75,7 +75,7 @@ describe("installHook", () => {
   });
 
   // v0.11.0 channelOps unification: project-level applyChannelOps now also
-  // strips untagged-legacy entries that point at TeamAgent bundle filenames
+  // strips untagged-legacy entries that point at Viki bundle filenames
   // (mirrors B-086 user-level dedup). Without this test, a future refactor
   // could silently regress project-level dedup since the symmetric user-level
   // test (line ~790) only exercises ~/.claude/settings.json — not
@@ -107,7 +107,7 @@ describe("installHook", () => {
 
     const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
     expect(content.hooks.PreToolUse).toHaveLength(1);
-    expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     const cmd: string = content.hooks.PreToolUse[0].hooks[0].command;
     expect(cmd).not.toContain("/old/install/path/bin-pre-tool-use.cjs");
   });
@@ -129,7 +129,7 @@ describe("uninstallHook", () => {
     expect(r.removed).toBe(false);
   });
 
-  it("removes only TeamAgent entry, preserves user hooks", () => {
+  it("removes only Viki entry, preserves user hooks", () => {
     installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, userLevel: false });
 
     // 注入一条用户自己的 hook
@@ -173,7 +173,7 @@ describe("installHook — UserPromptSubmit + Stop", () => {
       fs.readFileSync(path.join(tmp.cwd, ".claude", "settings.local.json"), "utf-8")
     );
     expect(content.hooks.UserPromptSubmit).toBeDefined();
-    expect(content.hooks.UserPromptSubmit[0]._teamagentTag).toBe("teamagent-user-prompt-submit");
+    expect(content.hooks.UserPromptSubmit[0]._vikiTag).toBe("viki-user-prompt-submit");
     expect(content.hooks.UserPromptSubmit[0].hooks[0].timeout).toBe(10);
     expect(content.hooks.UserPromptSubmit[0].matcher).toBeUndefined();
   });
@@ -189,7 +189,7 @@ describe("installHook — UserPromptSubmit + Stop", () => {
       fs.readFileSync(path.join(tmp.cwd, ".claude", "settings.local.json"), "utf-8")
     );
     expect(content.hooks.Stop).toBeDefined();
-    expect(content.hooks.Stop[0]._teamagentTag).toBe("teamagent-stop");
+    expect(content.hooks.Stop[0]._vikiTag).toBe("viki-stop");
     expect(content.hooks.Stop[0].hooks[0].timeout).toBe(60);
     expect(content.hooks.Stop[0].matcher).toBeUndefined();
   });
@@ -225,7 +225,7 @@ describe("installHook — statusLine", () => {
   beforeEach(() => { tmp = mkTmp(); });
   afterEach(() => { tmp.cleanup(); });
 
-  it("registers teamagent statusLine when none exists", () => {
+  it("registers viki statusLine when none exists", () => {
     const r = installHook({
       cwd: tmp.cwd,
       hookEntry: FAKE_HOOK_ENTRY,
@@ -239,12 +239,12 @@ describe("installHook — statusLine", () => {
     );
     expect(content.statusLine).toBeDefined();
     expect(content.statusLine.type).toBe("command");
-    expect(content.statusLine._teamagentTag).toBe("teamagent-statusline");
+    expect(content.statusLine._vikiTag).toBe("viki-statusline");
     expect(content.statusLine.command).toContain("node");
     expect(content.statusLine.command).toContain(FAKE_HOOK_ENTRY.replace(/\\/g, "/"));
   });
 
-  it("updates tagged teamagent statusLine (idempotent)", () => {
+  it("updates tagged viki statusLine (idempotent)", () => {
     installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, statusLineEntry: FAKE_HOOK_ENTRY, userLevel: false });
     const r2 = installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, statusLineEntry: FAKE_HOOK_ENTRY, userLevel: false });
     expect(r2.statusLineSkipped).toBe(false);
@@ -252,7 +252,7 @@ describe("installHook — statusLine", () => {
     const content = JSON.parse(
       fs.readFileSync(path.join(tmp.cwd, ".claude", "settings.local.json"), "utf-8"),
     );
-    expect(content.statusLine._teamagentTag).toBe("teamagent-statusline");
+    expect(content.statusLine._vikiTag).toBe("viki-statusline");
   });
 
   it("wraps user's project-level statusLine into bash -c chain (#104)", () => {
@@ -281,13 +281,13 @@ describe("installHook — statusLine", () => {
     expect(content.statusLine.command).toMatch(/^bash -c '/);
     expect(content.statusLine.command).toContain("node /custom/user/bar.js");
     expect(content.statusLine.command).toContain("; echo;");
-    expect(content.statusLine._teamagentTag).toBe("teamagent-statusline");
-    expect(content.statusLine._teamagentOriginalCommand).toBe("node /custom/user/bar.js");
-    expect(content.statusLine._teamagentOriginalType).toBe("command");
-    expect(content.statusLine._teamagentOriginalScope).toBe("project");
+    expect(content.statusLine._vikiTag).toBe("viki-statusline");
+    expect(content.statusLine._vikiOriginalCommand).toBe("node /custom/user/bar.js");
+    expect(content.statusLine._vikiOriginalType).toBe("command");
+    expect(content.statusLine._vikiOriginalScope).toBe("project");
   });
 
-  it("fans out stdin to BOTH chained segments so CC JSON reaches teamagent (#331)", () => {
+  it("fans out stdin to BOTH chained segments so CC JSON reaches viki (#331)", () => {
     // Pre-existing user statusLine that drains stdin via `input=$(cat)` — the
     // realworld shape from ~/.claude/statusline-command.sh on the maintainer's
     // box. Before #331, the second segment (our cjs) saw EOF on stdin and all
@@ -318,7 +318,7 @@ describe("installHook — statusLine", () => {
     // `printf %s "$_TS_IN" | {` must appear at least twice — once per segment.
     const fanOutCount = (cmd.match(/printf "%s" "\$_TS_IN" \| \{/g) ?? []).length;
     expect(fanOutCount).toBe(2);
-    // Both the user cmd and the teamagent cmd are still present.
+    // Both the user cmd and the viki cmd are still present.
     expect(cmd).toContain("input=$(cat); echo USER_OUT");
     expect(cmd).toContain("node");
     // Cosmetic newline separator preserved (legacy contract from PR #124).
@@ -352,10 +352,10 @@ describe("installHook — statusLine", () => {
       );
       expect(projectSettings.statusLine.command).toContain("echo USER_OWN_STATUSLINE_TOKEN");
       expect(projectSettings.statusLine.command).toMatch(/^bash -c '/);
-      expect(projectSettings.statusLine._teamagentOriginalCommand).toBe(
+      expect(projectSettings.statusLine._vikiOriginalCommand).toBe(
         "echo USER_OWN_STATUSLINE_TOKEN",
       );
-      expect(projectSettings.statusLine._teamagentOriginalScope).toBe("user");
+      expect(projectSettings.statusLine._vikiOriginalScope).toBe("user");
 
       // user-level 文件保持原样（V4 / V1 不变）
       const userAfter = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
@@ -389,7 +389,7 @@ describe("installHook — statusLine", () => {
       });
       expect(r.statusLineMergedScope).toBe("project");
       const content = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
-      expect(content.statusLine._teamagentOriginalCommand).toBe("PROJECT_LEVEL_CMD");
+      expect(content.statusLine._vikiOriginalCommand).toBe("PROJECT_LEVEL_CMD");
       expect(content.statusLine.command).toContain("PROJECT_LEVEL_CMD");
       expect(content.statusLine.command).not.toContain("USER_LEVEL_CMD");
     } finally {
@@ -418,7 +418,7 @@ describe("installHook — statusLine", () => {
     const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
     // POSIX 单引号转义：' → '\''
     expect(content.statusLine.command).toContain("it'\\''s fine");
-    expect(content.statusLine._teamagentOriginalCommand).toBe("echo \"it's fine\"");
+    expect(content.statusLine._vikiOriginalCommand).toBe("echo \"it's fine\"");
   });
 
   it("idempotent: second install does not double-wrap (#104)", () => {
@@ -433,13 +433,13 @@ describe("installHook — statusLine", () => {
     installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, statusLineEntry: FAKE_HOOK_ENTRY, homeDir: tmp.cwd, userLevel: false });
     installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, statusLineEntry: FAKE_HOOK_ENTRY, homeDir: tmp.cwd, userLevel: false });
     const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    expect(content.statusLine._teamagentOriginalCommand).toBe("USER_CMD");
+    expect(content.statusLine._vikiOriginalCommand).toBe("USER_CMD");
     // chain 中只出现一次原 cmd
     const matches = content.statusLine.command.match(/USER_CMD/g) ?? [];
     expect(matches.length).toBe(1);
   });
 
-  it("uninstall removes teamagent statusLine when no backup", () => {
+  it("uninstall removes viki statusLine when no backup", () => {
     installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, statusLineEntry: FAKE_HOOK_ENTRY, homeDir: tmp.cwd, userLevel: false });
     uninstallHook({ cwd: tmp.cwd });
     const content = JSON.parse(
@@ -462,7 +462,7 @@ describe("installHook — statusLine", () => {
     const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
     expect(content.statusLine.command).toBe("user-status.sh");
     expect(content.statusLine.type).toBe("command");
-    expect(content.statusLine._teamagentTag).toBeUndefined();
+    expect(content.statusLine._vikiTag).toBeUndefined();
   });
 
   it("uninstall scope=user just deletes project-level entry (#104)", () => {
@@ -532,20 +532,20 @@ describe("installHook — userLevel (issue #161)", () => {
     // Same shape as project-level: PreToolUse / PostToolUse / UserPromptSubmit / Stop
     expect(content.hooks).toBeDefined();
     expect(content.hooks.PreToolUse).toBeDefined();
-    expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     expect(content.hooks.PreToolUse[0].matcher).toContain("Bash");
     expect(content.hooks.PreToolUse[0].hooks[0].command).toContain("node");
 
     expect(content.hooks.PostToolUse).toBeDefined();
-    expect(content.hooks.PostToolUse[0]._teamagentTag).toBe("teamagent-post-tool-use");
+    expect(content.hooks.PostToolUse[0]._vikiTag).toBe("viki-post-tool-use");
     expect(content.hooks.PostToolUse[0].matcher).toContain("Bash");
 
     expect(content.hooks.UserPromptSubmit).toBeDefined();
-    expect(content.hooks.UserPromptSubmit[0]._teamagentTag).toBe("teamagent-user-prompt-submit");
+    expect(content.hooks.UserPromptSubmit[0]._vikiTag).toBe("viki-user-prompt-submit");
     expect(content.hooks.UserPromptSubmit[0].hooks[0].timeout).toBe(10);
 
     expect(content.hooks.Stop).toBeDefined();
-    expect(content.hooks.Stop[0]._teamagentTag).toBe("teamagent-stop");
+    expect(content.hooks.Stop[0]._vikiTag).toBe("viki-stop");
     expect(content.hooks.Stop[0].hooks[0].timeout).toBe(60);
   });
 
@@ -572,29 +572,29 @@ describe("installHook — userLevel (issue #161)", () => {
     const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
     const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
 
-    // Each TeamAgent-tagged channel must contain exactly ONE entry after two installs.
+    // Each Viki-tagged channel must contain exactly ONE entry after two installs.
     const preTagged = content.hooks.PreToolUse.filter(
-      (h: { _teamagentTag?: string }) => h._teamagentTag === "teamagent-pre-tool-use",
+      (h: { _vikiTag?: string }) => h._vikiTag === "viki-pre-tool-use",
     );
     expect(preTagged).toHaveLength(1);
 
     const postTagged = content.hooks.PostToolUse.filter(
-      (h: { _teamagentTag?: string }) => h._teamagentTag === "teamagent-post-tool-use",
+      (h: { _vikiTag?: string }) => h._vikiTag === "viki-post-tool-use",
     );
     expect(postTagged).toHaveLength(1);
 
     const upTagged = content.hooks.UserPromptSubmit.filter(
-      (h: { _teamagentTag?: string }) => h._teamagentTag === "teamagent-user-prompt-submit",
+      (h: { _vikiTag?: string }) => h._vikiTag === "viki-user-prompt-submit",
     );
     expect(upTagged).toHaveLength(1);
 
     const stopTagged = content.hooks.Stop.filter(
-      (h: { _teamagentTag?: string }) => h._teamagentTag === "teamagent-stop",
+      (h: { _vikiTag?: string }) => h._vikiTag === "viki-stop",
     );
     expect(stopTagged).toHaveLength(1);
   });
 
-  it("userLevel: true preserves existing non-TeamAgent entries in ~/.claude/settings.json", () => {
+  it("userLevel: true preserves existing non-Viki entries in ~/.claude/settings.json", () => {
     // Pre-seed user-level settings.json with foreign entries + an unrelated top-level setting.
     const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
     fs.mkdirSync(path.dirname(userSettingsPath), { recursive: true });
@@ -628,30 +628,30 @@ describe("installHook — userLevel (issue #161)", () => {
     // Top-level non-hook setting preserved.
     expect(content.someUserGlobalSetting).toBe("preserved");
 
-    // Foreign PreToolUse entry preserved AND TeamAgent entry appended.
+    // Foreign PreToolUse entry preserved AND Viki entry appended.
     expect(content.hooks.PreToolUse).toHaveLength(2);
     const foreignPre = content.hooks.PreToolUse.find(
-      (h: { _teamagentTag?: string; hooks: { command: string }[] }) =>
+      (h: { _vikiTag?: string; hooks: { command: string }[] }) =>
         h.hooks?.[0]?.command === "user-global-pre.sh",
     );
     expect(foreignPre).toBeDefined();
-    expect(foreignPre._teamagentTag).toBeUndefined();
+    expect(foreignPre._vikiTag).toBeUndefined();
 
     const taggedPre = content.hooks.PreToolUse.find(
-      (h: { _teamagentTag?: string }) => h._teamagentTag === "teamagent-pre-tool-use",
+      (h: { _vikiTag?: string }) => h._vikiTag === "viki-pre-tool-use",
     );
     expect(taggedPre).toBeDefined();
 
     // B+C scope (2026-05-09): SessionStart was previously "not managed here"
     // but is now folded into installHook user-level. The foreign entry must
-    // still be preserved; the teamagent entry is added alongside.
+    // still be preserved; the viki entry is added alongside.
     expect(content.hooks.SessionStart).toBeDefined();
     const foreignSession = content.hooks.SessionStart.find(
       (h: { hooks: { command: string }[] }) => h.hooks?.[0]?.command === "user-session.sh",
     );
     expect(foreignSession).toBeDefined();
-    expect(foreignSession._teamagentTag).toBeUndefined();
-    // teamagent's SessionStart entry only registers if the bundle exists on
+    expect(foreignSession._vikiTag).toBeUndefined();
+    // viki's SessionStart entry only registers if the bundle exists on
     // disk (default path = dist/bin-session-start.cjs from cliRoot). In dev
     // builds that bundle is present after `pnpm install`; in test
     // environments without the bundle it may be skipped. Either way the
@@ -679,14 +679,14 @@ describe("installHook — userLevel (issue #161)", () => {
     const projectPath = path.join(tmp.cwd, ".claude", "settings.local.json");
     expect(fs.existsSync(projectPath)).toBe(true);
     const proj = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
-    expect(proj.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(proj.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
   });
 });
 
 // ─── PR #181 fix-cycle (Worker E) — install-hook hardening ───────────────────
 //
 // Cases added per PR-PLAN docs/plans/2026-05-09-pr-181-fix-plan.md:
-//   1. B-091 staged path under <homeDir>/.teamagent/hooks/
+//   1. B-091 staged path under <homeDir>/.viki/hooks/
 //   2. malformed user-level settings.json → backup + start fresh
 //   3. atomic write via tmp+rename (POSIX renameSync)
 //   4. B-086 untagged-legacy dedup at the user level
@@ -700,7 +700,7 @@ describe("installHook — PR #181 fix-cycle", () => {
   /**
    * Plant a *real-named* hook bundle at a stable path so
    * `applyUserLevelChannelOps` stages it as the right basename
-   * (e.g. `bin-pre-tool-use.cjs`) under `<homeDir>/.teamagent/hooks/`.
+   * (e.g. `bin-pre-tool-use.cjs`) under `<homeDir>/.viki/hooks/`.
    * `FAKE_HOOK_ENTRY` (the test file path) would stage as
    * `install-hook.test.ts` and fail the basename assertion below.
    */
@@ -721,7 +721,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     fs.rmSync(fakeHome, { recursive: true, force: true });
   });
 
-  it("(1) B-091: stages hook bundles to <homeDir>/.teamagent/hooks/ and references the staged path in settings.json", () => {
+  it("(1) B-091: stages hook bundles to <homeDir>/.viki/hooks/ and references the staged path in settings.json", () => {
     const stage = path.join(tmp.cwd, "src-stage");
     const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
     const postHookEntry = plantBundle(stage, "bin-post-tool-use.cjs");
@@ -743,7 +743,7 @@ describe("installHook — PR #181 fix-cycle", () => {
 
     // PreToolUse command must reference the STAGED path (not the source dist).
     const preCmd: string = content.hooks.PreToolUse[0].hooks[0].command;
-    const expectedStaged = path.join(fakeHome, ".teamagent", "hooks", "bin-pre-tool-use.cjs");
+    const expectedStaged = path.join(fakeHome, ".viki", "hooks", "bin-pre-tool-use.cjs");
     // command is normalized to forward slashes
     expect(preCmd).toContain(expectedStaged.replace(/\\/g, "/"));
     // command must NOT reference the original src-stage path
@@ -755,21 +755,21 @@ describe("installHook — PR #181 fix-cycle", () => {
     // Same for the other 3 channels.
     const postCmd: string = content.hooks.PostToolUse[0].hooks[0].command;
     expect(postCmd).toContain(
-      path.join(fakeHome, ".teamagent", "hooks", "bin-post-tool-use.cjs").replace(/\\/g, "/"),
+      path.join(fakeHome, ".viki", "hooks", "bin-post-tool-use.cjs").replace(/\\/g, "/"),
     );
-    expect(fs.existsSync(path.join(fakeHome, ".teamagent", "hooks", "bin-post-tool-use.cjs"))).toBe(true);
+    expect(fs.existsSync(path.join(fakeHome, ".viki", "hooks", "bin-post-tool-use.cjs"))).toBe(true);
 
     const upCmd: string = content.hooks.UserPromptSubmit[0].hooks[0].command;
     expect(upCmd).toContain(
-      path.join(fakeHome, ".teamagent", "hooks", "bin-user-prompt-submit.cjs").replace(/\\/g, "/"),
+      path.join(fakeHome, ".viki", "hooks", "bin-user-prompt-submit.cjs").replace(/\\/g, "/"),
     );
-    expect(fs.existsSync(path.join(fakeHome, ".teamagent", "hooks", "bin-user-prompt-submit.cjs"))).toBe(true);
+    expect(fs.existsSync(path.join(fakeHome, ".viki", "hooks", "bin-user-prompt-submit.cjs"))).toBe(true);
 
     const stopCmd: string = content.hooks.Stop[0].hooks[0].command;
     expect(stopCmd).toContain(
-      path.join(fakeHome, ".teamagent", "hooks", "bin-stop.cjs").replace(/\\/g, "/"),
+      path.join(fakeHome, ".viki", "hooks", "bin-stop.cjs").replace(/\\/g, "/"),
     );
-    expect(fs.existsSync(path.join(fakeHome, ".teamagent", "hooks", "bin-stop.cjs"))).toBe(true);
+    expect(fs.existsSync(path.join(fakeHome, ".viki", "hooks", "bin-stop.cjs"))).toBe(true);
   });
 
   it("(2) readSettings recovers from malformed user-level settings.json by backing up + starting fresh", () => {
@@ -795,10 +795,10 @@ describe("installHook — PR #181 fix-cycle", () => {
       });
       expect(r.settingsPath).toBeDefined();
 
-      // The new file is valid JSON with TeamAgent entries.
+      // The new file is valid JSON with Viki entries.
       const after = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
       expect(after.hooks).toBeDefined();
-      expect(after.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+      expect(after.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
 
       // The original corrupt file is preserved at `<path>.bak-<ts>`.
       const claudeDir = path.dirname(userSettingsPath);
@@ -867,7 +867,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     // Pre-seed user settings.json with an UNTAGGED entry whose command
     // contains the bundle filename — exactly the "legacy install" case
     // described in B-086. The new applyChannelOps must filter both
-    // tagged AND untagged TeamAgent entries before pushing the new one.
+    // tagged AND untagged Viki entries before pushing the new one.
     const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
     fs.mkdirSync(path.dirname(userSettingsPath), { recursive: true });
     fs.writeFileSync(
@@ -902,9 +902,9 @@ describe("installHook — PR #181 fix-cycle", () => {
     });
 
     const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
-    // Exactly one PreToolUse entry: the new tagged TeamAgent one.
+    // Exactly one PreToolUse entry: the new tagged Viki one.
     expect(content.hooks.PreToolUse).toHaveLength(1);
-    expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     // The legacy command path is gone.
     const cmd: string = content.hooks.PreToolUse[0].hooks[0].command;
     expect(cmd).not.toContain("/old/path/to/bin-pre-tool-use.cjs");
@@ -947,7 +947,7 @@ describe("installHook — PR #181 fix-cycle", () => {
       // The settings file was still written successfully.
       const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
       const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
-      expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+      expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     } finally {
       openSpy.mockRestore();
     }
@@ -998,7 +998,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     expect(fs.existsSync(lockPath)).toBe(false);
     const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
     const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
-    expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
   });
 
   it("(5b) Round-2 F1 regression: when lock is held by another process (fd=null), releaseSettingsLock does NOT unlink", () => {
@@ -1051,7 +1051,7 @@ describe("installHook — PR #181 fix-cycle", () => {
       // the lock — race-prone but better than blocking init forever).
       const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
       const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
-      expect(content.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+      expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     } finally {
       stderrSpy.mockRestore();
       // Clean up: release the held lockfile we created above.
@@ -1060,7 +1060,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     }
   }, 30_000);
 
-  it("(5c) Round-2 F3 regression: stageBundleToUserTeamagent uses tmp+rename (atomic copy)", () => {
+  it("(5c) Round-2 F3 regression: stageBundleToUserViki uses tmp+rename (atomic copy)", () => {
     // Round-2 finding: under Windows, an unconditional `copyFileSync` over
     // an in-use bundle throws EBUSY and crashes init. Under POSIX, an
     // in-flight hook process can otherwise see a half-written bundle. The
@@ -1071,7 +1071,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     //
     // We have to plant *real* hook bundles in a stable directory — using
     // FAKE_HOOK_ENTRY (this test file's own path) doesn't trigger the
-    // stage-skip heuristic in stageBundleToUserTeamagent (size+mtime guard)
+    // stage-skip heuristic in stageBundleToUserViki (size+mtime guard)
     // when the destination doesn't yet exist, but its filename
     // `install-hook.test.ts` is not a recognized channel basename and would
     // confuse the staged-path assertions. Plant proper bundle-named files.
@@ -1099,16 +1099,16 @@ describe("installHook — PR #181 fix-cycle", () => {
 
         const calls = renameSpy.mock.calls;
         // Among all renames during install (writeSettings tmp+rename for
-        // each of project + user settings.json AND stageBundleToUserTeamagent
+        // each of project + user settings.json AND stageBundleToUserViki
         // tmp+rename for each of 4 channels), at least 4 must be
         // bundle-staging renames whose source matches the .tmp-<pid>-<rand>
-        // shape and whose destination is under <home>/.teamagent/hooks/.
-        const teamagentHooksDir = path.join(fakeHome, ".teamagent", "hooks");
+        // shape and whose destination is under <home>/.viki/hooks/.
+        const vikiHooksDir = path.join(fakeHome, ".viki", "hooks");
         const stagingRenames = calls.filter(([src, dst]) => {
           const s = String(src);
           const d = String(dst);
           return (
-            d.startsWith(teamagentHooksDir) &&
+            d.startsWith(vikiHooksDir) &&
             /\.tmp-\d+-[a-z0-9]+$/.test(s)
           );
         });
@@ -1127,10 +1127,10 @@ describe("installHook — PR #181 fix-cycle", () => {
           "bin-user-prompt-submit.cjs",
           "bin-stop.cjs",
         ]) {
-          const dest = path.join(teamagentHooksDir, basename);
+          const dest = path.join(vikiHooksDir, basename);
           expect(fs.existsSync(dest)).toBe(true);
           // No leaked .tmp- intermediates next to the final files.
-          const peers = fs.readdirSync(teamagentHooksDir);
+          const peers = fs.readdirSync(vikiHooksDir);
           const leaks = peers.filter((p) => p.startsWith(`${basename}.tmp-`));
           expect(leaks).toEqual([]);
         }
@@ -1145,7 +1145,7 @@ describe("installHook — PR #181 fix-cycle", () => {
   it("(7) issue #209: user-level hook commands wrap staged path in graceful `bash -c '[ -f X ] || exit 0; exec node X'` shim", () => {
     // Regression lock: the user-level entries written into
     // ~/.claude/settings.json must be wrapped so a missing
-    // ~/.teamagent/hooks/<bin>.cjs (manual rm -rf, partial install, disk-full
+    // ~/.viki/hooks/<bin>.cjs (manual rm -rf, partial install, disk-full
     // mid-stage) does NOT spam Node MODULE_NOT_FOUND traces in every Stop /
     // PreToolUse / PostToolUse / UserPromptSubmit.
     const stage = path.join(tmp.cwd, "src-stage");
@@ -1200,7 +1200,7 @@ describe("installHook — PR #181 fix-cycle", () => {
     // Project-level path still works.
     const projectPath = path.join(tmp.cwd, ".claude", "settings.local.json");
     const proj = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
-    expect(proj.hooks.PreToolUse[0]._teamagentTag).toBe("teamagent-pre-tool-use");
+    expect(proj.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
   });
 });
 
@@ -1215,7 +1215,7 @@ describe("installHook — B+C scope new channels (2026-05-09)", () => {
 
   beforeEach(() => {
     tmp = mkTmp();
-    fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-bc-home-"));
+    fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-bc-home-"));
   });
 
   afterEach(() => {
@@ -1238,9 +1238,9 @@ describe("installHook — B+C scope new channels (2026-05-09)", () => {
 
     const projectPath = path.join(tmp.cwd, ".claude", "settings.local.json");
     const proj = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
-    expect(proj.hooks.SessionEnd?.[0]?._teamagentTag).toBe("teamagent-session-end");
+    expect(proj.hooks.SessionEnd?.[0]?._vikiTag).toBe("viki-session-end");
     expect(proj.hooks.SessionEnd[0].hooks[0].timeout).toBe(30);
-    expect(proj.hooks.PreCompact?.[0]?._teamagentTag).toBe("teamagent-pre-compact");
+    expect(proj.hooks.PreCompact?.[0]?._vikiTag).toBe("viki-pre-compact");
     expect(proj.hooks.PreCompact[0].hooks[0].timeout).toBe(30);
   });
 
@@ -1263,7 +1263,7 @@ describe("installHook — B+C scope new channels (2026-05-09)", () => {
     // Stop has bin-stop only at project level; the digital-twin tag belongs to
     // the user-level mirror. Verify only one Stop entry with the bin-stop tag.
     expect(proj.hooks.Stop).toHaveLength(1);
-    expect(proj.hooks.Stop[0]._teamagentTag).toBe("teamagent-stop");
+    expect(proj.hooks.Stop[0]._vikiTag).toBe("viki-stop");
   });
 
   it("registers all 8 channel tags at user level (~/.claude/settings.json)", () => {
@@ -1286,21 +1286,21 @@ describe("installHook — B+C scope new channels (2026-05-09)", () => {
     );
     const allTags = new Set<string>();
     for (const ch of Object.keys(userSettings.hooks ?? {})) {
-      const list = userSettings.hooks[ch] as Array<{ _teamagentTag?: string }>;
+      const list = userSettings.hooks[ch] as Array<{ _vikiTag?: string }>;
       for (const entry of list) {
-        if (entry._teamagentTag) allTags.add(entry._teamagentTag);
+        if (entry._vikiTag) allTags.add(entry._vikiTag);
       }
     }
     expect(allTags).toEqual(
       new Set([
-        "teamagent-pre-tool-use",
-        "teamagent-post-tool-use",
-        "teamagent-user-prompt-submit",
-        "teamagent-stop",
-        "teamagent-session-start",
-        "teamagent-session-end",
-        "teamagent-pre-compact",
-        "teamagent-digital-twin-tap",
+        "viki-pre-tool-use",
+        "viki-post-tool-use",
+        "viki-user-prompt-submit",
+        "viki-stop",
+        "viki-session-start",
+        "viki-session-end",
+        "viki-pre-compact",
+        "viki-digital-twin-tap",
       ]),
     );
     // Stop should host BOTH the bin-stop tag and the digital-twin-tap tag.
@@ -1333,7 +1333,7 @@ describe("installHook — B+C scope new channels (2026-05-09)", () => {
     const after = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
     expect(after.hooks?.SessionEnd).toBeUndefined();
     expect(after.hooks?.PreCompact).toBeUndefined();
-    expect(after.hooks?.Stop).toBeUndefined(); // only TeamAgent tags existed
+    expect(after.hooks?.Stop).toBeUndefined(); // only Viki tags existed
   });
 });
 
@@ -1464,11 +1464,11 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
     fs.rmSync(fakeHome, { recursive: true, force: true });
   });
 
-  it("stageDaemonBinaryToUser copies bin-uploader.cjs to <home>/.teamagent/digital-twin/", () => {
+  it("stageDaemonBinaryToUser copies bin-uploader.cjs to <home>/.viki/digital-twin/", () => {
     const result = stageDaemonBinaryToUser(fakeDaemonSrc, fakeHome);
     expect(result.staged).toBe(true);
     expect(result.destPath).toBe(
-      path.join(fakeHome, ".teamagent", "digital-twin", "bin-uploader.cjs"),
+      path.join(fakeHome, ".viki", "digital-twin", "bin-uploader.cjs"),
     );
     expect(fs.existsSync(result.destPath)).toBe(true);
     expect(fs.readFileSync(result.destPath, "utf-8")).toBe(
@@ -1485,7 +1485,7 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
     expect(result.reason).toContain("source missing");
     // Dest path is reported even on failure so callers can log it.
     expect(result.destPath).toBe(
-      path.join(fakeHome, ".teamagent", "digital-twin", "bin-uploader.cjs"),
+      path.join(fakeHome, ".viki", "digital-twin", "bin-uploader.cjs"),
     );
     // No file created on failure.
     expect(fs.existsSync(result.destPath)).toBe(false);
@@ -1506,7 +1506,7 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
   it("stageDaemonBinaryToUser overwrites stale destination (newer source wins)", () => {
     // First install: write v1 to dest.
     stageDaemonBinaryToUser(fakeDaemonSrc, fakeHome);
-    const dest = path.join(fakeHome, ".teamagent", "digital-twin", "bin-uploader.cjs");
+    const dest = path.join(fakeHome, ".viki", "digital-twin", "bin-uploader.cjs");
 
     // Force the dest to look stale: replace its bytes + bump mtime backwards.
     const past = new Date(Date.now() - 60_000);
@@ -1523,7 +1523,7 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
     expect(fs.readFileSync(dest, "utf-8")).toBe("// fake bin-uploader.cjs v2\n");
   });
 
-  it("installHook stages daemon binary into <home>/.teamagent/digital-twin/ (full integration)", () => {
+  it("installHook stages daemon binary into <home>/.viki/digital-twin/ (full integration)", () => {
     const r = installHook({
       cwd: tmp.cwd,
       hookEntry: FAKE_HOOK_ENTRY,
@@ -1533,7 +1533,7 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
     });
     expect(r.daemonBinary.staged).toBe(true);
     expect(r.daemonBinary.destPath).toBe(
-      path.join(fakeHome, ".teamagent", "digital-twin", "bin-uploader.cjs"),
+      path.join(fakeHome, ".viki", "digital-twin", "bin-uploader.cjs"),
     );
     expect(fs.existsSync(r.daemonBinary.destPath)).toBe(true);
     expect(fs.readFileSync(r.daemonBinary.destPath, "utf-8")).toBe(
@@ -1558,7 +1558,7 @@ describe("daemon binary staging (issue #146 install-hook TODO)", () => {
 describe("install-user-hook deprecation (B+C scope, 2026-05-09)", () => {
   it("installUserHook emits a deprecation warning to stderr", async () => {
     const { installUserHook } = await import("../commands/install-user-hook.js");
-    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-iuh-home-"));
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-iuh-home-"));
     try {
       const captured: string[] = [];
       const origWrite = process.stderr.write.bind(process.stderr);
@@ -1590,7 +1590,7 @@ describe("applyChannelOps soft-warn on missing bundle (issue #299)", () => {
   // absent (e.g. dist/bin-digital-twin-tap.cjs missing from a release tarball),
   // applyChannelOps used to `continue;` silently — install reports success,
   // settings.json never gets the entry, no stderr line.
-  // The fix: print one stderr line `teamagent: skipping channel <ch> — bundle
+  // The fix: print one stderr line `viki: skipping channel <ch> — bundle
   // <file> not found` then continue. Other channels still install.
 
   let tmp: ReturnType<typeof mkTmp>;
@@ -1630,7 +1630,7 @@ describe("applyChannelOps soft-warn on missing bundle (issue #299)", () => {
     }
 
     const joined = captured.join("");
-    expect(joined).toContain("teamagent: skipping channel Stop");
+    expect(joined).toContain("viki: skipping channel Stop");
     expect(joined).toContain("bin-digital-twin-tap.cjs");
     expect(joined).toContain("not found");
 
@@ -1658,7 +1658,7 @@ describe("applyChannelOps soft-warn on missing bundle (issue #299)", () => {
       const user = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
       const stopList = user.hooks?.Stop ?? [];
       const hasDigitalTwin = (stopList as any[]).some(
-        (e) => e._teamagentTag === "teamagent-digital-twin-tap",
+        (e) => e._vikiTag === "viki-digital-twin-tap",
       );
       // Missing-bundle entry must NOT be in settings.
       expect(hasDigitalTwin).toBe(false);

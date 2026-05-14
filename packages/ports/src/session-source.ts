@@ -1,4 +1,4 @@
-import type { ParsedSession } from "@teamagent/types";
+import type { ParsedSession } from "@viki/types";
 
 /** 会话日志的来源。M3 的 ClaudeSessionSource 会实现。 */
 export interface SessionSource {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import { openDb, closeDb } from "../schema.js";
 import { SqliteKnowledgeStore } from "../sqlite-knowledge-store.js";
 
@@ -10,7 +10,7 @@ let tmpDir: string;
 let store: SqliteKnowledgeStore;
 
 function tmpDbPath(): string {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-ks-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-ks-"));
   return path.join(tmpDir, "test.db");
 }
 

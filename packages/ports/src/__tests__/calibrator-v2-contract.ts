@@ -4,7 +4,7 @@ import type {
   CalibratorV2Input,
   Observation,
 } from "../calibrator-v2.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /**
  * CalibratorV2 contract. Invariants:

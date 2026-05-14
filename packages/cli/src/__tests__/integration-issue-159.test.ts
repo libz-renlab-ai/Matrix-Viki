@@ -16,7 +16,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { fetchRemoteSha, type FetchShaResult } from "../github-api.js";
 import { runUpdater } from "../updater-logic.js";
-import { defaultUpdateState, type UpdateState } from "@teamagent/core";
+import { defaultUpdateState, type UpdateState } from "@viki/core";
 import type { UpdaterDeps } from "../updater-logic.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ function mockHttpsGet(
 // ── Scenario 1: Anonymous rate limit ─────────────────────────────────────────
 
 describe("issue-159 integration: anonymous rate limit", () => {
-  it("403 + x-ratelimit-remaining:0 without token → rate_limit_anonymous + TEAMAGENT_GITHUB_TOKEN hint", async () => {
+  it("403 + x-ratelimit-remaining:0 without token → rate_limit_anonymous + VIKI_GITHUB_TOKEN hint", async () => {
     const httpsGet = mockHttpsGet(403, "{}", { "x-ratelimit-remaining": "0" });
 
     const result = await fetchRemoteSha({
@@ -46,7 +46,7 @@ describe("issue-159 integration: anonymous rate limit", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toBe("rate_limit_anonymous");
-      expect(result.message).toContain("TEAMAGENT_GITHUB_TOKEN");
+      expect(result.message).toContain("VIKI_GITHUB_TOKEN");
     }
   });
 });
@@ -153,7 +153,7 @@ describe.skip("issue-159 integration: runUpdater backoff lifecycle (#313 removed
         ok: false,
         reason: "rate_limit_anonymous",
         status: 403,
-        message: "GitHub anonymous rate limit exhausted; set TEAMAGENT_GITHUB_TOKEN to authenticate (5000 req/h)",
+        message: "GitHub anonymous rate limit exhausted; set VIKI_GITHUB_TOKEN to authenticate (5000 req/h)",
       } satisfies FetchShaResult)
       // Third call (after backoff expires): success
       .mockResolvedValueOnce({

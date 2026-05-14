@@ -4,12 +4,12 @@ import path from "node:path";
 import os from "node:os";
 import { execSync, spawn as nodeSpawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { openDb } from "@teamagent/adapters";
+import { openDb } from "@viki/adapters";
 import {
   planStaticUserSkillInstall,
   STATIC_USER_SKILLS,
-  stripLegacyTeamagentBlock,
-} from "@teamagent/core";
+  stripLegacyVikiBlock,
+} from "@viki/core";
 import { unifiedDiff } from "./doctor-diff.js";
 import {
   enumerateInstallTableBundlePaths,
@@ -89,7 +89,7 @@ export interface DoctorOptions {
   postinstall?: boolean;
   cwd?: string;
   homeDir?: string;
-  /** Issue #172: backup destination root; defaults to `<homeDir>/.teamagent/backups`. Test injection point. */
+  /** Issue #172: backup destination root; defaults to `<homeDir>/.viki/backups`. Test injection point. */
   backupDir?: string;
   claudeProbe?: ClaudeProbe;
   codexProbe?: CodexProbe;
@@ -133,7 +133,7 @@ export function parseDoctorArgs(argv: string[]): DoctorOptions {
  */
 export function backupFile(filePath: string, opts: DoctorOptions): string {
   const home = opts.homeDir ?? os.homedir();
-  const backupDir = opts.backupDir ?? path.join(home, ".teamagent", "backups");
+  const backupDir = opts.backupDir ?? path.join(home, ".viki", "backups");
   fs.mkdirSync(backupDir, { recursive: true });
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   const backupPath = path.join(backupDir, `${path.basename(filePath)}.${ts}.bak`);
@@ -152,7 +152,7 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
         return {
           name: check.name,
           status: "preview",
-          detail: "将运行 `teamagent init` 创建 knowledge.db（无 prior state，因此跳过 backup）",
+          detail: "将运行 `viki init` 创建 knowledge.db（无 prior state，因此跳过 backup）",
         };
       }
       const { executeInit } = await import("./init.js");
@@ -160,7 +160,7 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
       return {
         name: check.name,
         status: "applied",
-        detail: "已通过 `teamagent init` 创建 knowledge.db",
+        detail: "已通过 `viki init` 创建 knowledge.db",
       };
     } else if (check.name === "hook-registered" || check.name === "hook-script") {
       if (opts.dryRun) {
@@ -178,7 +178,7 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
         detail: "已向 .claude/settings.local.json 注册 PreToolUse hook",
       };
     } else if (check.name === "claude-md") {
-      // B-109: strip the legacy TEAMAGENT:START..END managed block left over
+      // B-109: strip the legacy VIKI:START..END managed block left over
       // from before #63 disabled in-file rule dumps. The new compile path
       // never re-writes it, so dropping the block makes doctor green again.
       // Issue #172: now also backups before write and supports dry-run preview.
@@ -192,12 +192,12 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
         };
       }
       const before = fs.readFileSync(claudeMdPath, "utf-8");
-      const after = stripLegacyTeamagentBlock(before);
+      const after = stripLegacyVikiBlock(before);
       if (after === before) {
         return {
           name: check.name,
           status: "skipped",
-          detail: "未检测到 legacy TEAMAGENT 块",
+          detail: "未检测到 legacy VIKI 块",
           filePath: claudeMdPath,
         };
       }
@@ -212,7 +212,7 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
           diff: unifiedDiff(claudeMdPath, before, targetAfter),
           detail: willDelete
             ? "将删除 CLAUDE.md（整文件即 legacy 块）"
-            : "将剥离 legacy TEAMAGENT 块",
+            : "将剥离 legacy VIKI 块",
         };
       }
 
@@ -229,7 +229,7 @@ async function autoFix(check: DoctorCheckResult, opts: DoctorOptions): Promise<F
         backupPath,
         detail: willDelete
           ? "已删除 CLAUDE.md（整文件即 legacy 块）"
-          : "已剥离 legacy TEAMAGENT 块",
+          : "已剥离 legacy VIKI 块",
       };
     }
     return { name: check.name, status: "skipped", detail: "无自动修复" };
@@ -265,7 +265,7 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
     return finalize(checks, true, opts, fixOutcomes);
   }
 
-  // Check 1b (issue #299): integrity of teamagent's own dist. Walks every
+  // Check 1b (issue #299): integrity of viki's own dist. Walks every
   // install-table entry and verifies the referenced bundle exists at its
   // expected absolute path. Placed early — it has no dependency on Claude
   // Code being installed or knowledge.db existing, and a missing bundle
@@ -286,7 +286,7 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   // Check 3: sqlite-vec loadable
   checks.push(checkSqliteVec());
 
-  // Check 4: ~/.teamagent/ writable
+  // Check 4: ~/.viki/ writable
   const homeCheck = checkHomeDir(home);
   checks.push(homeCheck);
   if (homeCheck.status === "fail") {
@@ -294,7 +294,7 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   }
 
   // Check 5: knowledge.db exists
-  const dbPath = path.join(cwd, ".teamagent", "knowledge.db");
+  const dbPath = path.join(cwd, ".viki", "knowledge.db");
   const dbCheck = checkKnowledgeDb(dbPath);
   checks.push(dbCheck);
   await tryFix(dbCheck);
@@ -327,7 +327,7 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   // Check 7b (issue #280): real hook spawn — strict.
   // checkHookScript only verifies the .cjs file exists; a script can still
   // crash at module-load on `require()` of a missing transitive dep (#158
-  // removed web-tree-sitter et al. from teamagent's dependencies, but the
+  // removed web-tree-sitter et al. from viki's dependencies, but the
   // postinstall hook copy was still pulling them in indirectly via
   // bin-session-start's import chain). When that happens, every real
   // SessionStart silently dies — auto-update never runs, analyze
@@ -349,7 +349,7 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   // Check 8: settings.json scope (project vs user, PreToolUse vs SessionStart)
   checks.push(checkSettingsJsonScope(settingsPath, path.join(home, ".claude", "settings.json")));
 
-  // Check 9: plugin sync (teamagent plugin files present in .claude/plugins)
+  // Check 9: plugin sync (viki plugin files present in .claude/plugins)
   checks.push(checkPluginSync(cwd, home));
 
   // Check 9b: static user-level skills propagated (docs/INIT-PROPAGATION.md).
@@ -426,7 +426,7 @@ async function checkVectorModelState(home: string): Promise<DoctorCheckResult> {
     return {
       name: "vector_model",
       status: "fail",
-      detail: `stale downloading (pid=${r.state.pid} not alive); 跑 \`teamagent warmup\` 重试`,
+      detail: `stale downloading (pid=${r.state.pid} not alive); 跑 \`viki warmup\` 重试`,
     };
   }
   if (r.reason === "failed" && r.state) {
@@ -441,11 +441,11 @@ async function checkVectorModelState(home: string): Promise<DoctorCheckResult> {
     // found in node_modules. Post-#164/PR-#227 this should not happen on a
     // clean install (the deps are now in `dependencies`); a skip here means
     // an incomplete install. Substring matcher still works, but semantic
-    // matching is unavailable. Reinstalling teamagent restores both.
+    // matching is unavailable. Reinstalling viki restores both.
     return {
       name: "vector_model",
       status: "skip",
-      detail: `skipped (vector deps 未在 node_modules 中找到; 重装 teamagent 恢复)`,
+      detail: `skipped (vector deps 未在 node_modules 中找到; 重装 viki 恢复)`,
     };
   }
   return {
@@ -595,9 +595,9 @@ export function checkClaudeCode(probe: ClaudeProbe = defaultClaudeProbe): Doctor
 }
 
 function checkSqliteVec(): DoctorCheckResult {
-  // sqlite-vec is declared as a dependency of `@teamagent/adapters` and an
-  // (optional) peer of the `teamagent` package. The doctor binary lives in
-  // `@teamagent/cli`, which does NOT declare it directly — so under pnpm,
+  // sqlite-vec is declared as a dependency of `@viki/adapters` and an
+  // (optional) peer of the `viki` package. The doctor binary lives in
+  // `@viki/cli`, which does NOT declare it directly — so under pnpm,
   // a naive `require("sqlite-vec")` from doctor.ts may fail simply because
   // pnpm did not symlink the package into cli's node_modules. Try multiple
   // resolution anchors before giving up.
@@ -610,9 +610,9 @@ function checkSqliteVec(): DoctorCheckResult {
     const candidates = [
       // packages/cli/.../doctor.ts → walk up to monorepo root
       path.resolve(here, "../../../adapters"),
-      path.resolve(here, "../../../teamagent"),
+      path.resolve(here, "../../../viki"),
       path.resolve(here, "../../../../adapters"),
-      path.resolve(here, "../../../../teamagent"),
+      path.resolve(here, "../../../../viki"),
     ];
     for (const root of candidates) {
       try {
@@ -632,7 +632,7 @@ function checkSqliteVec(): DoctorCheckResult {
 }
 
 function checkHomeDir(home: string): DoctorCheckResult {
-  const tDir = path.join(home, ".teamagent");
+  const tDir = path.join(home, ".viki");
   try {
     fs.mkdirSync(tDir, { recursive: true });
     const probe = path.join(tDir, `.doctor-probe-${process.pid}`);
@@ -643,7 +643,7 @@ function checkHomeDir(home: string): DoctorCheckResult {
     return {
       name: "home-dir",
       status: "fail",
-      detail: `~/.teamagent 不可写: ${String(e).slice(0, 80)}`,
+      detail: `~/.viki 不可写: ${String(e).slice(0, 80)}`,
       fix: `chmod 755 ${tDir}`,
     };
   }
@@ -655,7 +655,7 @@ function checkKnowledgeDb(dbPath: string): DoctorCheckResult {
       name: "knowledge-db",
       status: "fail",
       detail: "知识库未初始化",
-      fix: "teamagent init",
+      fix: "viki init",
     };
   }
   try {
@@ -667,12 +667,12 @@ function checkKnowledgeDb(dbPath: string): DoctorCheckResult {
       name: "knowledge-db",
       status: "fail",
       detail: `knowledge.db 无法打开：${String(e).slice(0, 120)}`,
-      fix: "teamagent init  （将重建数据库）",
+      fix: "viki init  （将重建数据库）",
     };
   }
 }
 
-function hasTeamAgentHookInSettings(filePath: string): boolean {
+function hasVikiHookInSettings(filePath: string): boolean {
   if (!fs.existsSync(filePath)) return false;
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
@@ -686,8 +686,8 @@ function hasTeamAgentHookInSettings(filePath: string): boolean {
           (h: unknown) =>
             typeof h === "object" &&
             h !== null &&
-            typeof (h as Record<string, unknown>)["_teamagentTag"] === "string" &&
-            ((h as Record<string, unknown>)["_teamagentTag"] as string).startsWith("teamagent-"),
+            typeof (h as Record<string, unknown>)["_vikiTag"] === "string" &&
+            ((h as Record<string, unknown>)["_vikiTag"] as string).startsWith("viki-"),
         ),
     );
   } catch {
@@ -697,19 +697,19 @@ function hasTeamAgentHookInSettings(filePath: string): boolean {
 
 function checkHookRegistered(settingsPath: string, userSettingsPath?: string): DoctorCheckResult {
   // Project-level settings.local.json takes priority
-  if (hasTeamAgentHookInSettings(settingsPath)) {
+  if (hasVikiHookInSettings(settingsPath)) {
     return { name: "hook-registered", status: "pass", detail: "PreToolUse Hook 已注册" };
   }
   // Fall back to user-level ~/.claude/settings.json (SessionStart auto-init hook)
-  if (userSettingsPath && hasTeamAgentHookInSettings(userSettingsPath)) {
-    return { name: "hook-registered", status: "pass", detail: "用户级 Hook 已注册 (teamagent install-user-hook)" };
+  if (userSettingsPath && hasVikiHookInSettings(userSettingsPath)) {
+    return { name: "hook-registered", status: "pass", detail: "用户级 Hook 已注册 (viki install-user-hook)" };
   }
   if (!fs.existsSync(settingsPath)) {
     return {
       name: "hook-registered",
       status: "fail",
       detail: ".claude/settings.local.json 不存在",
-      fix: "teamagent install-hook",
+      fix: "viki install-hook",
     };
   }
   try {
@@ -717,15 +717,15 @@ function checkHookRegistered(settingsPath: string, userSettingsPath?: string): D
     return {
       name: "hook-registered",
       status: "fail",
-      detail: "settings.local.json 中未找到 TeamAgent hook",
-      fix: "teamagent install-hook",
+      detail: "settings.local.json 中未找到 Viki hook",
+      fix: "viki install-hook",
     };
   } catch {
     return {
       name: "hook-registered",
       status: "fail",
       detail: "无法解析 settings.local.json",
-      fix: "teamagent install-hook",
+      fix: "viki install-hook",
     };
   }
 }
@@ -737,7 +737,7 @@ function checkHookScript(settingsPath: string): DoctorCheckResult {
     const hooks = settings["hooks"] as Record<string, unknown> | undefined;
     const pre = hooks?.["PreToolUse"] as unknown[] | undefined;
     const entry = Array.isArray(pre)
-      ? (pre.find((h: unknown) => (h as Record<string, unknown>)["_teamagentTag"] === "teamagent-pre-tool-use") as Record<string, unknown> | undefined)
+      ? (pre.find((h: unknown) => (h as Record<string, unknown>)["_vikiTag"] === "viki-pre-tool-use") as Record<string, unknown> | undefined)
       : undefined;
     const cmds = entry?.["hooks"] as Array<{ command: string }> | undefined;
     const cmd = cmds?.[0]?.command ?? "";
@@ -749,7 +749,7 @@ function checkHookScript(settingsPath: string): DoctorCheckResult {
         name: "hook-script",
         status: "fail",
         detail: `Hook 脚本不存在: ${scriptPath ?? "(未找到路径)"}`,
-        fix: "npm install -g teamagent  （重装）",
+        fix: "npm install -g viki  （重装）",
       };
     }
     return { name: "hook-script", status: "pass", detail: scriptPath };
@@ -758,7 +758,7 @@ function checkHookScript(settingsPath: string): DoctorCheckResult {
       name: "hook-script",
       status: "fail",
       detail: "无法读取 hook 脚本路径",
-      fix: "teamagent install-hook",
+      fix: "viki install-hook",
     };
   }
 }
@@ -773,7 +773,7 @@ function checkHookScript(settingsPath: string): DoctorCheckResult {
  * can do anything).
  *
  * The probe strips signal env vars (CLAUDE_PROJECT_DIR /
- * TEAMAGENT_ALLOW_BARE_SESSIONSTART) so `parseInput` short-circuits and
+ * VIKI_ALLOW_BARE_SESSIONSTART) so `parseInput` short-circuits and
  * the hook does not touch auto-init / cleanup / decideAction. We are
  * verifying that all top-level imports load, not that any business logic
  * runs.
@@ -783,7 +783,7 @@ const defaultHookProbe: HookProbe = (scriptPath, opts = {}) => {
   return new Promise<HookProbeResult>((resolve) => {
     const env = { ...process.env };
     delete env["CLAUDE_PROJECT_DIR"];
-    delete env["TEAMAGENT_ALLOW_BARE_SESSIONSTART"];
+    delete env["VIKI_ALLOW_BARE_SESSIONSTART"];
 
     let child;
     try {
@@ -848,7 +848,7 @@ export async function checkHookSpawn(
       name: "hook-spawn",
       status: "fail",
       detail: `hook spawn 启动失败: ${result.spawnError.slice(0, 200)}`,
-      fix: "重装 teamagent (npm install -g teamagent) 或检查 node 是否可用",
+      fix: "重装 viki (npm install -g viki) 或检查 node 是否可用",
     };
   }
   if (result.timedOut) {
@@ -856,7 +856,7 @@ export async function checkHookSpawn(
       name: "hook-spawn",
       status: "fail",
       detail: `hook spawn 超过 5s 未退出 — 可能卡在 require/import 链`,
-      fix: "检查 ~/.teamagent/postinstall.log 中的 stage=install-user-hook 与依赖完整性",
+      fix: "检查 ~/.viki/postinstall.log 中的 stage=install-user-hook 与依赖完整性",
     };
   }
   if (result.exitCode === 0) {
@@ -871,7 +871,7 @@ export async function checkHookSpawn(
     name: "hook-spawn",
     status: "fail",
     detail: `hook spawn exit=${result.exitCode} — ${stderrTail || "(no stderr)"}`,
-    fix: "重装 teamagent 或检查 ~/.teamagent/postinstall.log",
+    fix: "重装 viki 或检查 ~/.viki/postinstall.log",
   };
 }
 
@@ -883,8 +883,8 @@ export function checkSettingsJsonScope(
   projectSettingsPath: string,
   userSettingsPath: string,
 ): DoctorCheckResult {
-  const projectHasHook = hasTeamAgentHookInSettings(projectSettingsPath);
-  const userHasHook = hasTeamAgentHookInSettings(userSettingsPath);
+  const projectHasHook = hasVikiHookInSettings(projectSettingsPath);
+  const userHasHook = hasVikiHookInSettings(userSettingsPath);
 
   if (projectHasHook) {
     return {
@@ -904,12 +904,12 @@ export function checkSettingsJsonScope(
     name: "settings-json-scope",
     status: "fail",
     detail: "未找到项目级或用户级 settings.json hook",
-    fix: "teamagent install-hook",
+    fix: "viki install-hook",
   };
 }
 
 /**
- * Check that teamagent plugin files are present in .claude/plugins (project level)
+ * Check that viki plugin files are present in .claude/plugins (project level)
  * or ~/.claude/plugins (user level). A plugin directory exists if install-plugins ran.
  */
 /**
@@ -921,7 +921,7 @@ export function checkSettingsJsonScope(
  * - `pass` — every (skill, target) destination file exists.
  * - `fail` — at least one destination is missing.
  *
- * Fix recipe: `teamagent init` re-runs the mirror step.
+ * Fix recipe: `viki init` re-runs the mirror step.
  */
 /**
  * Issue #299: walk the install-table (ALL_CHANNELS in install-hook.ts) and
@@ -958,7 +958,7 @@ export function checkInstallTableBundles(
     name: "install-table-bundles",
     status: "fail",
     detail: `dist 缺失 install-table 引用的 bundle: ${filenames}`,
-    fix: "pnpm --filter teamagent build  （或重装 teamagent）",
+    fix: "pnpm --filter viki build  （或重装 viki）",
   };
 }
 
@@ -990,7 +990,7 @@ export function checkStaticUserSkillsPropagated(home: string): DoctorCheckResult
     name: "skills-propagated",
     status: "fail",
     detail: `static user skills propagation incomplete: ${present}/${expected}; missing ${missingShort}${more}`,
-    fix: "teamagent init",
+    fix: "viki init",
   };
 }
 
@@ -1006,7 +1006,7 @@ export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {
       name: "plugin-sync",
       status: "fail",
       detail: ".claude/plugins 目录不存在（项目级和用户级均未找到）",
-      fix: "teamagent install-plugins",
+      fix: "viki install-plugins",
     };
   }
 
@@ -1021,7 +1021,7 @@ export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {
         name: "plugin-sync",
         status: "fail",
         detail: `${scope} .claude/plugins 存在但为空`,
-        fix: "teamagent install-plugins",
+        fix: "viki install-plugins",
       };
     }
     return {
@@ -1034,7 +1034,7 @@ export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {
       name: "plugin-sync",
       status: "fail",
       detail: `无法读取 plugins 目录: ${pluginsRoot}`,
-      fix: "teamagent install-plugins",
+      fix: "viki install-plugins",
     };
   }
 }
@@ -1159,16 +1159,16 @@ export function checkClaudeMd(claudeMdPath: string): DoctorCheckResult {
     return {
       name: "claude-md",
       status: "skip",
-      detail: "CLAUDE.md 不存在（可选；TeamAgent 不再生成规则块）",
+      detail: "CLAUDE.md 不存在（可选；Viki 不再生成规则块）",
     };
   }
   const content = fs.readFileSync(claudeMdPath, "utf-8");
-  if (content.includes("TEAMAGENT:START")) {
+  if (content.includes("VIKI:START")) {
     return {
       name: "claude-md",
       status: "fail",
-      detail: "仍包含旧 TEAMAGENT:START 生成块（#63 之后已弃用）",
-      fix: "teamagent doctor --fix  （会先备份到 ~/.teamagent/backups/；配 --dry-run 预览）",
+      detail: "仍包含旧 VIKI:START 生成块（#63 之后已弃用）",
+      fix: "viki doctor --fix  （会先备份到 ~/.viki/backups/；配 --dry-run 预览）",
     };
   }
   return {
@@ -1187,37 +1187,37 @@ export function checkTeamSharingStatus(): DoctorCheckResult {
 }
 
 /**
- * Issue #172: subcommand help for `teamagent doctor --help` / `-h`.
+ * Issue #172: subcommand help for `viki doctor --help` / `-h`.
  * Previously the dispatcher fell through to executeDoctor on `--help`, which
  * meant new users could not preview what `--fix` would do without running it.
  */
 export function renderDoctorHelp(): string {
   return [
-    "teamagent doctor — 检查工具安装是否健康",
+    "viki doctor — 检查工具安装是否健康",
     "",
     "用法:",
-    "  teamagent doctor                跑全部检查并打印结果",
-    "  teamagent doctor --fix          自动修复能修的项；写入前会先备份到 ~/.teamagent/backups/",
-    "  teamagent doctor --fix --dry-run",
+    "  viki doctor                跑全部检查并打印结果",
+    "  viki doctor --fix          自动修复能修的项；写入前会先备份到 ~/.viki/backups/",
+    "  viki doctor --fix --dry-run",
     "                                   预览要修什么（unified diff），不写入",
-    "  teamagent doctor --json         输出机器可读 JSON（含 fixOutcomes 字段，含 dryRun bool）",
-    "  teamagent doctor --cwd=<path>   指定项目目录（默认为当前目录）",
-    "  teamagent doctor --help         显示本帮助",
+    "  viki doctor --json         输出机器可读 JSON（含 fixOutcomes 字段，含 dryRun bool）",
+    "  viki doctor --cwd=<path>   指定项目目录（默认为当前目录）",
+    "  viki doctor --help         显示本帮助",
     "",
     "可自动修复的检查项：",
-    "  knowledge-db        通过 `teamagent init --skip-import` 创建 knowledge.db（无 prior state，跳过 backup）",
+    "  knowledge-db        通过 `viki init --skip-import` 创建 knowledge.db（无 prior state，跳过 backup）",
     "  hook-registered     向 .claude/settings.local.json 注册 PreToolUse hook",
     "  hook-script         同上",
-    "  claude-md           剥离 legacy <!-- TEAMAGENT:START..END --> 块；写入前 backup CLAUDE.md",
+    "  claude-md           剥离 legacy <!-- VIKI:START..END --> 块；写入前 backup CLAUDE.md",
     "",
     "备份位置:",
-    "  ~/.teamagent/backups/<filename>.<ISO-timestamp>.bak",
+    "  ~/.viki/backups/<filename>.<ISO-timestamp>.bak",
     "  还原: cp <backup-path> <original-path>",
     "",
     "示例:",
-    "  teamagent doctor --fix --dry-run    # 看一下会改什么",
-    "  teamagent doctor --fix              # 真改（先备份）",
-    "  teamagent doctor --fix --json       # 应用并输出 JSON 报告",
+    "  viki doctor --fix --dry-run    # 看一下会改什么",
+    "  viki doctor --fix              # 真改（先备份）",
+    "  viki doctor --fix --json       # 应用并输出 JSON 报告",
     "",
   ].join("\n") + "\n";
 }
@@ -1242,14 +1242,14 @@ export function renderDoctorResult(result: DoctorResult): string {
 
   lines.push("");
   if (result.allPassed && result.skipped === 0) {
-    lines.push("✅ 全部检查通过！TeamAgent 运行正常。");
+    lines.push("✅ 全部检查通过！Viki 运行正常。");
   } else if (result.allPassed) {
     lines.push("✅ 可运行检查通过；跳过项见上方（可能代表未完成产品范围）。");
   } else {
     const parts: string[] = [];
     if (result.failed > 0) parts.push(`${result.failed} 项失败`);
     if (result.skipped > 0) parts.push(`${result.skipped} 项跳过`);
-    lines.push(`${parts.join("，")}。修复后重跑 teamagent doctor`);
+    lines.push(`${parts.join("，")}。修复后重跑 viki doctor`);
   }
 
   // Issue #172: append fix outcomes section when --fix was passed.
@@ -1285,10 +1285,10 @@ export function renderDoctorResult(result: DoctorResult): string {
     }
     if (result.dryRun) {
       lines.push("");
-      lines.push("不会写入。去掉 --dry-run 真实执行（写入前会先备份到 ~/.teamagent/backups/）。");
+      lines.push("不会写入。去掉 --dry-run 真实执行（写入前会先备份到 ~/.viki/backups/）。");
     } else if (appliedCount > 0) {
       lines.push("");
-      lines.push(`已修复 ${appliedCount} 项。备份位置：~/.teamagent/backups/`);
+      lines.push(`已修复 ${appliedCount} 项。备份位置：~/.viki/backups/`);
     }
   }
 

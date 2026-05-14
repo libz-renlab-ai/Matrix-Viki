@@ -18,7 +18,7 @@ const WASM_MAP: Record<string, string> = {
  * 首次调用时初始化 web-tree-sitter WASM runtime + 预加载语言。幂等。
  *
  * web-tree-sitter 走动态 import：tsup 把它列在 NATIVE_EXTERNAL，staged 的
- * ~/.teamagent/hooks/bin-*.cjs 离开 monorepo node_modules 后无法解析。
+ * ~/.viki/hooks/bin-*.cjs 离开 monorepo node_modules 后无法解析。
  * 顶层静态 import 会在 bundle 里留下 top-level `require("web-tree-sitter")`，
  * 任何拉到 matcher 的 hook（含从不调 matcher 的 SessionStart）启动时直接
  * MODULE_NOT_FOUND。改成 await import() 后，require 仅在 initAstMatcher 真

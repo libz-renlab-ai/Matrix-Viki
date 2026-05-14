@@ -3,13 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { DualLayerStore } from "../dual-layer-store.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 let tmpDir: string;
 let store: DualLayerStore;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-dual-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-dual-"));
   store = new DualLayerStore({
     projectDbPath: path.join(tmpDir, "project.db"),
     userGlobalDbPath: path.join(tmpDir, "global.db"),

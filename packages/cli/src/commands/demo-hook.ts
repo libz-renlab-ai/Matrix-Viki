@@ -1,9 +1,9 @@
 import os from "node:os";
 import path from "node:path";
 import nodeFs from "node:fs";
-import { DualLayerStore, normalizeCwd } from "@teamagent/adapters";
-import { matchRules } from "@teamagent/core";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore, normalizeCwd } from "@viki/adapters";
+import { matchRules } from "@viki/core";
+import type { KnowledgeEntry } from "@viki/types";
 
 export interface DemoHookOptions {
   toolName: string;
@@ -30,7 +30,7 @@ function decisionFor(rule: KnowledgeEntry | undefined): "allow" | "deny" {
 
 function formatBlockReason(rule: KnowledgeEntry): string {
   return [
-    `🚫 TeamAgent 拦截 (置信 ${rule.confidence.toFixed(2)})`,
+    `🚫 Viki 拦截 (置信 ${rule.confidence.toFixed(2)})`,
     `应改用: ${rule.correct_pattern}`,
     `原因: ${rule.reasoning}`,
     `(规则 id: ${rule.id})`,
@@ -39,7 +39,7 @@ function formatBlockReason(rule: KnowledgeEntry): string {
 
 function formatWarnMessage(rule: KnowledgeEntry): string {
   return [
-    `💡 TeamAgent 经验 (置信 ${rule.confidence.toFixed(2)})`,
+    `💡 Viki 经验 (置信 ${rule.confidence.toFixed(2)})`,
     `推荐: ${rule.correct_pattern}`,
     `原因: ${rule.reasoning}`,
   ].join("\n");
@@ -64,8 +64,8 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
   const toolName = opts.toolName ?? opts.tool ?? "";
   const toolInput = opts.toolInput ?? opts.input ?? {};
 
-  const projectDbPath = opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db");
+  const projectDbPath = opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db");
+  const userGlobalDbPath = opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db");
 
   // 只打开已存在的 DB，避免在测试目录里意外创建空文件（也规避 Windows WAL 锁）
   const effectiveProject = nodeFs.existsSync(projectDbPath) ? projectDbPath : ":memory:";
@@ -88,7 +88,7 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
   if (matches.length === 0) {
     const out = [
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "🟢 TeamAgent · 模拟 PreToolUse 结果",
+      "🟢 Viki · 模拟 PreToolUse 结果",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       `▸ 工具: ${toolName}`,
       `▸ 输入: ${JSON.stringify(toolInput)}`,
@@ -105,7 +105,7 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
     const reason = formatBlockReason(top);
     const out = [
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "🚫 TeamAgent · 模拟 PreToolUse 结果",
+      "🚫 Viki · 模拟 PreToolUse 结果",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       `▸ 工具: ${toolName}`,
       `▸ 输入: ${JSON.stringify(toolInput)}`,
@@ -122,7 +122,7 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
     const msg = formatWarnMessage(top);
     const out = [
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "💡 TeamAgent · 模拟 PreToolUse 结果",
+      "💡 Viki · 模拟 PreToolUse 结果",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       `▸ 工具: ${toolName}`,
       `▸ 输入: ${JSON.stringify(toolInput)}`,
@@ -139,7 +139,7 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
   // suggest / passive 默认通过
   const out = [
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "🟢 TeamAgent · 模拟 PreToolUse 结果",
+    "🟢 Viki · 模拟 PreToolUse 结果",
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
     `▸ 工具: ${toolName}`,
     `▸ 输入: ${JSON.stringify(toolInput)}`,

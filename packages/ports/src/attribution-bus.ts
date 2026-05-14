@@ -1,10 +1,10 @@
-import type { AttributionEvent } from "@teamagent/types";
+import type { AttributionEvent } from "@viki/types";
 
 /**
  * 归因事件总线。组件通过 emit 发送事件，Renderer 或持久化层通过 subscribe 消费。
  *
  * M0 的 InMemoryAttributionBus 只做内存存储+同步订阅。M2 起会有 adapter
- * 把事件落盘到 ~/.teamagent/events.jsonl 供跨进程消费（Hook 是短进程）。
+ * 把事件落盘到 ~/.viki/events.jsonl 供跨进程消费（Hook 是短进程）。
  */
 export interface AttributionBus {
   emit(event: AttributionEvent): void;

@@ -8,9 +8,9 @@ import {
 import type {
   ClaudePluginInstaller,
   StepOutcome,
-} from "@teamagent/adapters";
-import type { MarketplaceSpec, PluginSpec } from "@teamagent/core";
-import { DEFAULT_MARKETPLACES, DEFAULT_PLUGINS } from "@teamagent/core";
+} from "@viki/adapters";
+import type { MarketplaceSpec, PluginSpec } from "@viki/core";
+import { DEFAULT_MARKETPLACES, DEFAULT_PLUGINS } from "@viki/core";
 
 function fakeInstaller(
   behavior: {

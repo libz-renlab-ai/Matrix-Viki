@@ -4,8 +4,8 @@ import path from "node:path";
 import os from "node:os";
 import { executeDemoHook, parseDemoHookArgs } from "../commands/demo-hook.js";
 import { executePitfall } from "../commands/pitfall.js";
-import { DualLayerStore } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 function rmRetry(p: string) {
   // Windows: node:sqlite WAL mode holds shm/wal files briefly after close()
@@ -160,8 +160,8 @@ describe("executeDemoHook", () => {
 
   it("block-level match → 🚫 + 拦截原因", () => {
     // 直接 seed 一个 block 规则（pitfall 默认 confidence=0.7 出 warn；这里手动写高置信 block 规则）
-    const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
     fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
     fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
     const blockEntry: KnowledgeEntry = {
@@ -214,13 +214,13 @@ describe("executeDemoHook", () => {
 
   // B-066: demo hook is an offline diagnostic command and MUST NOT write
   // anything that calibrate later treats as real user evidence. Specifically
-  // it must not create / mutate ~/.teamagent/events.db (where success/failure
+  // it must not create / mutate ~/.viki/events.db (where success/failure
   // observations live). Without this guard, calibrate would inflate
   // confidence (実測 0.70 → 0.83) on rules that have no real production hits.
   it("does not create or mutate events.db (no calibration pollution)", () => {
-    const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
-    const eventsDbPath = path.join(tmp.home, ".teamagent", "events.db");
+    const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
+    const eventsDbPath = path.join(tmp.home, ".viki", "events.db");
     fs.mkdirSync(path.dirname(eventsDbPath), { recursive: true });
     expect(fs.existsSync(eventsDbPath)).toBe(false);
 
@@ -242,8 +242,8 @@ describe("executeDemoHook", () => {
   // hit_count / success_count on the matched entry (that would leak into
   // calibrator scoring on the next run).
   it("does not mutate hit_count or success_count on matched rule", async () => {
-    const projectDbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const userGlobalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const projectDbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const userGlobalDbPath = path.join(tmp.home, ".viki", "global.db");
     fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
     fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
     const entry: KnowledgeEntry = {

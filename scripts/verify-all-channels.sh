@@ -12,7 +12,7 @@
 #   KEEP_DIRS=1 bash scripts/verify-all-channels.sh   # don't rm phase-2 tmp dirs
 #
 # Prerequisites:
-#   - packages/teamagent/teamagent-*.tgz must exist (run `pnpm --filter teamagent build && cd packages/teamagent && npm pack` first)
+#   - packages/viki/viki-*.tgz must exist (run `pnpm --filter viki build && cd packages/viki && npm pack` first)
 #   - Tools on PATH: fswatch, du, fs_usage, sqlite3, jq, claudefast, tmux, npm, node
 #   - sudo password (one-time prompt at start)
 #
@@ -59,10 +59,10 @@ if [ "${MISSING}" = "1" ]; then
 fi
 
 # ─── Tarball ──────────────────────────────────────────────────────────────
-TGZ=$(ls "${WORKTREE}/packages/teamagent"/teamagent-*.tgz 2>/dev/null | head -1 || true)
+TGZ=$(ls "${WORKTREE}/packages/viki"/viki-*.tgz 2>/dev/null | head -1 || true)
 if [ -z "${TGZ}" ] || [ ! -f "${TGZ}" ]; then
-  echo "FATAL: no tarball at packages/teamagent/teamagent-*.tgz" >&2
-  echo "  run: pnpm --filter teamagent build && (cd packages/teamagent && npm pack)" >&2
+  echo "FATAL: no tarball at packages/viki/viki-*.tgz" >&2
+  echo "  run: pnpm --filter viki build && (cd packages/viki && npm pack)" >&2
   exit 1
 fi
 echo "  tarball: ${TGZ}"
@@ -142,7 +142,7 @@ P2_PREF=$(mktemp -d -t "p2-pre-XXXX")
 P2_CACH=$(mktemp -d -t "p2-cache-XXXX")
 P2_HOME=$(mktemp -d -t "p2-home-XXXX")
 P2_PROJ=$(mktemp -d -t "p2-proj-XXXX")
-mkdir -p "${P2_HOME}/.teamagent" "${P2_HOME}/.claude" "${P2_PROJ}"
+mkdir -p "${P2_HOME}/.viki" "${P2_HOME}/.claude" "${P2_PROJ}"
 
 cleanup_phase2() {
   if [ "${KEEP_DIRS:-0}" != "1" ]; then
@@ -204,14 +204,14 @@ for f in neg-no-xenova neg-no-onnx neg-no-state; do
   fi
 done
 
-# Make installed teamagent callable.
+# Make installed viki callable.
 export PATH="${P2_PREF}/bin:${PATH}"
-TEAMAGENT_BIN="${P2_PREF}/bin/teamagent"
-if [ ! -x "${TEAMAGENT_BIN}" ]; then
-  echo "FATAL: teamagent not found at ${TEAMAGENT_BIN}" >&2
+VIKI_BIN="${P2_PREF}/bin/viki"
+if [ ! -x "${VIKI_BIN}" ]; then
+  echo "FATAL: viki not found at ${VIKI_BIN}" >&2
   exit 3
 fi
-echo "  teamagent bin: ${TEAMAGENT_BIN}"
+echo "  viki bin: ${VIKI_BIN}"
 
 # Seed a project package.json so claudefast's Read tool has a target.
 cat > "${P2_PROJ}/package.json" <<'JSON_EOF'
@@ -222,17 +222,17 @@ cat > "${P2_PROJ}/package.json" <<'JSON_EOF'
 }
 JSON_EOF
 
-# teamagent init — let the natural ADR 0001 gate decide whether to skip warmup.
-# We intentionally do NOT pass TEAMAGENT_SKIP_WARMUP=1 or --skip-warmup here
+# viki init — let the natural ADR 0001 gate decide whether to skip warmup.
+# We intentionally do NOT pass VIKI_SKIP_WARMUP=1 or --skip-warmup here
 # so that Channel #8 (neg-no-state) actually tests the haveVectorOptionals gate:
 # vector deps are absent in the default install → haveVectorOptionals returns
 # false → warmup is skipped → no .warmup-state.json is written.  Using the
 # bypass flags would make the assertion trivially pass even if the gate regressed.
 echo ""
-echo "── teamagent init (post-install) ───────────────────────────"
+echo "── viki init (post-install) ───────────────────────────"
 ( cd "${P2_PROJ}" && HOME="${P2_HOME}" \
-    "${TEAMAGENT_BIN}" init 2>&1 ) > "${EVIDENCE_DIR}/teamagent-init.out" \
-  || echo "  ⚠ teamagent init had non-zero exit; continuing for evidence collection"
+    "${VIKI_BIN}" init 2>&1 ) > "${EVIDENCE_DIR}/viki-init.out" \
+  || echo "  ⚠ viki init had non-zero exit; continuing for evidence collection"
 
 # Channel #6: DB + state-file content.
 echo ""

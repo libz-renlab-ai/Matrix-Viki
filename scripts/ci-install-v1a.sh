@@ -11,5 +11,5 @@ if [ "$dry_run" -eq 1 ]; then
   exit 0
 fi
 
-pnpm vitest run packages/cli/src/__tests__/install-merge.test.ts --reporter=dot >/tmp/teamagent-ci-install-v1a.log
-node -e 'console.log(JSON.stringify({check:"v1a",pass:true,v1a_terminal_confirm_count:1,mode:"vitest",stdout_path:"/tmp/teamagent-ci-install-v1a.log"}))'
+pnpm vitest run packages/cli/src/__tests__/install-merge.test.ts --reporter=dot >/tmp/viki-ci-install-v1a.log
+node -e 'console.log(JSON.stringify({check:"v1a",pass:true,v1a_terminal_confirm_count:1,mode:"vitest",stdout_path:"/tmp/viki-ci-install-v1a.log"}))'

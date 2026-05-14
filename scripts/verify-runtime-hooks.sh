@@ -3,7 +3,7 @@
 #
 # Inputs (env vars, all required):
 #   RUN_ID      — unique identifier for this harness run
-#   HOMEDIR     — tmp HOME dir (contains .claude/settings.json wired by teamagent init)
+#   HOMEDIR     — tmp HOME dir (contains .claude/settings.json wired by viki init)
 #   PROJECT_DIR — fresh tmp project dir (must contain package.json)
 #
 # Outputs written to .judge/$RUN_ID/evidence/:
@@ -51,7 +51,7 @@ EXIT_CODE_FILE="${EVIDENCE_DIR}/hooks-exit-code.txt"
 # MiniMax token + ANTHROPIC_BASE_URL etc). With HOME overridden to a tmp dir,
 # zsh -i sources an empty .zshrc, the function is undefined, and the wrapper
 # fails silently. The hook we care about was registered to PROJECT_DIR/.claude/
-# settings.local.json (verified in teamagent init output), so claudefast picks
+# settings.local.json (verified in viki init output), so claudefast picks
 # it up via project-local discovery from cwd, not via HOME.
 cd "${PROJECT_DIR}"
 

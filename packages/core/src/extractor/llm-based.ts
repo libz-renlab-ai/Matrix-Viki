@@ -1,8 +1,8 @@
 import type {
   ExtractionInput,
   KnowledgeExtractor,
-} from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 import { buildExtractionPrompt } from "./prompt.js";
 
 /**

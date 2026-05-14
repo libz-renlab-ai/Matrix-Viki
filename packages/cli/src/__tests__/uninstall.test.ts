@@ -6,7 +6,7 @@ import {
   disable,
   enable,
   uninstall,
-  stripTeamagentBlock,
+  stripVikiBlock,
   parseUninstallArgs,
   renderUninstallResult,
 } from "../commands/uninstall.js";
@@ -24,10 +24,10 @@ function mkTmp() {
   };
 }
 
-describe("stripTeamagentBlock", () => {
+describe("stripVikiBlock", () => {
   it("leaves content unchanged when block absent", () => {
     const md = "# hi\n\nsome prose\n";
-    const r = stripTeamagentBlock(md);
+    const r = stripVikiBlock(md);
     expect(r.changed).toBe(false);
     expect(r.content).toBe(md);
   });
@@ -37,20 +37,20 @@ describe("stripTeamagentBlock", () => {
 
 Manual rules here.
 
-<!-- TEAMAGENT:START - auto -->
-## TeamAgent 经验
+<!-- VIKI:START - auto -->
+## Viki 经验
 - rule 1
 - rule 2
-<!-- TEAMAGENT:END -->
+<!-- VIKI:END -->
 
 ## Ops section stays.`;
-    const r = stripTeamagentBlock(md);
+    const r = stripVikiBlock(md);
     expect(r.changed).toBe(true);
     expect(r.content).toContain("# Project");
     expect(r.content).toContain("Manual rules here.");
     expect(r.content).toContain("Ops section stays.");
-    expect(r.content).not.toContain("TEAMAGENT:START");
-    expect(r.content).not.toContain("TEAMAGENT:END");
+    expect(r.content).not.toContain("VIKI:START");
+    expect(r.content).not.toContain("VIKI:END");
     expect(r.content).not.toContain("rule 1");
   });
 
@@ -58,21 +58,21 @@ Manual rules here.
     const md = `# Project
 Prose.
 
-<!-- TEAMAGENT:START - auto -->
+<!-- VIKI:START - auto -->
 - auto rule
-<!-- TEAMAGENT:END -->`;
-    const r = stripTeamagentBlock(md);
+<!-- VIKI:END -->`;
+    const r = stripVikiBlock(md);
     expect(r.changed).toBe(true);
     expect(r.content).toContain("Prose.");
-    expect(r.content).not.toContain("TEAMAGENT");
+    expect(r.content).not.toContain("VIKI");
   });
 
   it("malformed block (start without end) → no change", () => {
     const md = `prose
 
-<!-- TEAMAGENT:START - auto -->
+<!-- VIKI:START - auto -->
 - rule`;
-    const r = stripTeamagentBlock(md);
+    const r = stripVikiBlock(md);
     expect(r.changed).toBe(false);
   });
 });
@@ -129,7 +129,7 @@ describe("uninstall", () => {
           PreToolUse: [
             {
               matcher: "Bash",
-              _teamagentTag: "teamagent-pre-tool-use",
+              _vikiTag: "viki-pre-tool-use",
               hooks: [{ type: "command", command: "node x" }],
             },
           ],
@@ -138,7 +138,7 @@ describe("uninstall", () => {
     );
     nodeFs.writeFileSync(
       path.join(tmp.cwd, "CLAUDE.md"),
-      "# Manual\n<!-- TEAMAGENT:START - auto -->\n- r\n<!-- TEAMAGENT:END -->\n",
+      "# Manual\n<!-- VIKI:START - auto -->\n- r\n<!-- VIKI:END -->\n",
     );
 
     const r = uninstall({ cwd: tmp.cwd, homeDir: tmp.home, dryRun: true });
@@ -147,12 +147,12 @@ describe("uninstall", () => {
 
     // Files untouched
     const md = nodeFs.readFileSync(path.join(tmp.cwd, "CLAUDE.md"), "utf-8");
-    expect(md).toContain("TEAMAGENT:START");
+    expect(md).toContain("VIKI:START");
     const settings = nodeFs.readFileSync(
       path.join(tmp.cwd, ".claude", "settings.local.json"),
       "utf-8",
     );
-    expect(settings).toContain("teamagent-pre-tool-use");
+    expect(settings).toContain("viki-pre-tool-use");
   });
 
   it("removes hook + CLAUDE.md block, preserves data by default", () => {
@@ -164,7 +164,7 @@ describe("uninstall", () => {
           PreToolUse: [
             {
               matcher: "Bash",
-              _teamagentTag: "teamagent-pre-tool-use",
+              _vikiTag: "viki-pre-tool-use",
               hooks: [{ type: "command", command: "node x" }],
             },
           ],
@@ -173,10 +173,10 @@ describe("uninstall", () => {
     );
     nodeFs.writeFileSync(
       path.join(tmp.cwd, "CLAUDE.md"),
-      "# Manual\n\nprose\n\n<!-- TEAMAGENT:START - auto -->\n- r\n<!-- TEAMAGENT:END -->\n",
+      "# Manual\n\nprose\n\n<!-- VIKI:START - auto -->\n- r\n<!-- VIKI:END -->\n",
     );
     // Simulate data
-    const globalStore = path.join(tmp.home, ".teamagent", "global", "knowledge.jsonl");
+    const globalStore = path.join(tmp.home, ".viki", "global", "knowledge.jsonl");
     nodeFs.mkdirSync(path.dirname(globalStore), { recursive: true });
     nodeFs.writeFileSync(globalStore, '{"id":"x"}\n');
 
@@ -192,12 +192,12 @@ describe("uninstall", () => {
     );
     const preHooks = settings.hooks?.PreToolUse ?? [];
     expect(
-      preHooks.some((h: any) => h._teamagentTag === "teamagent-pre-tool-use"),
+      preHooks.some((h: any) => h._vikiTag === "viki-pre-tool-use"),
     ).toBe(false);
 
     // CLAUDE.md cleaned but manual content preserved
     const md = nodeFs.readFileSync(path.join(tmp.cwd, "CLAUDE.md"), "utf-8");
-    expect(md).not.toContain("TEAMAGENT");
+    expect(md).not.toContain("VIKI");
     expect(md).toContain("Manual");
     expect(md).toContain("prose");
 
@@ -205,11 +205,11 @@ describe("uninstall", () => {
     expect(nodeFs.existsSync(globalStore)).toBe(true);
   });
 
-  it("--delete-data removes ~/.teamagent and ./.teamagent too", () => {
-    const globalStore = path.join(tmp.home, ".teamagent", "global", "knowledge.jsonl");
+  it("--delete-data removes ~/.viki and ./.viki too", () => {
+    const globalStore = path.join(tmp.home, ".viki", "global", "knowledge.jsonl");
     nodeFs.mkdirSync(path.dirname(globalStore), { recursive: true });
     nodeFs.writeFileSync(globalStore, '{"id":"x"}\n');
-    const teamStore = path.join(tmp.cwd, ".teamagent", "knowledge.jsonl");
+    const teamStore = path.join(tmp.cwd, ".viki", "knowledge.jsonl");
     nodeFs.mkdirSync(path.dirname(teamStore), { recursive: true });
     nodeFs.writeFileSync(teamStore, '{"id":"y"}\n');
 
@@ -250,12 +250,12 @@ describe("renderUninstallResult", () => {
   // 真实卸载且确实移除了 hook 时，必须给用户一行 reinstall 路径。
   // 否则用户跑完 uninstall 后 statusline + 三类 hook 全没了、却完全不知道
   // 怎么恢复——这就是触发本次 fix 的 UX 盲区（详见 bugs.md B-155）。
-  it("appends reinstall hint when teamagent artifacts were actually removed", () => {
+  it("appends reinstall hint when viki artifacts were actually removed", () => {
     const out = renderUninstallResult({
       dryRun: false,
       actions: [
         "已移除 hook 注册: /tmp/.claude/settings.local.json",
-        "已从 CLAUDE.md 移除 TEAMAGENT 区块",
+        "已从 CLAUDE.md 移除 VIKI 区块",
       ],
     });
     expect(out).toContain("install-hook");
@@ -265,7 +265,7 @@ describe("renderUninstallResult", () => {
   it("does not show reinstall hint on dry-run (user is just inspecting)", () => {
     const out = renderUninstallResult({
       dryRun: true,
-      actions: ["(dry-run) 会从 .../settings.local.json 移除 TeamAgent hook"],
+      actions: ["(dry-run) 会从 .../settings.local.json 移除 Viki hook"],
     });
     expect(out).not.toContain("install-hook");
   });

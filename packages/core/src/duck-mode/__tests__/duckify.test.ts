@@ -7,25 +7,25 @@ describe("isDuckModeEnabled", () => {
   });
 
   it("env=1 enables", () => {
-    expect(isDuckModeEnabled({ env: { TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK: "1" } })).toBe(true);
+    expect(isDuckModeEnabled({ env: { VIKI_EXPLAIN_LIKE_CEO_DUCK: "1" } })).toBe(true);
   });
 
   it("env=0 disables", () => {
-    expect(isDuckModeEnabled({ env: { TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK: "0" } })).toBe(false);
+    expect(isDuckModeEnabled({ env: { VIKI_EXPLAIN_LIKE_CEO_DUCK: "0" } })).toBe(false);
   });
 
   it("cliFlag=true overrides env=0", () => {
-    expect(isDuckModeEnabled({ cliFlag: true, env: { TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK: "0" } })).toBe(true);
+    expect(isDuckModeEnabled({ cliFlag: true, env: { VIKI_EXPLAIN_LIKE_CEO_DUCK: "0" } })).toBe(true);
   });
 
   it("cliFlag=false overrides env=1", () => {
-    expect(isDuckModeEnabled({ cliFlag: false, env: { TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK: "1" } })).toBe(false);
+    expect(isDuckModeEnabled({ cliFlag: false, env: { VIKI_EXPLAIN_LIKE_CEO_DUCK: "1" } })).toBe(false);
   });
 });
 
 describe("duckify", () => {
   beforeEach(() => {
-    delete process.env.TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK;
+    delete process.env.VIKI_EXPLAIN_LIKE_CEO_DUCK;
   });
 
   it("returns line unchanged when duck mode is off", () => {
@@ -33,7 +33,7 @@ describe("duckify", () => {
   });
 
   it("returns line + duck lines when env opts in", () => {
-    process.env.TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK = "1";
+    process.env.VIKI_EXPLAIN_LIKE_CEO_DUCK = "1";
     const out = duckify("Skills compiled successfully");
     expect(out[0]).toBe("Skills compiled successfully");
     expect(out.length).toBeGreaterThan(1);
@@ -47,7 +47,7 @@ describe("duckify", () => {
   });
 
   it("cliFlag=false beats env=1", () => {
-    process.env.TEAMAGENT_EXPLAIN_LIKE_CEO_DUCK = "1";
+    process.env.VIKI_EXPLAIN_LIKE_CEO_DUCK = "1";
     expect(duckify("Skills", { cliFlag: false })).toEqual(["Skills"]);
   });
 

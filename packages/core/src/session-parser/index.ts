@@ -4,7 +4,7 @@ import type {
   RawSessionMessage,
   SessionTurn,
   ToolCall,
-} from "@teamagent/types";
+} from "@viki/types";
 
 /**
  * 把 Claude Code 会话日志文本（jsonl）解析为 ParsedSession。纯函数。

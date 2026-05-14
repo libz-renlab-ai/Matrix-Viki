@@ -11,7 +11,7 @@ let obs: SqliteObservations;
 let store: SqliteKnowledgeStore;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-obs-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-obs-"));
   const db = openDb(path.join(tmpDir, "test.db"));
   obs = new SqliteObservations(db);
   store = new SqliteKnowledgeStore(db);

@@ -2,7 +2,7 @@
  * 纯函数：从 CLAUDE.md 的原文中抽取"可以作为规则的 bullet 文本"。
  *
  * 规则：
- * - 跳过 <!-- TEAMAGENT:START --> ... <!-- TEAMAGENT:END --> 区块内所有内容
+ * - 跳过 <!-- VIKI:START --> ... <!-- VIKI:END --> 区块内所有内容
  *   （那是系统自己维护的，导入它相当于循环）
  * - 识别 bullet：以 `- ` / `* ` / `+ ` 开头的行，以及 `1. ` `2.` 等编号列表
  * - 支持连续行：bullet 下方紧跟的缩进行会被拼进同一条 bullet
@@ -14,7 +14,7 @@
 export function extractRuleBullets(md: string): string[] {
   const lines = md.split("\n");
   const out: string[] = [];
-  let inTeamagentBlock = false;
+  let inVikiBlock = false;
   let inCodeFence = false;
   let currentBullet: string[] | null = null;
   let currentIndent = 0;
@@ -36,17 +36,17 @@ export function extractRuleBullets(md: string): string[] {
     }
     if (inCodeFence) continue;
 
-    // TEAMAGENT 区块识别
-    if (/<!--\s*TEAMAGENT:START/.test(rawLine)) {
-      inTeamagentBlock = true;
+    // VIKI 区块识别
+    if (/<!--\s*VIKI:START/.test(rawLine)) {
+      inVikiBlock = true;
       flush();
       continue;
     }
-    if (/<!--\s*TEAMAGENT:END/.test(rawLine)) {
-      inTeamagentBlock = false;
+    if (/<!--\s*VIKI:END/.test(rawLine)) {
+      inVikiBlock = false;
       continue;
     }
-    if (inTeamagentBlock) continue;
+    if (inVikiBlock) continue;
 
     // Bullet 识别
     const bulletMatch = rawLine.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);

@@ -1,9 +1,9 @@
 /**
- * Static user-level skills shipped by `teamagent init` (per `docs/INIT-PROPAGATION.md`).
+ * Static user-level skills shipped by `viki init` (per `docs/INIT-PROPAGATION.md`).
  *
- * "Static" = the SKILL.md content is bundled with the teamagent package and
+ * "Static" = the SKILL.md content is bundled with the viki package and
  * mirrored verbatim to `~/.claude/skills/<name>/SKILL.md` and
- * `~/.codex/skills/<name>/SKILL.md` on init. Distinct from teamagent-compiled
+ * `~/.codex/skills/<name>/SKILL.md` on init. Distinct from viki-compiled
  * Skills (`runCompile`) which derive from rules + KB.
  *
  * To add a new static user skill: (1) put SKILL.md at `.claude/skills/<name>/`,

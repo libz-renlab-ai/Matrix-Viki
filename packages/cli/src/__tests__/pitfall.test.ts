@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { executePitfall, parsePitfallArgs } from "../commands/pitfall.js";
-import { DualLayerStore, openDb } from "@teamagent/adapters";
+import { DualLayerStore, openDb } from "@viki/adapters";
 
 // 384-dim stub embedder，无 Xenova native 依赖，行为确定。
 const stubEmbedder = {
@@ -55,8 +55,8 @@ describe("executePitfall", () => {
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
 
-    const dbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const globalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const dbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const globalDbPath = path.join(tmp.home, ".viki", "global.db");
     const store = new DualLayerStore({ projectDbPath: dbPath, userGlobalDbPath: globalDbPath });
     const all = store.getAll();
     store.close();
@@ -82,7 +82,7 @@ describe("executePitfall", () => {
     const mdPath = path.join(tmp.cwd, "CLAUDE.md");
     expect(fs.existsSync(mdPath)).toBe(false);
 
-    const skillsRoot = path.join(tmp.home, ".claude", "skills", "teamagent");
+    const skillsRoot = path.join(tmp.home, ".claude", "skills", "viki");
     const skillFiles = fs.readdirSync(skillsRoot, { recursive: true }) as string[];
     const skillMd = skillFiles.find((file) => file.endsWith("SKILL.md"));
     expect(skillMd).toBeTruthy();
@@ -91,7 +91,7 @@ describe("executePitfall", () => {
     expect(skillContent).toContain("w");
   });
 
-  it("preserves existing CLAUDE.md content without adding TEAMAGENT block", async () => {
+  it("preserves existing CLAUDE.md content without adding VIKI block", async () => {
     const mdPath = path.join(tmp.cwd, "CLAUDE.md");
     fs.writeFileSync(mdPath, "# My Project\n\nRule: always X\n", "utf-8");
 
@@ -103,7 +103,7 @@ describe("executePitfall", () => {
     const content = fs.readFileSync(mdPath, "utf-8");
     expect(content).toContain("# My Project");
     expect(content).toContain("Rule: always X");
-    expect(content).not.toContain("TEAMAGENT:START");
+    expect(content).not.toContain("VIKI:START");
   });
 
   it("returns attribution block in smart mode by default", async () => {
@@ -116,7 +116,7 @@ describe("executePitfall", () => {
       },
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
-    expect(out).toContain("✨ TeamAgent");
+    expect(out).toContain("✨ Viki");
     expect(out).toContain("添加知识条目");
     expect(out).toContain("知识库变化: 0 → 1 条");
     expect(out).toContain("传播到:");
@@ -142,7 +142,7 @@ describe("executePitfall", () => {
   });
 
   // B-065: practice pitfall (无 wrong_pattern) 不进 CLAUDE.md，只
-  // 进 ~/.claude/skills/teamagent/<id>/SKILL.md。归因应该指向
+  // 进 ~/.claude/skills/viki/<id>/SKILL.md。归因应该指向
   // SKILL.md，避免误导用户以为规则在 CLAUDE.md 生效。
   it("practice pitfall: 传播到 应指向 SKILL.md (不在 CLAUDE.md)", async () => {
     const out = await executePitfall(
@@ -188,7 +188,7 @@ describe("executePitfall", () => {
         cwd: tmp.cwd,
         homeDir: tmp.home,
         now: () => fixedNow,
-        env: { TEAMAGENT_VISIBILITY: "silent" },
+        env: { VIKI_VISIBILITY: "silent" },
         embedder: stubEmbedder,
       },
     );
@@ -202,11 +202,11 @@ describe("executePitfall", () => {
         cwd: tmp.cwd,
         homeDir: tmp.home,
         now: () => fixedNow,
-        env: { TEAMAGENT_VISIBILITY: "verbose" },
+        env: { VIKI_VISIBILITY: "verbose" },
         embedder: stubEmbedder,
       },
     );
-    expect(out).toContain("如果没有 TeamAgent");
+    expect(out).toContain("如果没有 Viki");
   });
 
   it("empty wrong_pattern → type=practice", async () => {
@@ -219,8 +219,8 @@ describe("executePitfall", () => {
       },
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
-    const dbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const globalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const dbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const globalDbPath = path.join(tmp.home, ".viki", "global.db");
     const store = new DualLayerStore({ projectDbPath: dbPath, userGlobalDbPath: globalDbPath });
     const all = store.getAll();
     store.close();
@@ -239,8 +239,8 @@ describe("executePitfall", () => {
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
 
-    const dbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const globalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const dbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const globalDbPath = path.join(tmp.home, ".viki", "global.db");
     const store = new DualLayerStore({ projectDbPath: dbPath, userGlobalDbPath: globalDbPath });
     const all = store.getAll();
     store.close();
@@ -260,8 +260,8 @@ describe("executePitfall", () => {
       },
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
-    const dbPath = path.join(tmp.cwd, ".teamagent", "knowledge.db");
-    const globalDbPath = path.join(tmp.home, ".teamagent", "global.db");
+    const dbPath = path.join(tmp.cwd, ".viki", "knowledge.db");
+    const globalDbPath = path.join(tmp.home, ".viki", "global.db");
     const store = new DualLayerStore({ projectDbPath: dbPath, userGlobalDbPath: globalDbPath });
     const all = store.getAll();
     store.close();
@@ -282,7 +282,7 @@ describe("executePitfall: 自动向量同步", () => {
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
 
-    const db = openDb(path.join(tmp.cwd, ".teamagent", "knowledge.db"));
+    const db = openDb(path.join(tmp.cwd, ".viki", "knowledge.db"));
     const row = db.prepare("SELECT trigger_description FROM knowledge LIMIT 1").get() as any;
     db.close();
 
@@ -296,7 +296,7 @@ describe("executePitfall: 自动向量同步", () => {
       { cwd: tmp.cwd, homeDir: tmp.home, now: () => fixedNow, env: {}, embedder: stubEmbedder },
     );
 
-    const db = openDb(path.join(tmp.cwd, ".teamagent", "knowledge.db"));
+    const db = openDb(path.join(tmp.cwd, ".viki", "knowledge.db"));
     // 查询 vec 表行数：修复前 = 0，修复后 = 1
     const vecCount = db.prepare("SELECT COUNT(*) as n FROM knowledge_trigger_vec").get() as any;
     db.close();

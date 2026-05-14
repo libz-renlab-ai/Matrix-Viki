@@ -12,8 +12,8 @@ if [ "$dry_run" -eq 1 ]; then
   exit 0
 fi
 
-preview="$(pnpm teamagent install --preview)"
-help="$(pnpm teamagent install --help)"
+preview="$(pnpm viki install --preview)"
+help="$(pnpm viki install --help)"
 
 preview_missing=()
 for section in $required_sections; do

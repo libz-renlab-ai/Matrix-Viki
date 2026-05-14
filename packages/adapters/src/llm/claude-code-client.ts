@@ -1,6 +1,6 @@
 import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
-import type { LLMClient } from "@teamagent/ports";
-import { LLMClientError } from "@teamagent/ports";
+import type { LLMClient } from "@viki/ports";
+import { LLMClientError } from "@viki/ports";
 
 /**
  * Spawn 抽象：便于测试时注入 fake spawner。
@@ -29,7 +29,7 @@ export interface ClaudeCodeLLMClientOptions {
   spawner?: Spawner;
   /**
    * Claude CLI --model 参数。可以是 alias (haiku/sonnet/opus) 或完整 id。
-   * 未指定时回退到 env TEAMAGENT_LLM_MODEL；都没有则不传 --model，走 CLI 默认。
+   * 未指定时回退到 env VIKI_LLM_MODEL；都没有则不传 --model，走 CLI 默认。
    */
   model?: string;
 }
@@ -56,12 +56,12 @@ export class ClaudeCodeLLMClient implements LLMClient {
     if (opts.timeoutMs !== undefined) {
       this.timeoutMs = opts.timeoutMs;
     } else {
-      const envVal = parseInt(process.env.TEAMAGENT_LLM_TIMEOUT_MS ?? "", 10);
+      const envVal = parseInt(process.env.VIKI_LLM_TIMEOUT_MS ?? "", 10);
       this.timeoutMs = Number.isFinite(envVal) && envVal > 0 ? envVal : 120_000;
     }
     this.spawner = opts.spawner ?? defaultSpawner;
-    // Precedence: explicit opt > TEAMAGENT_LLM_MODEL env > undefined (CLI default)
-    const envModel = process.env.TEAMAGENT_LLM_MODEL;
+    // Precedence: explicit opt > VIKI_LLM_MODEL env > undefined (CLI default)
+    const envModel = process.env.VIKI_LLM_MODEL;
     this.model = opts.model ?? (envModel && envModel.trim() ? envModel.trim() : undefined);
   }
 

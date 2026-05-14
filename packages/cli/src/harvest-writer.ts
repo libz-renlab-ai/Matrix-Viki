@@ -1,13 +1,13 @@
 /**
  * Append-only harvest log. Records every Stop / SessionEnd / PreCompact
- * pipeline run into .teamagent/last-harvest.md so the user can read what the
+ * pipeline run into .viki/last-harvest.md so the user can read what the
  * background process learned even though it runs silently.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { findTeamagentRoot } from "./find-teamagent-root.js";
+import { findVikiRoot } from "./find-viki-root.js";
 
-export const HARVEST_FILE_RELATIVE = path.join(".teamagent", "last-harvest.md");
+export const HARVEST_FILE_RELATIVE = path.join(".viki", "last-harvest.md");
 
 export interface HarvestEntrySummary {
   trigger: string;
@@ -29,7 +29,7 @@ export interface HarvestRecord {
 }
 
 export function getHarvestPath(cwd: string): string {
-  const root = findTeamagentRoot(cwd);
+  const root = findVikiRoot(cwd);
   return path.join(root, HARVEST_FILE_RELATIVE);
 }
 

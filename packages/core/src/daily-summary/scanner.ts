@@ -11,7 +11,7 @@
 import * as nodeFs from "node:fs";
 import * as nodePath from "node:path";
 import { parseSessionFile } from "../session-parser/index.js";
-import type { ParsedSession } from "@teamagent/types";
+import type { ParsedSession } from "@viki/types";
 import { decodeProjectDirToCwd } from "./cwd-decode.js";
 import { toProjectKey, type ProjectKey } from "./project-key.js";
 

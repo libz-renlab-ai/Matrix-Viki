@@ -41,8 +41,8 @@ Output:
 - `OVERALL=PASS|FAIL` — printed to stdout
 - exit 0 = PASS, exit 1 = FAIL
 
-Backup/restore: the script automatically backs up `~/.teamagent/first-run-state.json`
-and `~/.teamagent/update-state.json`, and restores them on exit (trap EXIT).
+Backup/restore: the script automatically backs up `~/.viki/first-run-state.json`
+and `~/.viki/update-state.json`, and restores them on exit (trap EXIT).
 
 ## judge.json Schema
 
@@ -112,10 +112,10 @@ and `~/.teamagent/update-state.json`, and restores them on exit (trap EXIT).
 |----|------|---------------|
 | J1 | `pnpm typecheck` | `exit_code == 0` |
 | J2 | `pnpm vitest run first-run` | `exit_code == 0` AND `tests_passed >= 6` |
-| J3 | `node packages/teamagent/postinstall.mjs` | 6 anchors hit (`✅` `装好` `skeleton-demo` `stats` `--help` `github.com`) AND `line_count <= 30` |
-| J4 | `pnpm teamagent` (no args, first run) | menu anchors hit >= 3 (`装好啦` `🎉` `skeleton-demo` `stats` `--help`) |
-| J5 | `pnpm teamagent` (no args, second run) | stdout contains `上次你跑了` AND `completed_steps_count > 0` |
-| J6 | `pnpm teamagent --help` | diff vs `docs/baselines/help-output.txt` is empty (`diff_bytes == 0`) |
+| J3 | `node packages/viki/postinstall.mjs` | 6 anchors hit (`✅` `装好` `skeleton-demo` `stats` `--help` `github.com`) AND `line_count <= 30` |
+| J4 | `pnpm viki` (no args, first run) | menu anchors hit >= 3 (`装好啦` `🎉` `skeleton-demo` `stats` `--help`) |
+| J5 | `pnpm viki` (no args, second run) | stdout contains `上次你跑了` AND `completed_steps_count > 0` |
+| J6 | `pnpm viki --help` | diff vs `docs/baselines/help-output.txt` is empty (`diff_bytes == 0`) |
 
 Note on J4/J5: in non-TTY (pipe) mode the wizard renders the menu and exits without
 writing state. J4 therefore tests only menu rendering; J5 pre-seeds the state file to
@@ -134,7 +134,7 @@ or consult the agent that produced the code. This keeps evaluation independent.
 
 ## Known Limits
 
-- **PTY emulation**: J4/J5 run via pipe (`printf '1\n' | pnpm teamagent`), so `isTTY`
+- **PTY emulation**: J4/J5 run via pipe (`printf '1\n' | pnpm viki`), so `isTTY`
   is false. The wizard takes the non-TTY path (render-and-exit). Full TTY exercise
   requires a PTY (`script -q /dev/null` on macOS or `unbuffer` from expect), but this
   varies across macOS/Linux and adds a dependency. The non-TTY path tests menu

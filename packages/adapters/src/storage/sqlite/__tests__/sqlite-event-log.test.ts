@@ -4,13 +4,13 @@ import path from "node:path";
 import os from "node:os";
 import { openDb } from "../schema.js";
 import { SqliteEventLog } from "../sqlite-event-log.js";
-import type { PersistedEvent } from "@teamagent/types";
+import type { PersistedEvent } from "@viki/types";
 
 let tmpDir: string;
 let log: SqliteEventLog;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "teamagent-eventlog-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "viki-eventlog-"));
   const db = openDb(path.join(tmpDir, "test.db"));
   log = new SqliteEventLog(db);
 });

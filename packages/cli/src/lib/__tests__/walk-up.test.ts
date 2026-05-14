@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { findTeamagentRoot } from "../walk-up.js";
+import { findVikiRoot } from "../walk-up.js";
 
 let tmpDir: string;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "walk-up-test-"));
   // Resolve realpath in case the OS tmpdir is itself a symlink (e.g. macOS
-  // /tmp -> /private/tmp). Without this, path.resolve in findTeamagentRoot
+  // /tmp -> /private/tmp). Without this, path.resolve in findVikiRoot
   // may differ from the literal tmpDir string and break equality assertions.
   tmpDir = fs.realpathSync(tmpDir);
 });
@@ -23,26 +23,26 @@ afterEach(() => {
 });
 
 /**
- * Create `<dir>/.teamagent/knowledge.db` as a regular file.
+ * Create `<dir>/.viki/knowledge.db` as a regular file.
  */
 function plantDb(dir: string): void {
-  const teamagentDir = path.join(dir, ".teamagent");
-  fs.mkdirSync(teamagentDir, { recursive: true });
-  fs.writeFileSync(path.join(teamagentDir, "knowledge.db"), "stub");
+  const vikiDir = path.join(dir, ".viki");
+  fs.mkdirSync(vikiDir, { recursive: true });
+  fs.writeFileSync(path.join(vikiDir, "knowledge.db"), "stub");
 }
 
 /**
  * Plant a `.git/` directory as a project-marker. PR #181 fix-cycle: walk-up
- * now requires BOTH `.teamagent/knowledge.db` AND a project-marker at the
+ * now requires BOTH `.viki/knowledge.db` AND a project-marker at the
  * same level for an ancestor to count as a real project root.
  */
 function plantMarker(dir: string): void {
   fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
 }
 
-describe("findTeamagentRoot", () => {
+describe("findVikiRoot", () => {
   // PR #181 fix-cycle: existing positive cases must plant a project-marker
-  // alongside the .teamagent/knowledge.db. Without the marker, the new
+  // alongside the .viki/knowledge.db. Without the marker, the new
   // contract treats the directory as a stray DB and keeps walking. The
   // marker is part of the trust-boundary defense (B+A) — see walk-up.ts
   // header for rationale.
@@ -50,7 +50,7 @@ describe("findTeamagentRoot", () => {
   it("cwd has knowledge.db + project-marker -> returns cwd itself", () => {
     plantDb(tmpDir);
     plantMarker(tmpDir);
-    expect(findTeamagentRoot(tmpDir)).toBe(tmpDir);
+    expect(findVikiRoot(tmpDir)).toBe(tmpDir);
   });
 
   it("parent has knowledge.db + project-marker, cwd does not -> returns parent", () => {
@@ -58,7 +58,7 @@ describe("findTeamagentRoot", () => {
     plantMarker(tmpDir);
     const child = path.join(tmpDir, "child");
     fs.mkdirSync(child, { recursive: true });
-    expect(findTeamagentRoot(child)).toBe(tmpDir);
+    expect(findVikiRoot(child)).toBe(tmpDir);
   });
 
   it("grandparent has knowledge.db + project-marker -> returns grandparent", () => {
@@ -66,44 +66,44 @@ describe("findTeamagentRoot", () => {
     plantMarker(tmpDir);
     const grandchild = path.join(tmpDir, "child", "grandchild");
     fs.mkdirSync(grandchild, { recursive: true });
-    expect(findTeamagentRoot(grandchild)).toBe(tmpDir);
+    expect(findVikiRoot(grandchild)).toBe(tmpDir);
   });
 
   it("no knowledge.db anywhere on the walk -> returns null", () => {
-    // Tmp dir tree exists but no .teamagent/knowledge.db planted.
+    // Tmp dir tree exists but no .viki/knowledge.db planted.
     // Walk-up climbs from tmpDir to fs root and returns null.
     const child = path.join(tmpDir, "child");
     fs.mkdirSync(child, { recursive: true });
-    expect(findTeamagentRoot(child)).toBeNull();
+    expect(findVikiRoot(child)).toBeNull();
   });
 
-  it(".teamagent/knowledge.db is a directory not a file -> keeps walking (returns null when no real DB above)", () => {
+  it(".viki/knowledge.db is a directory not a file -> keeps walking (returns null when no real DB above)", () => {
     // Documented choice: when knowledge.db exists but is NOT a regular file,
-    // findTeamagentRoot treats it as "not a match" and keeps walking up the
+    // findVikiRoot treats it as "not a match" and keeps walking up the
     // tree. Since we plant it at tmpDir and there is no real DB above tmpDir
     // within the test's controlled scope, the function will eventually return
     // null when it reaches fs root.
-    const teamagentDir = path.join(tmpDir, ".teamagent");
-    fs.mkdirSync(path.join(teamagentDir, "knowledge.db"), { recursive: true });
+    const vikiDir = path.join(tmpDir, ".viki");
+    fs.mkdirSync(path.join(vikiDir, "knowledge.db"), { recursive: true });
     plantMarker(tmpDir);
-    expect(findTeamagentRoot(tmpDir)).toBeNull();
+    expect(findVikiRoot(tmpDir)).toBeNull();
   });
 
   it("start is a non-existent path -> returns null", () => {
     // path.resolve still produces an absolute path; fs.lstatSync throws on
     // every candidate up the chain; loop tolerates and walks to fs root.
     const ghost = path.join(tmpDir, "does", "not", "exist", "anywhere");
-    expect(findTeamagentRoot(ghost)).toBeNull();
+    expect(findVikiRoot(ghost)).toBeNull();
   });
 
   // ─── PR #181 fix-cycle (Worker E) — defense-in-depth for trust boundary ──
 
   it("PR #181: returns null when knowledge.db exists but no project-marker is at the same dir", () => {
-    // The trust-boundary defense: a stray `.teamagent/knowledge.db` planted
+    // The trust-boundary defense: a stray `.viki/knowledge.db` planted
     // by an attacker (or by some other tool) at a directory that is NOT a
     // real project root must NOT be trusted. Walk-up keeps going.
     plantDb(tmpDir); // db only — no .git / package.json / etc.
-    expect(findTeamagentRoot(tmpDir)).toBeNull();
+    expect(findVikiRoot(tmpDir)).toBeNull();
   });
 
   it("PR #181: returns ancestor when both knowledge.db AND a project-marker exist at the ancestor", () => {
@@ -113,12 +113,12 @@ describe("findTeamagentRoot", () => {
     plantMarker(tmpDir);
     const sub = path.join(tmpDir, "sub");
     fs.mkdirSync(sub, { recursive: true });
-    expect(findTeamagentRoot(sub)).toBe(tmpDir);
+    expect(findVikiRoot(sub)).toBe(tmpDir);
   });
 
   it("PR #181: caps at homeDir — does not walk above $HOME boundary", () => {
-    // Build: <home>/.teamagent/knowledge.db + <home>/.git AND
-    //        <home-parent>/.teamagent/knowledge.db + <home-parent>/.git
+    // Build: <home>/.viki/knowledge.db + <home>/.git AND
+    //        <home-parent>/.viki/knowledge.db + <home-parent>/.git
     //
     // From <home>/sub with opts.homeDir=<home>:
     //   - <home>/sub: no DB → walk up
@@ -136,14 +136,14 @@ describe("findTeamagentRoot", () => {
 
     // Negative case first: WITHOUT a DB+marker at <home>, the cap fires and
     // we return null (we do NOT walk into tmpDir's DB above the cap).
-    const found1 = findTeamagentRoot(sub, { homeDir: home });
+    const found1 = findVikiRoot(sub, { homeDir: home });
     expect(found1).toBeNull();
 
     // Boundary-inclusive case: plant a DB+marker AT <home>. The loop's
     // candidate check at <home> succeeds, so we return <home>.
     plantDb(home);
     plantMarker(home);
-    const found2 = findTeamagentRoot(sub, { homeDir: home });
+    const found2 = findVikiRoot(sub, { homeDir: home });
     expect(found2).toBe(home);
   });
 
@@ -165,12 +165,12 @@ describe("findTeamagentRoot", () => {
       // to exercise.
       const blocked = path.join(tmpDir, "blocked");
       fs.mkdirSync(blocked, { recursive: true });
-      // Make the .teamagent dir itself unreadable so lstat on
-      // <blocked>/.teamagent/knowledge.db raises EACCES.
-      const teamagentDir = path.join(blocked, ".teamagent");
-      fs.mkdirSync(teamagentDir);
-      const originalMode = fs.statSync(teamagentDir).mode;
-      fs.chmodSync(teamagentDir, 0o000);
+      // Make the .viki dir itself unreadable so lstat on
+      // <blocked>/.viki/knowledge.db raises EACCES.
+      const vikiDir = path.join(blocked, ".viki");
+      fs.mkdirSync(vikiDir);
+      const originalMode = fs.statSync(vikiDir).mode;
+      fs.chmodSync(vikiDir, 0o000);
 
       const stderrSpy = vi
         .spyOn(process.stderr, "write")
@@ -184,7 +184,7 @@ describe("findTeamagentRoot", () => {
           typeof process.getuid === "function" && process.getuid() === 0;
         if (isRoot) return;
 
-        const result = findTeamagentRoot(blocked);
+        const result = findVikiRoot(blocked);
         expect(result).toBeNull();
         // At least one stderr write naming EACCES (or some unexpected errno
         // like EPERM on macOS depending on fs flavour) and the walk-up phrase.
@@ -198,7 +198,7 @@ describe("findTeamagentRoot", () => {
       } finally {
         // Restore permissions before cleanup so afterEach's rm -rf works.
         try {
-          fs.chmodSync(teamagentDir, originalMode);
+          fs.chmodSync(vikiDir, originalMode);
         } catch {
           /* best-effort */
         }

@@ -1,5 +1,5 @@
 /**
- * `teamagent daily` — issue #371 daily-summary CLI.
+ * `viki daily` — issue #371 daily-summary CLI.
  *
  * Two purposes:
  *   1. Provide a deterministic, snapshot-able `--help` JSON output
@@ -10,13 +10,13 @@
  *
  * Usage (also kept in sync with bin.ts top-level help):
  *
- *   teamagent daily [--projects-root=PATH] [--cwd=PATH] [--archive]
+ *   viki daily [--projects-root=PATH] [--cwd=PATH] [--archive]
  *                   [--format=json|context] [--help]
  *
  *   --help              Print JSON help schema and exit.
  *   --projects-root     Override ~/.claude/projects (for tests/fixtures).
  *   --cwd               Override process.cwd() reference (informational).
- *   --archive           Also write ${TEAMAGENT_HOME}/daily/<date>.md.
+ *   --archive           Also write ${VIKI_HOME}/daily/<date>.md.
  *   --format=json       Default. Print machine-readable JSON.
  *   --format=context    Print the additionalContext markdown the hook would
  *                       inject (useful for manual inspection / golden tests).
@@ -32,16 +32,16 @@ import {
   composeArchiveMarkdown,
   type ScanResult,
   type ProjectDigest,
-} from "@teamagent/core";
+} from "@viki/core";
 
 export interface DailyOptions {
   /** Override `~/.claude/projects`. */
   projectsRoot?: string;
   /** Informational override of cwd; does not affect scanner output. */
   cwd?: string;
-  /** Override ${TEAMAGENT_HOME}; for tests. */
+  /** Override ${VIKI_HOME}; for tests. */
   homeDir?: string;
-  /** When true, write ${TEAMAGENT_HOME}/daily/<date>.md alongside stdout. */
+  /** When true, write ${VIKI_HOME}/daily/<date>.md alongside stdout. */
   archive?: boolean;
   /** Output mode. */
   format?: "json" | "context";
@@ -68,11 +68,11 @@ export interface DailyResult {
 }
 
 const HELP_PAYLOAD = {
-  command: "teamagent daily",
+  command: "viki daily",
   summary:
     "Aggregate today's Claude Code activity across all projects on this machine into a per-project digest. LLM-free.",
   usage:
-    "teamagent daily [--projects-root=PATH] [--cwd=PATH] [--archive] [--format=json|context] [--help]",
+    "viki daily [--projects-root=PATH] [--cwd=PATH] [--archive] [--format=json|context] [--help]",
   flags: {
     "--help": "Print this JSON help schema and exit.",
     "--projects-root":
@@ -80,14 +80,14 @@ const HELP_PAYLOAD = {
     "--cwd":
       "Override the operator's cwd reference. Informational only; does not affect which sessions are scanned.",
     "--archive":
-      "Also write ${TEAMAGENT_HOME}/daily/<YYYY-MM-DD>.md (overwrite-on-rerun).",
+      "Also write ${VIKI_HOME}/daily/<YYYY-MM-DD>.md (overwrite-on-rerun).",
     "--format":
       'Output mode. "json" (default) emits machine-readable JSON; "context" emits the markdown additionalContext the UserPromptSubmit hook would inject.',
   },
   notes: [
     "Source: `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`. No network.",
     "Worktrees under `.codex/worktrees/<task>` and `.claude/worktrees/<task>` are merged back to the host repo.",
-    "TeamAgent itself never calls an LLM here — the additionalContext form is meant to be consumed by the operator's own Claude Code window.",
+    "Viki itself never calls an LLM here — the additionalContext form is meant to be consumed by the operator's own Claude Code window.",
     'See `docs/plans/2026-05-13-issue-371-daily-summary/` for the verification playbook.',
   ],
   schema: {
@@ -95,7 +95,7 @@ const HELP_PAYLOAD = {
       date: "YYYY-MM-DD (local time)",
       windowStartMs: "epoch ms of today's local midnight",
       windowEndMs: "epoch ms when the scan ran",
-      projects: "array of ProjectDigest objects (see @teamagent/core)",
+      projects: "array of ProjectDigest objects (see @viki/core)",
       worktreeMergedCount: "how many groups contained at least one worktree session",
       skippedSessionCount: "how many jsonl files failed to parse",
       archivedPath: "path to the written archive markdown when --archive is set",
@@ -190,13 +190,13 @@ export function executeDaily(opts: DailyOptions = {}): DailyExecOutput {
     digests: result.projects,
     matcherReason,
   });
-  // Resolve archive root: TEAMAGENT_HOME env wins when set (matches the
+  // Resolve archive root: VIKI_HOME env wins when set (matches the
   // convention used across the CLI — see install-state-fs-store.ts:62); else
-  // <homeDir>/.teamagent (homeDir is operator's $HOME or the test override).
+  // <homeDir>/.viki (homeDir is operator's $HOME or the test override).
   const homeDir = opts.homeDir ?? os.homedir();
-  const teamagentRoot =
-    process.env["TEAMAGENT_HOME"] ?? path.join(homeDir, ".teamagent");
-  const archivePath = path.join(teamagentRoot, "daily", `${result.date}.md`);
+  const vikiRoot =
+    process.env["VIKI_HOME"] ?? path.join(homeDir, ".viki");
+  const archivePath = path.join(vikiRoot, "daily", `${result.date}.md`);
 
   if (opts.archive) {
     fs.mkdirSync(path.dirname(archivePath), { recursive: true });

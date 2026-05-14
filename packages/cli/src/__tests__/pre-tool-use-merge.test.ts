@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import { mergeSemanticAndLegacyMatches } from "../pre-tool-use-merge.js";
 
 describe("mergeSemanticAndLegacyMatches", () => {

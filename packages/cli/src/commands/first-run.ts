@@ -22,7 +22,7 @@ interface FirstRunState {
 const STEPS: readonly string[] = ["skeleton-demo", "stats", "--help"];
 
 function readState(homeDir: string): FirstRunState {
-  const stateFile = path.join(homeDir, ".teamagent", "first-run-state.json");
+  const stateFile = path.join(homeDir, ".viki", "first-run-state.json");
   try {
     const raw = fs.readFileSync(stateFile, "utf8");
     const parsed = JSON.parse(raw);
@@ -36,7 +36,7 @@ function readState(homeDir: string): FirstRunState {
 }
 
 function writeState(homeDir: string, state: FirstRunState): void {
-  const dir = path.join(homeDir, ".teamagent");
+  const dir = path.join(homeDir, ".viki");
   fs.mkdirSync(dir, { recursive: true });
   const stateFile = path.join(dir, "first-run-state.json");
   fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), "utf8");
@@ -52,7 +52,7 @@ function nextStep(completedSteps: string[]): string {
 function defaultSpawn(cmd: string, args: string[]): Promise<number> {
   // Use process.argv[1] (the current entry script) so this works in both
   // dev (tsx src/bin.ts) and prod (node dist/bin.js) without hardcoding a bin name.
-  const entry = process.argv[1] ?? "teamagent";
+  const entry = process.argv[1] ?? "viki";
   return new Promise((resolve) => {
     const child = entry.endsWith(".ts")
       ? spawn("npx", ["tsx", entry, cmd, ...args], { stdio: "inherit" })
@@ -73,9 +73,9 @@ function renderMenu(out: NodeJS.WritableStream, state: FirstRunState): void {
     writeOut(out, `上次你跑了 ${last}，要不要试试 ${next}？\n\n`);
   }
 
-  writeOut(out, `✅ 装好啦 🎉  欢迎使用 TeamAgent！\n\n`);
+  writeOut(out, `✅ 装好啦 🎉  欢迎使用 Viki！\n\n`);
   writeOut(out, `你可以立刻试试下面这 3 件事：\n\n`);
-  writeOut(out, `  1) skeleton-demo  ——  跑一次最小演示，看看 TeamAgent 怎么工作\n`);
+  writeOut(out, `  1) skeleton-demo  ——  跑一次最小演示，看看 Viki 怎么工作\n`);
   writeOut(out, `  2) stats          ——  查看当前知识库里有多少条经验\n`);
   writeOut(out, `  3) --help         ——  看所有可用命令\n\n`);
 }

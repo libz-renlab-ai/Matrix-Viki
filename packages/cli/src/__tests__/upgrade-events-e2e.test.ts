@@ -8,7 +8,7 @@
  * vitest takes the role of the subagent here — same coverage as a
  * separate-process subagent (open real sqlite, fire all 4 emit paths,
  * read back) without the fork overhead. Each emit goes through the
- * real `emitUpgradeEvent` async path so the dynamic `@teamagent/adapters`
+ * real `emitUpgradeEvent` async path so the dynamic `@viki/adapters`
  * import + SqliteEventLog open is exercised end-to-end.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -21,8 +21,8 @@ import {
   makeUpdateSnoozedEvent,
   makeUpdateNeverSetEvent,
   makeUpdateInstalledEvent,
-} from "@teamagent/core";
-import { SqliteEventLog, openDb } from "@teamagent/adapters";
+} from "@viki/core";
+import { SqliteEventLog, openDb } from "@viki/adapters";
 
 let tmpHome: string;
 
@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe("upgrade events E2E (issue #245)", () => {
   it("fires all 4 emit points and lands ≥3 update-* kinds in events.db", async () => {
-    const eventsDbPath = path.join(tmpHome, ".teamagent", "events.db");
+    const eventsDbPath = path.join(tmpHome, ".viki", "events.db");
     // Fake clock so timestamps are deterministic — 4 distinct ms values to
     // produce 4 distinct event ids (id includes timestamp + suffix).
     let nowMs = Date.parse("2026-05-10T00:00:00Z");
@@ -105,7 +105,7 @@ describe("upgrade events E2E (issue #245)", () => {
   });
 
   it("multiple emit calls of the same kind accumulate distinct rows", async () => {
-    const eventsDbPath = path.join(tmpHome, ".teamagent", "events.db");
+    const eventsDbPath = path.join(tmpHome, ".viki", "events.db");
     let nowMs = Date.parse("2026-05-10T00:00:00Z");
     let suffix = 0;
     for (let i = 0; i < 3; i += 1) {

@@ -6,9 +6,9 @@ import {
   NESTED_TIERS,
   type NestedRuleArtifact,
   type CompileNestedRuleOptions,
-} from "@teamagent/core";
-import type { Compiler } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import type { Compiler } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** writeToFile 的返回，兼容 MarkdownCompilerLike 形状。 */
 export interface NestedRuleStoreWriteInfo {
@@ -21,7 +21,7 @@ export interface NestedRuleStoreWriteInfo {
 }
 
 export interface NestedRuleStoreCompilerOptions {
-  /** 默认 `~/.claude/teamagent/rules`。可由 env `TEAMAGENT_RULES_DIR` 或显式参数覆盖。 */
+  /** 默认 `~/.claude/viki/rules`。可由 env `VIKI_RULES_DIR` 或显式参数覆盖。 */
   rulesDir?: string;
   now?: () => string;
   /**
@@ -31,7 +31,7 @@ export interface NestedRuleStoreCompilerOptions {
   compileOptions?: CompileNestedRuleOptions;
 }
 
-const DEFAULT_DIR = path.join(os.homedir(), ".claude", "teamagent", "rules");
+const DEFAULT_DIR = path.join(os.homedir(), ".claude", "viki", "rules");
 
 /**
  * 把 KnowledgeEntry[] 编译为用户级 nested rule store。
@@ -39,7 +39,7 @@ const DEFAULT_DIR = path.join(os.homedir(), ".claude", "teamagent", "rules");
  * 取代 MarkdownCompiler（CLAUDE.md 单文件）默认出口——避免单文档膨胀。
  * 接口与 MarkdownCompilerLike 一致，可直接喂给 compile-pipeline。
  *
- * 写入位置（默认）：`~/.claude/teamagent/rules/`
+ * 写入位置（默认）：`~/.claude/viki/rules/`
  * - `INDEX.md`                顶层入口，列各 tier 计数
  * - `<tier>/INDEX.md`         单 tier 入口
  * - `<tier>/<rule-id>.md`     一条规则一个文件
@@ -56,7 +56,7 @@ export class NestedRuleStoreCompiler implements Compiler<string> {
 
   constructor(opts: NestedRuleStoreCompilerOptions = {}) {
     this.rulesDir =
-      opts.rulesDir ?? process.env["TEAMAGENT_RULES_DIR"] ?? DEFAULT_DIR;
+      opts.rulesDir ?? process.env["VIKI_RULES_DIR"] ?? DEFAULT_DIR;
     this.now = opts.now ?? (() => new Date().toISOString());
     this.compileOptions = opts.compileOptions ?? {};
   }

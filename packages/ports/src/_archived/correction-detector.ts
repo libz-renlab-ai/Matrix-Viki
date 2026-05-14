@@ -1,4 +1,4 @@
-import type { ParsedSession } from "@teamagent/types";
+import type { ParsedSession } from "@viki/types";
 
 /** 纠正时刻的信号类型。对应 spec v5.2 纠正时刻表。 */
 export type CorrectionSignal =

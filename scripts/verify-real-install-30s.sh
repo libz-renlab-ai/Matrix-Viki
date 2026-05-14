@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # verify-real-install-30s.sh — judge harness for real-world install <=30s.
 #
-# Builds + npm-packs teamagent, then runs `npm install -g` against an isolated
+# Builds + npm-packs viki, then runs `npm install -g` against an isolated
 # --prefix and --cache directory (so the user's global npm setup is untouched).
 # Measures wall-clock for three paths so we can attribute time:
-#   01-skip       TEAMAGENT_SKIP_WARMUP=1   pure npm work (no postinstall warmup branch)
+#   01-skip       VIKI_SKIP_WARMUP=1   pure npm work (no postinstall warmup branch)
 #   02-detached   default                   ADR 0001 path (Stage 2 detached)
-#   03-foreground TEAMAGENT_FOREGROUND_WARMUP=1  legacy sync warmup (escape hatch)
+#   03-foreground VIKI_FOREGROUND_WARMUP=1  legacy sync warmup (escape hatch)
 #
 # 03-foreground takes ~5-10min on first run because it actually pulls the
 # 120MB Xenova model. Pass SKIP_FOREGROUND=1 to drop it from the run.
@@ -29,10 +29,10 @@ JUDGE_DIR=".judge/${RUN_ID}"
 EVIDENCE_DIR="${JUDGE_DIR}/evidence"
 mkdir -p "${EVIDENCE_DIR}"
 
-PKG_DIR="${WORKTREE}/packages/teamagent"
-TGZ=$(ls "${PKG_DIR}"/teamagent-*.tgz 2>/dev/null | head -1 || true)
+PKG_DIR="${WORKTREE}/packages/viki"
+TGZ=$(ls "${PKG_DIR}"/viki-*.tgz 2>/dev/null | head -1 || true)
 if [ -z "${TGZ}" ] || [ ! -f "${TGZ}" ]; then
-  echo "FATAL: no tarball; run 'cd packages/teamagent && npm pack' first" >&2
+  echo "FATAL: no tarball; run 'cd packages/viki && npm pack' first" >&2
   exit 1
 fi
 TGZ_SIZE=$(stat -f%z "${TGZ}" 2>/dev/null || stat -c%s "${TGZ}")
@@ -48,7 +48,7 @@ run_install() {
   home=$(mktemp -d -t "ta-home-${label}-XXXX")
   local out="${EVIDENCE_DIR}/${label}.out"
   local timing="${EVIDENCE_DIR}/${label}.time"
-  local statefile="${home}/.teamagent/.warmup-state.json"
+  local statefile="${home}/.viki/.warmup-state.json"
   local fswatch_log="${EVIDENCE_DIR}/${label}.fswatch.log"
   local cache_pre_file="${EVIDENCE_DIR}/${label}.cache-pre.size"
   local cache_post_file="${EVIDENCE_DIR}/${label}.cache-post.size"
@@ -59,7 +59,7 @@ run_install() {
   trap '[ -n "${FSWATCH_PID}" ] && kill "${FSWATCH_PID}" 2>/dev/null; true' EXIT INT TERM
 
   # Pre-create watched dirs so fswatch doesn't refuse to start.
-  mkdir -p "${home}/.teamagent" "${cach}" "${pref}/lib/node_modules"
+  mkdir -p "${home}/.viki" "${cach}" "${pref}/lib/node_modules"
 
   # Cache-size BEFORE install.
   du -sk "${cach}" | awk '{print $1}' > "${cache_pre_file}"
@@ -70,7 +70,7 @@ run_install() {
   # finish and the SIGTERM below fires before the first batch flushes, leaving
   # an empty log. -0 NUL-separated, -t timestamps, -x event flags.
   fswatch --latency 0.1 -0 -t -x \
-    "${home}/.teamagent" "${cach}" "${pref}/lib/node_modules" \
+    "${home}/.viki" "${cach}" "${pref}/lib/node_modules" \
     > "${fswatch_log}" 2>&1 &
   FSWATCH_PID=$!
   # Brief pause so FSEvents attach completes before npm starts firing events.
@@ -78,7 +78,7 @@ run_install() {
 
   echo ">>> ${label}: prefix=${pref} cache=${cach} home=${home}" | tee -a "${EVIDENCE_DIR}/run.log"
   # --foreground-scripts forwards postinstall stdout/stderr to the parent
-  # process so banner anchors (e.g. "语义匹配: 未安装", "TEAMAGENT_INCLUDE_
+  # process so banner anchors (e.g. "语义匹配: 未安装", "VIKI_INCLUDE_
   # OPTIONAL=1") land in $out where Probe B can read them. Without this,
   # npm 10 hides postinstall output by default and the banner judge fails.
   HOME="${home}" "$@" \
@@ -155,14 +155,14 @@ JSON_EOF
 }
 
 # 01: SKIP_WARMUP baseline — pure npm work + Stage1+3 only
-run_install "01-skip" env TEAMAGENT_SKIP_WARMUP=1
+run_install "01-skip" env VIKI_SKIP_WARMUP=1
 
 # 02: default detached — ADR 0001 path
 run_install "02-detached" env
 
 # 03: foreground (skip by default — would actually download 120MB; opt in via env)
 if [ "${SKIP_FOREGROUND:-1}" != "1" ]; then
-  run_install "03-foreground" env TEAMAGENT_FOREGROUND_WARMUP=1
+  run_install "03-foreground" env VIKI_FOREGROUND_WARMUP=1
 fi
 
 # Summary

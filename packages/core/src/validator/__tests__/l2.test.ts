@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateLevel2 } from "../l2.js";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 function makeEntry(over: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
   return {

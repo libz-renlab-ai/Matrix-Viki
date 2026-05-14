@@ -1,5 +1,5 @@
-import type { AttributionEvent } from "@teamagent/types";
-import type { AttributionBus, Unsubscribe } from "@teamagent/ports";
+import type { AttributionEvent } from "@viki/types";
+import type { AttributionBus, Unsubscribe } from "@viki/ports";
 
 /**
  * 内存归因总线。

@@ -1,15 +1,15 @@
 /**
- * M4-A: teamagent reclassify apply/rollback.
+ * M4-A: viki reclassify apply/rollback.
  *
  * Takes the JSON plan produced by scripts/reclassify-rules.ts, updates the
  * project knowledge.db's channel+enforcement per entry, appends a rollback
- * record to ~/.teamagent/reclassify-audit.jsonl. Rollback reads that audit
+ * record to ~/.viki/reclassify-audit.jsonl. Rollback reads that audit
  * and reverses the moves.
  */
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { openDb } from "@teamagent/adapters/storage/sqlite/schema";
+import { openDb } from "@viki/adapters/storage/sqlite/schema";
 
 export interface ApplyOptions {
   plan: string;
@@ -40,14 +40,14 @@ interface AuditRecord {
 }
 
 function auditPath(): string {
-  return path.join(os.homedir(), ".teamagent", "reclassify-audit.jsonl");
+  return path.join(os.homedir(), ".viki", "reclassify-audit.jsonl");
 }
 
 export function runReclassifyApply(opts: ApplyOptions): void {
   const planJson = JSON.parse(fs.readFileSync(opts.plan, "utf8"));
   const plan: PlanEntry[] = planJson.plan ?? [];
   const minConf = opts.minConfidence ?? 0.7;
-  const dbPath = path.join(process.cwd(), ".teamagent", "knowledge.db");
+  const dbPath = path.join(process.cwd(), ".viki", "knowledge.db");
   if (!fs.existsSync(dbPath)) {
     console.error(`knowledge.db not found at ${dbPath}`);
     process.exit(1);
@@ -94,7 +94,7 @@ export function runReclassifyApply(opts: ApplyOptions): void {
       console.log(`Skipped ${skipped} entries below confidence ${minConf}.`);
     }
     console.log(`Audit id: ${auditId}`);
-    console.log(`Rollback: teamagent reclassify rollback --audit ${auditId}`);
+    console.log(`Rollback: viki reclassify rollback --audit ${auditId}`);
   } else if (opts.dryRun) {
     console.log(`[dry-run] Would apply ${applied} reclassifications (skipped ${skipped} below conf ${minConf}).`);
   }
@@ -116,7 +116,7 @@ export function runReclassifyRollback(opts: RollbackOptions): void {
     console.error(`Audit id ${opts.auditId} not found.`);
     process.exit(1);
   }
-  const dbPath = path.join(process.cwd(), ".teamagent", "knowledge.db");
+  const dbPath = path.join(process.cwd(), ".viki", "knowledge.db");
   const db = openDb(dbPath);
   const stmt = db.prepare(
     `UPDATE knowledge SET channel = @ch, enforcement = @enf WHERE id = @id`,

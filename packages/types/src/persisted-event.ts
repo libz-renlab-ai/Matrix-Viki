@@ -1,5 +1,5 @@
 /**
- * 持久化到 ~/.teamagent/events.jsonl 的事件 schema。
+ * 持久化到 ~/.viki/events.jsonl 的事件 schema。
  *
  * **重要**: 此 schema 在 M2 一次定完，M6 (PostToolUse + Calibrator)
  * 直接复用，不修改字段。新增字段必须保持向后兼容（可选项）。
@@ -43,7 +43,7 @@ export interface PersistedEvent {
     | "calibrator.user_reject"      // User typed a wrong_pattern → negative reinforcement to v2 demerit engine
     // issue #245: 升级流程 4 个生命周期事件 → events.db
     // payload 通过 *_PAYLOAD_KEYS 持久化到 events.payload 列（JSON），
-    // `teamagent stats` 用 `kind LIKE 'update-%'` 聚合 7d 计数。
+    // `viki stats` 用 `kind LIKE 'update-%'` 聚合 7d 计数。
     | "update-prompt-shown"
     | "update-snoozed"
     | "update-never-set"

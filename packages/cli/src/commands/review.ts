@@ -1,8 +1,8 @@
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
-import { DualLayerStore, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore, openDb } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 export interface ReviewOptions {
   /** 列出最近 N 条。默认 10。 */
@@ -24,9 +24,9 @@ export function executeReview(opts: ReviewOptions = {}): string {
   const home = opts.homeDir ?? os.homedir();
   const cwd = opts.cwd ?? process.cwd();
   const projectDbPath =
-    opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db");
+    opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db");
   const userGlobalDbPath =
-    opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db");
+    opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db");
 
   const rows: ReviewRow[] = [];
 
@@ -56,7 +56,7 @@ export function executeReview(opts: ReviewOptions = {}): string {
   const slice = rows.slice(0, limit);
 
   const lines: string[] = [];
-  lines.push("📖 TeamAgent Review — 最近录入的知识条目");
+  lines.push("📖 Viki Review — 最近录入的知识条目");
   lines.push("");
   lines.push(`共 ${rows.length} 条，展示最近 ${slice.length}`);
   lines.push("");
@@ -88,8 +88,8 @@ export function executeReview(opts: ReviewOptions = {}): string {
   }
 
   lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  lines.push("  想调整？用 teamagent pitfall 或直接编辑 .teamagent/knowledge.db");
-  lines.push("  改完 teamagent stats 验证，再开新 Claude Code 会话生效。");
+  lines.push("  想调整？用 viki pitfall 或直接编辑 .viki/knowledge.db");
+  lines.push("  改完 viki stats 验证，再开新 Claude Code 会话生效。");
   lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   return lines.join("\n") + "\n";
 }
@@ -111,7 +111,7 @@ export function parseReviewArgs(argv: string[]): ReviewOptions {
       const v = a.slice("--scope=".length);
       if (v === "personal" || v === "team" || v === "global") opts.scope = v;
     } else if (/^-?\d+$/.test(a)) {
-      // positional: teamagent review 20
+      // positional: viki review 20
       const v = parseInt(a, 10);
       if (v < 0) {
         throw new Error(`review N 必须是正整数，收到: ${a}`);

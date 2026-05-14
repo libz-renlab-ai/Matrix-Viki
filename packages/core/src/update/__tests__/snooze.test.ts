@@ -65,12 +65,12 @@ describe("shouldPromptUpgrade", () => {
     ).toBe(false);
   });
 
-  it("returns false when TEAMAGENT_NEVER_PROMPT=1 (env override)", () => {
+  it("returns false when VIKI_NEVER_PROMPT=1 (env override)", () => {
     expect(
       shouldPromptUpgrade({
         state: baseState(),
         now: 0,
-        env: { TEAMAGENT_NEVER_PROMPT: "1" },
+        env: { VIKI_NEVER_PROMPT: "1" },
       }),
     ).toBe(false);
   });

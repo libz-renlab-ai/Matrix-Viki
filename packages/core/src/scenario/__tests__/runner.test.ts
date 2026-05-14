@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { runScenario, runVerify } from "../runner.js";
 import { ruleBasedCorrectionDetector } from "../../correction-detector/rule-based.js";
 import { llmBasedKnowledgeExtractor } from "../../extractor/llm-based.js";
-import type { KnowledgeStore } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeStore } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 import { pythonVersionScenario } from "../../../../../fixtures/scenarios/python-version.js";
 import { allScenarios } from "../../../../../fixtures/scenarios/index.js";
 

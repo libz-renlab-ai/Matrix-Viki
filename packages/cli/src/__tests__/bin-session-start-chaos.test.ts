@@ -9,20 +9,20 @@ import { fileURLToPath } from "node:url";
  * Issue #280 chaos test for the SessionStart hook bundle.
  *
  * Background: the user reported `MODULE_NOT_FOUND: web-tree-sitter` when
- * spawning the staged `~/.teamagent/hooks/bin-session-start.cjs`. The
+ * spawning the staged `~/.viki/hooks/bin-session-start.cjs`. The
  * existing `hook-bundle-contract.test.ts` scans `packages/cli/dist/` —
- * but the **staged copy** is built by `packages/teamagent/tsup.config.ts`
- * and lives at `packages/teamagent/dist/bin-session-start.cjs` before
- * postinstall copies it to `~/.teamagent/hooks/`. The teamagent dist
+ * but the **staged copy** is built by `packages/viki/tsup.config.ts`
+ * and lives at `packages/viki/dist/bin-session-start.cjs` before
+ * postinstall copies it to `~/.viki/hooks/`. The viki dist
  * uses a different `noExternal` set (e.g. `@xenova/transformers` is
  * inlined for the hook bundles) and is the actual surface area where
  * issue #280's MODULE_NOT_FOUND surfaced.
  *
  * Chaos protocol — for every hook bundle we ship:
  *   1. Copy the .cjs to a tmpdir that has NO sibling `node_modules/`
- *      (mirrors `~/.teamagent/hooks/`'s placement on a real install).
+ *      (mirrors `~/.viki/hooks/`'s placement on a real install).
  *   2. Spawn `node <tmpdir>/<bin>` with empty stdin and no signal env vars
- *      (CLAUDE_PROJECT_DIR / TEAMAGENT_ALLOW_BARE_SESSIONSTART). Empty
+ *      (CLAUDE_PROJECT_DIR / VIKI_ALLOW_BARE_SESSIONSTART). Empty
  *      stdin → `parseInput` returns null → the hook fast-exits 0.
  *   3. Assert exit code 0. Any non-zero means a transitive `require()`
  *      fired at module-load time and could not resolve, which is exactly
@@ -36,9 +36,9 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // Resolve dist paths relative to this test file. cli dist sits at
-// `packages/cli/dist/`; teamagent dist sits at `packages/teamagent/dist/`.
+// `packages/cli/dist/`; viki dist sits at `packages/viki/dist/`.
 const CLI_DIST = path.resolve(HERE, "..", "..", "dist");
-const TEAMAGENT_DIST = path.resolve(HERE, "..", "..", "..", "teamagent", "dist");
+const VIKI_DIST = path.resolve(HERE, "..", "..", "..", "viki", "dist");
 
 interface SpawnReport {
   exitCode: number | null;
@@ -51,7 +51,7 @@ async function spawnHookOutsideNodeModules(
   binPath: string,
 ): Promise<SpawnReport> {
   // Stage into a tmpdir that has no sibling node_modules — mirrors the
-  // ~/.teamagent/hooks/ placement on a real install.
+  // ~/.viki/hooks/ placement on a real install.
   const stageRoot = fs.mkdtempSync(path.join(os.tmpdir(), "issue-280-chaos-"));
   const staged = path.join(stageRoot, path.basename(binPath));
   fs.copyFileSync(binPath, staged);
@@ -59,7 +59,7 @@ async function spawnHookOutsideNodeModules(
   return new Promise<SpawnReport>((resolve) => {
     const env = { ...process.env };
     delete env["CLAUDE_PROJECT_DIR"];
-    delete env["TEAMAGENT_ALLOW_BARE_SESSIONSTART"];
+    delete env["VIKI_ALLOW_BARE_SESSIONSTART"];
 
     let child;
     try {
@@ -105,7 +105,7 @@ async function spawnHookOutsideNodeModules(
 
 describe("bin-session-start chaos: load graph outside node_modules (issue #280)", () => {
   const cliBin = path.join(CLI_DIST, "bin-session-start.cjs");
-  const tmBin = path.join(TEAMAGENT_DIST, "bin-session-start.cjs");
+  const tmBin = path.join(VIKI_DIST, "bin-session-start.cjs");
 
   it.skipIf(!fs.existsSync(cliBin))(
     "packages/cli/dist/bin-session-start.cjs spawns clean from tmpdir with empty stdin",
@@ -121,7 +121,7 @@ describe("bin-session-start chaos: load graph outside node_modules (issue #280)"
   );
 
   it.skipIf(!fs.existsSync(tmBin))(
-    "packages/teamagent/dist/bin-session-start.cjs (the staged bundle) spawns clean from tmpdir",
+    "packages/viki/dist/bin-session-start.cjs (the staged bundle) spawns clean from tmpdir",
     async () => {
       const report = await spawnHookOutsideNodeModules(tmBin);
       expect(report.spawnError, `spawn failed: ${report.spawnError}`).toBeUndefined();

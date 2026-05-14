@@ -6,7 +6,7 @@ import path from "node:path";
  *
  * Schema migrations have historically dropped backups next to the live db
  * (e.g. `events.db.before-no-passive-1777451204`). The migration code did
- * not impose a retention policy, so a long-lived `~/.teamagent/` could
+ * not impose a retention policy, so a long-lived `~/.viki/` could
  * accumulate one (potentially many MB) backup file per migration forever.
  *
  * Policy: keep the most recent `keep` backups per directory (default 1).

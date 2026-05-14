@@ -1,4 +1,4 @@
-import type { Tier } from "@teamagent/ports";
+import type { Tier } from "@viki/ports";
 import { TIER_ORDER } from "./tier.js";
 
 const DAY_MS = 24 * 3600 * 1000;

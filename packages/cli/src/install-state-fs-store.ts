@@ -2,7 +2,7 @@
  * FsInstallStateStore — fs-backed implementation of the
  * InstallStateStore Port (issue #155 / ADR-0011).
  *
- * Reads/writes `~/.teamagent/install-state/<projectId>.json`. This file
+ * Reads/writes `~/.viki/install-state/<projectId>.json`. This file
  * is the only place `node:fs` appears for the install-state feature —
  * by Port construction, `packages/core/src/install-state/` stays
  * fs-free.
@@ -22,7 +22,7 @@
  *       - writes atomically via tmp-file + rename so a partial write
  *         never wins a race against a concurrent reader
  *
- * The directory layout matches the existing `~/.teamagent/` convention
+ * The directory layout matches the existing `~/.viki/` convention
  * (cf. `warmup-state.ts`); unlike `scan-state.json` and friends, this
  * lives one level deeper under `install-state/<projectId>.json` so
  * many concurrent project installs don't collide.
@@ -34,17 +34,17 @@ import {
   parseState,
   serializeState,
   type InstallState as CoreInstallState,
-} from "@teamagent/core/install-state";
+} from "@viki/core/install-state";
 import type {
   InstallState,
   InstallStateStore,
-} from "@teamagent/ports";
+} from "@viki/ports";
 
 export interface FsInstallStateStoreOptions {
   /**
    * Root directory containing the `install-state/` subdir. Defaults to
-   * `${process.env.TEAMAGENT_HOME ?? path.join(os.homedir(), '.teamagent')}`.
-   * Tests pass a tmpdir so they don't pollute the real `~/.teamagent/`.
+   * `${process.env.VIKI_HOME ?? path.join(os.homedir(), '.viki')}`.
+   * Tests pass a tmpdir so they don't pollute the real `~/.viki/`.
    */
   rootDir?: string;
   /**
@@ -59,8 +59,8 @@ export class FsInstallStateStore implements InstallStateStore {
   private readonly now: () => number;
 
   constructor(options: FsInstallStateStoreOptions = {}) {
-    const envHome = process.env["TEAMAGENT_HOME"];
-    const defaultRoot = envHome ?? path.join(os.homedir(), ".teamagent");
+    const envHome = process.env["VIKI_HOME"];
+    const defaultRoot = envHome ?? path.join(os.homedir(), ".viki");
     this.rootDir = options.rootDir ?? defaultRoot;
     this.now = options.now ?? (() => Date.now());
   }

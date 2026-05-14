@@ -1,10 +1,10 @@
 /**
- * `teamagent whatsnew` — print the bullets for the currently-installed
+ * `viki whatsnew` — print the bullets for the currently-installed
  * version (or a user-supplied range), reusing the bundled CHANGELOG.md
  * and the same parser the SessionStart upgrade prompt uses (issue #225).
  *
  * Layout:
- *   teamagent whatsnew [--since <version>] [--limit <N>] [--help]
+ *   viki whatsnew [--since <version>] [--limit <N>] [--help]
  *
  * Defaults:
  *   --since: previous version inferred from CHANGELOG (the second-newest H2)
@@ -14,7 +14,7 @@ import {
   parseChangelog,
   renderWhatsNewTail,
   type ChangelogBullet,
-} from "@teamagent/core";
+} from "@viki/core";
 import { loadBundledChangelog } from "../changelog-loader.js";
 
 export interface WhatsNewOptions {
@@ -143,7 +143,7 @@ function parsePositiveInt(raw: string, flag: string): number {
 
 function renderHelp(): string {
   return (
-    "Usage: teamagent whatsnew [--since <version>] [--until <version>] [--limit <N>]\n" +
+    "Usage: viki whatsnew [--since <version>] [--until <version>] [--limit <N>]\n" +
     "\n" +
     "Print the user-visible changes from CHANGELOG.md between two versions.\n" +
     "\n" +
@@ -153,8 +153,8 @@ function renderHelp(): string {
     "  --limit <N>         Cap on bullets surfaced. Default 7.\n" +
     "\n" +
     "Examples:\n" +
-    "  teamagent whatsnew                  # latest version's changes\n" +
-    "  teamagent whatsnew --since 0.10.1   # everything since 0.10.1\n" +
-    "  teamagent whatsnew --limit 3        # top 3 bullets only\n"
+    "  viki whatsnew                  # latest version's changes\n" +
+    "  viki whatsnew --since 0.10.1   # everything since 0.10.1\n" +
+    "  viki whatsnew --limit 3        # top 3 bullets only\n"
   );
 }

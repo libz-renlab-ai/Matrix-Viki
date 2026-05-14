@@ -125,13 +125,13 @@ describe("packs core", () => {
       expect(body).toMatch(/file_hints:.*package\.json.*tsconfig\.json/);
     });
 
-    it("contains the canonical CTA literal `teamagent pack add`", () => {
+    it("contains the canonical CTA literal `viki pack add`", () => {
       const body = renderPackPromptBody({
         observed: { "package.json": true, "pyproject.toml": false, "Cargo.toml": false, "Dockerfile": false, "requirements.txt": false, "go.mod": false },
         available: [front],
         installed: [],
       });
-      expect(body).toContain("teamagent pack add");
+      expect(body).toContain("viki pack add");
     });
 
     it("contains both power-user paths --pack all and --pack X,Y", () => {

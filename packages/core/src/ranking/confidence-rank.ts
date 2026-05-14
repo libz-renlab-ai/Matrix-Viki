@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 import type { SemanticMatch } from "../matcher/semantic-matcher.js";
 
 const TIER_FACTOR: Record<string, number> = {

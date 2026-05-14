@@ -3,8 +3,8 @@ import nodeFs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { executeAnalyze, parseAnalyzeArgs } from "../commands/analyze.js";
-import { DualLayerStore, openDb } from "@teamagent/adapters";
-import type { LLMClient } from "@teamagent/ports";
+import { DualLayerStore, openDb } from "@viki/adapters";
+import type { LLMClient } from "@viki/ports";
 
 function mkTmp() {
   const dir = nodeFs.mkdtempSync(path.join(os.tmpdir(), "analyze-"));
@@ -33,7 +33,7 @@ describe("executeAnalyze", () => {
       session: fixturePath,
       homeDir: tmp.dir,
     });
-    expect(out).toContain("TeamAgent Session Analyze");
+    expect(out).toContain("Viki Session Analyze");
     expect(out).toContain("回合数: 2");
     expect(out).toContain("纠正时刻: 1");
     expect(out).toContain("explicit_denial");
@@ -169,7 +169,7 @@ describe("executeAnalyze", () => {
       expect(all[0]!.wrong_pattern).toBe("axios");
 
       expect(nodeFs.existsSync(claudeMdPath)).toBe(false);
-      const skillPath = path.join(tmp.dir, ".claude", "skills", "teamagent", "pers-test-0001", "SKILL.md");
+      const skillPath = path.join(tmp.dir, ".claude", "skills", "viki", "pers-test-0001", "SKILL.md");
       expect(nodeFs.existsSync(skillPath)).toBe(true);
       expect(nodeFs.readFileSync(skillPath, "utf-8")).toContain("fetch");
       expect(scheduled).toEqual([["pers-test-0001"]]);

@@ -6,7 +6,7 @@ if [ "${1:-}" = "--dry-run" ]; then
   dry_arg="--dry-run"
 fi
 
-run_id="${TEAMAGENT_JUDGE_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-install-verify}"
+run_id="${VIKI_JUDGE_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-install-verify}"
 evidence_dir=".judge/$run_id"
 stdout_path="$evidence_dir/stdout.log"
 mkdir -p "$evidence_dir"

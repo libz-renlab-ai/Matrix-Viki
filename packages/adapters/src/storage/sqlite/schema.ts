@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import type { DatabaseSync } from "node:sqlite";
-import { DEFAULT_FIRE_THRESHOLD } from "@teamagent/types";
+import { DEFAULT_FIRE_THRESHOLD } from "@viki/types";
 
 // node:sqlite 是 Node 22+ 实验性内置模块，不在 builtinModules 列表里，
 // vite/vitest 的静态 import 无法解析。用 createRequire 在运行时加载。

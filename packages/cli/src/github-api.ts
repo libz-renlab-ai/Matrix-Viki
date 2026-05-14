@@ -72,7 +72,7 @@ export async function fetchRemoteSha(input: FetchRemoteShaInput): Promise<FetchS
 
   // Build request headers
   const reqHeaders: Record<string, string> = {
-    "User-Agent": input.userAgent ?? "teamagent-updater",
+    "User-Agent": input.userAgent ?? "viki-updater",
     "Accept": "application/vnd.github+json",
   };
 
@@ -153,7 +153,7 @@ export async function fetchRemoteSha(input: FetchRemoteShaInput): Promise<FetchS
           ok: false,
           reason: "rate_limit_anonymous",
           status: 403,
-          message: "GitHub anonymous rate limit exhausted; set TEAMAGENT_GITHUB_TOKEN to authenticate (5000 req/h)",
+          message: "GitHub anonymous rate limit exhausted; set VIKI_GITHUB_TOKEN to authenticate (5000 req/h)",
         };
       }
     }

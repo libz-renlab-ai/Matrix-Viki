@@ -1,14 +1,14 @@
 /**
  * Warmup state file (issue #91).
  *
- * Single JSON document at `~/.teamagent/.warmup-state.json` that tracks
+ * Single JSON document at `~/.viki/.warmup-state.json` that tracks
  * the Xenova vector model download. Enables three things:
  *
- *  1. `teamagent init` can spawn warmup detached and return immediately
+ *  1. `viki init` can spawn warmup detached and return immediately
  *     — the next process to need the embedder reads this file to decide
  *     whether to use the semantic matcher (status === "ready") or fall
  *     back to the legacy keyword matcher (anything else).
- *  2. `teamagent doctor` can report a `vector_model: <state>` row.
+ *  2. `viki doctor` can report a `vector_model: <state>` row.
  *  3. Stale-detection: if `status === "downloading"` but `pid` is not
  *     alive, the previous warmup was killed; treat as not-ready.
  *
@@ -42,7 +42,7 @@ export interface WarmupState {
 export const WARMUP_STATE_FILENAME = ".warmup-state.json";
 
 export function defaultWarmupStatePath(homeDir: string = os.homedir()): string {
-  return path.join(homeDir, ".teamagent", WARMUP_STATE_FILENAME);
+  return path.join(homeDir, ".viki", WARMUP_STATE_FILENAME);
 }
 
 /**
@@ -150,7 +150,7 @@ export function describeWarmupReadiness(filePath: string): {
 }
 
 /**
- * One-shot helper for `teamagent init` to write a placeholder before spawning
+ * One-shot helper for `viki init` to write a placeholder before spawning
  * the detached warmup process. Marks pid=0 so subsequent readers see status
  * "downloading" but treat it as a fresh start, not a stale crash.
  */

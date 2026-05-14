@@ -6,34 +6,34 @@ import {
   ClaudeCodeLLMClient,
   DualLayerStore,
   makeSkillCompiler,
-} from "@teamagent/adapters";
-import { parseInsightsReport } from "@teamagent/adapters/ingest/insights";
+} from "@viki/adapters";
+import { parseInsightsReport } from "@viki/adapters/ingest/insights";
 import {
   parseNpmAudit,
   getNpmAuditOutput,
-} from "@teamagent/adapters/ingest/npm-audit";
+} from "@viki/adapters/ingest/npm-audit";
 import {
   parseGhPrReviews,
   getGhPrReviews,
   isGhAvailable,
-} from "@teamagent/adapters/ingest/pr-review";
+} from "@viki/adapters/ingest/pr-review";
 import {
   parseGitHotspots,
   hotspotsToCandidateItems,
   getGitNumstat,
-} from "@teamagent/adapters/ingest/git-hotspot";
+} from "@viki/adapters/ingest/git-hotspot";
 import {
   parseGhRunList,
   runsToCandidateItems,
   getGhRunList,
   filterBySince,
-} from "@teamagent/adapters/ingest/ci-failure";
+} from "@viki/adapters/ingest/ci-failure";
 import {
   formatCandidateMd,
   parseCandidateMd,
   candidatesToExtractionInputs,
   type CandidateSource,
-} from "@teamagent/adapters/ingest/candidate-md";
+} from "@viki/adapters/ingest/candidate-md";
 import {
   llmBasedKnowledgeExtractor,
   runIngestPipeline,
@@ -41,9 +41,9 @@ import {
   validateLevel0,
   detectStack,
   type IngestPipelineResult,
-} from "@teamagent/core";
-import type { LLMClient, ExtractionInput, Validator } from "@teamagent/ports";
-import type { KnowledgeEntry } from "@teamagent/types";
+} from "@viki/core";
+import type { LLMClient, ExtractionInput, Validator } from "@viki/ports";
+import type { KnowledgeEntry } from "@viki/types";
 import { scheduleDocsPropagation } from "./docs-propagate.js";
 
 export type IngestSource =
@@ -90,11 +90,11 @@ function resolvePaths(opts: IngestOptions) {
     cwd,
     home,
     projectDbPath:
-      opts.projectDbPath ?? path.join(cwd, ".teamagent", "knowledge.db"),
+      opts.projectDbPath ?? path.join(cwd, ".viki", "knowledge.db"),
     userGlobalDbPath:
-      opts.userGlobalDbPath ?? path.join(home, ".teamagent", "global.db"),
-    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "teamagent"),
-    candidatesDir: path.join(cwd, ".teamagent", "candidates"),
+      opts.userGlobalDbPath ?? path.join(home, ".viki", "global.db"),
+    skillsDir: opts.skillsDir ?? path.join(home, ".claude", "skills", "viki"),
+    candidatesDir: path.join(cwd, ".viki", "candidates"),
   };
 }
 
@@ -157,7 +157,7 @@ async function loadInputs(opts: IngestOptions): Promise<ExtractionInput[]> {
     }
     case "git-hotspot": {
       // 半自动源永远产出 candidate md（即使没传 --dry-run）——这一步不摄入规则。
-      // 用户勾选后再 teamagent ingest --from-candidates <path>。
+      // 用户勾选后再 viki ingest --from-candidates <path>。
       throw new Error(
         "git-hotspot 源只产出候选文件，不直接 ingest。见 executeIngest 的 handleSemiAuto。",
       );
@@ -240,7 +240,7 @@ export async function executeIngest(opts: IngestOptions): Promise<string> {
     extractor: llmBasedKnowledgeExtractor,
     callLLM: (prompt) => llm.complete(prompt),
     validator: validator as Validator,
-    store: projectStore as unknown as import("@teamagent/ports").KnowledgeStore,
+    store: projectStore as unknown as import("@viki/ports").KnowledgeStore,
     scope: { level: "personal" },
     source: "ingested",
     projectStack,
@@ -278,8 +278,8 @@ export function formatReport(
   const lines: string[] = [];
   lines.push(
     dryRun
-      ? `🔍 TeamAgent Ingest (${source}, dry-run)`
-      : `📥 TeamAgent Ingest (${source})`,
+      ? `🔍 Viki Ingest (${source}, dry-run)`
+      : `📥 Viki Ingest (${source})`,
   );
   lines.push("");
   lines.push(`  扫描: ${result.scanned}`);
@@ -410,13 +410,13 @@ function formatSemiAutoReport(
   outPath: string,
 ): string {
   return [
-    `🔍 TeamAgent Ingest (${source}, 候选生成)`,
+    `🔍 Viki Ingest (${source}, 候选生成)`,
     "",
     `  候选数: ${candidateCount}`,
     `  写入: ${outPath}`,
     "",
     `  编辑该文件，把想摄入的条目改为 - [x]，然后运行：`,
-    `    teamagent ingest --from-candidates ${outPath}`,
+    `    viki ingest --from-candidates ${outPath}`,
     "",
   ].join("\n");
 }

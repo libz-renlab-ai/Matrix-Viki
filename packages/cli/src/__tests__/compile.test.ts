@@ -9,8 +9,8 @@ import {
   CompileArgError,
   type CompileOptions,
 } from "../commands/compile.js";
-import { DualLayerStore, SqliteKnowledgeStore, openDb } from "@teamagent/adapters";
-import type { KnowledgeEntry } from "@teamagent/types";
+import { DualLayerStore, SqliteKnowledgeStore, openDb } from "@viki/adapters";
+import type { KnowledgeEntry } from "@viki/types";
 
 function mkTmp() {
   const root = nodeFs.mkdtempSync(path.join(os.tmpdir(), "compile-cli-"));
@@ -18,12 +18,12 @@ function mkTmp() {
   const cwd = path.join(root, "cwd");
   nodeFs.mkdirSync(home, { recursive: true });
   nodeFs.mkdirSync(cwd, { recursive: true });
-  const projectDbPath = path.join(cwd, ".teamagent", "knowledge.db");
-  const userGlobalDbPath = path.join(home, ".teamagent", "global.db");
+  const projectDbPath = path.join(cwd, ".viki", "knowledge.db");
+  const userGlobalDbPath = path.join(home, ".viki", "global.db");
   const claudeMdPath = path.join(cwd, "CLAUDE.md");
   const agentsMdPath = path.join(cwd, "AGENTS.md");
   const skillsDir = path.join(home, "skills");
-  const userRulesDir = path.join(home, ".claude", "teamagent", "rules");
+  const userRulesDir = path.join(home, ".claude", "viki", "rules");
   return {
     home,
     cwd,
@@ -239,17 +239,17 @@ describe("executeCompile", () => {
     expect(result.skills.written).toContain("rule-1");
   });
 
-  it("env TEAMAGENT_LEGACY_CLAUDE_MD=1 forces legacy mode", async () => {
+  it("env VIKI_LEGACY_CLAUDE_MD=1 forces legacy mode", async () => {
     seedEntry(tmp.projectDbPath, entry({ current_tier: "canonical" }));
-    const prev = process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
-    process.env["TEAMAGENT_LEGACY_CLAUDE_MD"] = "1";
+    const prev = process.env["VIKI_LEGACY_CLAUDE_MD"];
+    process.env["VIKI_LEGACY_CLAUDE_MD"] = "1";
     try {
       const result = await executeCompile(opts);
       expect(nodeFs.existsSync(tmp.claudeMdPath)).toBe(true);
       expect(result.markdown.path).toBe(tmp.claudeMdPath);
     } finally {
-      if (prev === undefined) delete process.env["TEAMAGENT_LEGACY_CLAUDE_MD"];
-      else process.env["TEAMAGENT_LEGACY_CLAUDE_MD"] = prev;
+      if (prev === undefined) delete process.env["VIKI_LEGACY_CLAUDE_MD"];
+      else process.env["VIKI_LEGACY_CLAUDE_MD"] = prev;
     }
   });
 

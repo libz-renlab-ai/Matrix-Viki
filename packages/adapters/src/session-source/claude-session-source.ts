@@ -1,9 +1,9 @@
 import fsPromises from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
-import { parseSessionFile } from "@teamagent/core";
-import type { ParsedSession } from "@teamagent/types";
-import type { SessionSource } from "@teamagent/ports";
+import { parseSessionFile } from "@viki/core";
+import type { ParsedSession } from "@viki/types";
+import type { SessionSource } from "@viki/ports";
 
 // Re-export 纯函数以保持向后兼容（测试已 import 这个名字）
 export { parseSessionFile };
@@ -116,4 +116,4 @@ export class ClaudeSessionSource implements SessionSource {
   }
 }
 
-// parseSessionFile 现在从 @teamagent/core 导入（见文件顶部 re-export）
+// parseSessionFile 现在从 @viki/core 导入（见文件顶部 re-export）

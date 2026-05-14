@@ -6,12 +6,12 @@ import { fileURLToPath } from "node:url";
 import {
   applyUserLevelChannelOps,
   findMostRecentSettingsBackup,
-  hasTeamagentChannelEntry,
+  hasVikiChannelEntry,
   stageDaemonBinaryToUser,
 } from "./install-hook.js";
 
 /**
- * v0.11.0 — soft-retire shim for `teamagent install-user-hook`.
+ * v0.11.0 — soft-retire shim for `viki install-user-hook`.
  *
  * History:
  * - Before PR #230 (B+C scope) this file owned ~120 lines of bespoke
@@ -26,13 +26,13 @@ import {
  *   the next major version cycle (deletion is for v1.0).
  *
  * Why "soft-retire" not "delete":
- *   `packages/teamagent/postinstall.mjs:365` calls this command directly
- *   on every `npm install -g teamagent`. Hard-deleting would break the
+ *   `packages/viki/postinstall.mjs:365` calls this command directly
+ *   on every `npm install -g viki`. Hard-deleting would break the
  *   install path itself; the shim keeps the surface intact while we
  *   complete the deprecation grace period.
  */
 
-const SESSION_START_TAG = "teamagent-session-start";
+const SESSION_START_TAG = "viki-session-start";
 
 interface ClaudeSettings {
   hooks?: {
@@ -44,7 +44,7 @@ interface ClaudeSettings {
 interface HookEntry {
   matcher?: string;
   hooks: HookCommand[];
-  _teamagentTag?: string;
+  _vikiTag?: string;
 }
 interface HookCommand {
   type: "command";
@@ -65,7 +65,7 @@ export interface InstallUserHookOptions {
   /**
    * Issue #368 (v0.11.1) — 显式指定 uploader daemon bundle 路径
    * (`bin-uploader.cjs`). postinstall 阶段就 stage 到
-   * `~/.teamagent/digital-twin/bin-uploader.cjs`, 让重开 CC 后**第一次**对话
+   * `~/.viki/digital-twin/bin-uploader.cjs`, 让重开 CC 后**第一次**对话
    * 的 Stop hook 就能 spawn daemon. 默认走与 SessionStart 一致的 dist 查找。
    */
   daemonBinaryEntry?: string;
@@ -96,7 +96,7 @@ export interface InstallUserHookResult {
  * Walk up from this file looking for a `dist/<filename>` directory. Shared by
  * the SessionStart / digital-twin-tap / bin-uploader default resolvers so all
  * three land on the same package root in both dev (packages/cli) and bundled
- * (node_modules/teamagent) layouts.
+ * (node_modules/viki) layouts.
  */
 function findDistEntry(filename: string): string {
   const here = fileURLToPath(import.meta.url);
@@ -136,8 +136,8 @@ export function installUserHook(
   // internal helper names so users grepping the message land in this file
   // (the public command surface), not in implementation churn.
   process.stderr.write(
-    "[deprecation] `teamagent install-user-hook` is deprecated. " +
-      "`teamagent init` now installs the user-level SessionStart hook automatically. " +
+    "[deprecation] `viki install-user-hook` is deprecated. " +
+      "`viki init` now installs the user-level SessionStart hook automatically. " +
       "This standalone command will be removed in the next major version (v1.0).\n",
   );
 
@@ -148,11 +148,11 @@ export function installUserHook(
   if (!fs.existsSync(hookEntry)) {
     throw new Error(
       `SessionStart bundle not found: ${hookEntry}\n` +
-        `请确认 teamagent 已正确安装 (dist/bin-session-start.cjs 存在)`,
+        `请确认 viki 已正确安装 (dist/bin-session-start.cjs 存在)`,
     );
   }
 
-  // Test contract: `alreadyInstalled` reflects whether a TeamAgent SessionStart
+  // Test contract: `alreadyInstalled` reflects whether a Viki SessionStart
   // entry was present BEFORE this call (idempotent re-install detection). Must
   // be checked before applyUserLevelChannelOps strips and re-pushes.
   const alreadyInstalled = detectAlreadyInstalledSessionStart(settingsPath);
@@ -160,10 +160,10 @@ export function installUserHook(
   // Issue #368 (v0.11.1) — also register the digital-twin Stop tap + stage
   // the uploader daemon binary. Pre-v0.11.1 this command only wrote
   // SessionStart, leaving the entire upload pipeline silent until the user
-  // happened to run `teamagent init` inside a project. With the additions
+  // happened to run `viki init` inside a project. With the additions
   // below, a colleague doing `curl install.sh` then `restart Claude Code`
   // and chatting once is enough: the Stop hook fires → ensureDefaultConfig
-  // writes ~/.teamagent/digital-twin.json (endpoint baked in config.ts) →
+  // writes ~/.viki/digital-twin.json (endpoint baked in config.ts) →
   // tapSession enqueues → resolveDaemonBin finds the staged bin-uploader.cjs
   // → daemon POSTs → collector receives the chat. No project init required.
   const digitalTwinEntry =
@@ -194,24 +194,24 @@ export function installUserHook(
   );
 
   // B-091 stable path: applyUserLevelChannelOps stages the bundle to
-  // `~/.teamagent/hooks/bin-session-start.cjs`. Mirror the staging convention
+  // `~/.viki/hooks/bin-session-start.cjs`. Mirror the staging convention
   // here so the returned `hookEntry` is the staged path (not the source).
   const stagedPath = path.join(
     home,
-    ".teamagent",
+    ".viki",
     "hooks",
     "bin-session-start.cjs",
   );
 
   // Issue #368 (v0.11.1) — stage the uploader daemon binary into
-  // `~/.teamagent/digital-twin/bin-uploader.cjs`. Best-effort: source
+  // `~/.viki/digital-twin/bin-uploader.cjs`. Best-effort: source
   // missing / EBUSY / EXDEV → `resolveDaemonBin`'s same-dir runtime
   // fallback (right next to bin-digital-twin-tap.cjs in the install dist)
   // still spawns the daemon on first Stop fire.
   const daemonResult = stageDaemonBinaryToUser(daemonBinaryEntry, home);
   const daemonBinaryPath = daemonResult.staged ? daemonResult.destPath : null;
   const digitalTwinTapPath = digitalTwinSourceExists
-    ? path.join(home, ".teamagent", "hooks", "bin-digital-twin-tap.cjs")
+    ? path.join(home, ".viki", "hooks", "bin-digital-twin-tap.cjs")
     : null;
 
   // Test contract: `backupPath` is null on first install (no prior settings.json
@@ -230,11 +230,11 @@ export function installUserHook(
 }
 
 /**
- * Inspect `~/.claude/settings.json` for an existing TeamAgent SessionStart
+ * Inspect `~/.claude/settings.json` for an existing Viki SessionStart
  * entry, including untagged-legacy entries whose command points at
  * `bin-session-start.cjs`. Returns false on missing / malformed file.
  *
- * Implementation delegates to install-hook.ts's shared `hasTeamagentChannelEntry`
+ * Implementation delegates to install-hook.ts's shared `hasVikiChannelEntry`
  * predicate so the SessionStart "already installed?" test uses the exact same
  * dual-signal logic (tagged OR untagged-legacy bundle filename match) as the
  * channelOps loop's strip+repush idempotency check.
@@ -245,8 +245,8 @@ function detectAlreadyInstalledSessionStart(settingsPath: string): boolean {
     const raw = fs.readFileSync(settingsPath, "utf-8").trim();
     if (!raw) return false;
     const parsed = JSON.parse(raw) as ClaudeSettings;
-    return hasTeamagentChannelEntry(
-      parsed as Parameters<typeof hasTeamagentChannelEntry>[0],
+    return hasVikiChannelEntry(
+      parsed as Parameters<typeof hasVikiChannelEntry>[0],
       "SessionStart",
       SESSION_START_TAG,
     );
@@ -256,7 +256,7 @@ function detectAlreadyInstalledSessionStart(settingsPath: string): boolean {
 }
 
 /**
- * Uninstall: sweep `~/.claude/settings.json` for any TeamAgent-owned
+ * Uninstall: sweep `~/.claude/settings.json` for any Viki-owned
  * SessionStart entry (tagged + untagged-legacy that point at
  * `bin-session-start.cjs`). Untouched: this function is small enough that
  * delegating into install-hook.ts would be more code than keeping it here.
@@ -282,7 +282,7 @@ export function uninstallUserHook(
 
   const before = hooks.SessionStart.length;
   hooks.SessionStart = hooks.SessionStart.filter(
-    (h) => !isTeamagentSessionStartEntry(h),
+    (h) => !isVikiSessionStartEntry(h),
   );
   const changed = hooks.SessionStart.length !== before;
   if (hooks.SessionStart.length === 0) {
@@ -300,9 +300,9 @@ export function uninstallUserHook(
   return { settingsPath, removed: changed };
 }
 
-function isTeamagentSessionStartEntry(entry: HookEntry): boolean {
-  if (entry._teamagentTag === SESSION_START_TAG) return true;
-  if (entry._teamagentTag) return false;
+function isVikiSessionStartEntry(entry: HookEntry): boolean {
+  if (entry._vikiTag === SESSION_START_TAG) return true;
+  if (entry._vikiTag) return false;
   const cmds = entry.hooks?.map((c) => c.command ?? "") ?? [];
   return cmds.some((c) => c.includes("bin-session-start.cjs"));
 }

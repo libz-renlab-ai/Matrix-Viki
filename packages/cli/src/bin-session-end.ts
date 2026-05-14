@@ -4,7 +4,7 @@
  *
  * 触发于 /clear、logout、Ctrl+C at prompt、关闭窗口。该 hook 永远走「detached
  * 异步」模式：foreground 进程只负责 spawn 一个独立子进程后立即返回，子进程
- * 以 `TEAMAGENT_SESSION_END_PIPELINE=1` 标志重新执行同一个 bin 完成全量
+ * 以 `VIKI_SESSION_END_PIPELINE=1` 标志重新执行同一个 bin 完成全量
  * rescan + cursor 清空。Hook 必须从不阻塞 UI close、从不退出非零。
  *
  * 走 `runAdvancedHook` 的原因：
@@ -40,7 +40,7 @@ import {
 import { postShutdown } from "./embedder-client.js";
 import { emitCcStatus } from "./realtime-emit.js";
 
-const SESSION_END_ENV_KEY = "TEAMAGENT_SESSION_END_PIPELINE";
+const SESSION_END_ENV_KEY = "VIKI_SESSION_END_PIPELINE";
 
 /**
  * Validator + normalizer. Pre-migration the bin did `JSON.parse(raw) as
@@ -71,12 +71,12 @@ async function main(): Promise<void> {
     channel: "SessionEnd",
     parseInput: normalizeStopHookInput,
     handler: async (ctx) => {
-      // Issue #343 PR-1: master kill switch. When TEAMAGENT_DISABLED=1 the
+      // Issue #343 PR-1: master kill switch. When VIKI_DISABLED=1 the
       // SessionEnd hook bails before the embedder daemon shutdown POST,
       // before the full-rescan pipeline (detached path), and before the
       // foreground self-spawn (sync path). One check at handler entry
       // covers both branches.
-      if (ctx.env.TEAMAGENT_DISABLED === "1") {
+      if (ctx.env.VIKI_DISABLED === "1") {
         return;
       }
 
@@ -121,7 +121,7 @@ async function main(): Promise<void> {
 
       const tmpFile = path.join(
         os.tmpdir(),
-        `teamagent-session-end-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
+        `viki-session-end-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
       );
       try {
         writeFileSync(tmpFile, JSON.stringify(ctx.input), "utf-8");

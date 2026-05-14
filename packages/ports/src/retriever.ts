@@ -1,4 +1,4 @@
-import type { KnowledgeEntry } from "@teamagent/types";
+import type { KnowledgeEntry } from "@viki/types";
 
 /** 检索上下文——"当前场景" 的描述。 */
 export interface RetrievalContext {

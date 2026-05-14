@@ -8,7 +8,7 @@
  *
  * See ADR-0008 for the design rationale and the two-layer split.
  */
-import type { AttributionBus } from "@teamagent/ports";
+import type { AttributionBus } from "@viki/ports";
 
 /**
  * Hook channel identifier — one of the 8 Claude Code integration channels.
@@ -35,21 +35,21 @@ export type Visibility = "silent" | "smart" | "verbose";
  * this resolution so individual bin-*.ts files don't repeat it.
  */
 export interface HookDbPaths {
-  /** `<cwd>/.teamagent/knowledge.db` — project-scope DualLayerStore project leg. */
+  /** `<cwd>/.viki/knowledge.db` — project-scope DualLayerStore project leg. */
   projectDbPath: string;
-  /** `<home>/.teamagent/global.db` — global-scope DualLayerStore global leg. */
+  /** `<home>/.viki/global.db` — global-scope DualLayerStore global leg. */
   globalDbPath: string;
-  /** `<home>/.teamagent/events.db` — SqliteEventLog persistence. */
+  /** `<home>/.viki/events.db` — SqliteEventLog persistence. */
   eventsDbPath: string;
 }
 
 /**
  * Minimal structural shape of a `DualLayerStore`, as far as HookShell cares.
  *
- * We intentionally avoid importing `@teamagent/adapters` here so the type
+ * We intentionally avoid importing `@viki/adapters` here so the type
  * file is dep-free (and so future tests can pass mock stores without
  * touching real sqlite). The production binding to `DualLayerStore` from
- * `@teamagent/adapters` happens in `index.ts`.
+ * `@viki/adapters` happens in `index.ts`.
  */
 export interface HookKnowledgeStore {
   /** Release sqlite handles. Called by HookShell in the lifecycle teardown. */
@@ -94,7 +94,7 @@ export interface DefaultHookContext<TInput> {
    * Mirror a single user-visible system-message line to stderr.
    *
    * Workaround for Claude Code 2.1.x systemMessage UI regression
-   * (issue #50542). Honors `TEAMAGENT_HOOK_STDERR=0` to opt out.
+   * (issue #50542). Honors `VIKI_HOOK_STDERR=0` to opt out.
    *
    * Hooks that emit `systemMessage` in their stdout envelope MAY also call
    * this so verbose-mode terminals show the same line. Plain
@@ -113,7 +113,7 @@ export interface DefaultHookContext<TInput> {
  *    and would otherwise pay sqlite open cost for every invocation,
  *    including the trivial parent that just spawns and exits.
  * 2. `logError(step, err)` writes a structured line to
- *    `<TEAMAGENT_HOME>/.teamagent/<channel>-errors.log` for offline
+ *    `<VIKI_HOME>/.viki/<channel>-errors.log` for offline
  *    debugging of pipeline failures (parallel of bin-stop's `logError`).
  * 3. `clock` exposes `nowIso()` and `monotonicMs()` so handlers that
  *    measure pipeline duration can do so without grabbing `Date.now()`
@@ -131,7 +131,7 @@ export interface AdvancedHookContext<TInput>
   eventLog(): HookEventLog;
   /**
    * Append a `[ts] step=<step> err=<msg>` line to
-   * `<TEAMAGENT_HOME ?? home>/.teamagent/<channel>-errors.log`.
+   * `<VIKI_HOME ?? home>/.viki/<channel>-errors.log`.
    * Never throws; failed log writes are silently swallowed.
    */
   logError(step: string, err: unknown): void;
@@ -199,7 +199,7 @@ export interface EscapeOptions {
 /**
  * Detached re-entry probe + tmp-file argv reader.
  *
- * Production wiring (bin-stop): `envFlag = "TEAMAGENT_STOP_PIPELINE"`;
+ * Production wiring (bin-stop): `envFlag = "VIKI_STOP_PIPELINE"`;
  * the genuine child sets argv[2] to a tmp file path written by the
  * parent. The probe + reader are injectable so tests don't need real
  * env / filesystem.
@@ -227,7 +227,7 @@ export interface DetachedSpec {
  * timeout). Failed writes / removes are silent — locks are best-effort.
  */
 export interface LockSpec {
-  /** Path relative to `cwd`, e.g. `.teamagent/.stop-running.lock`. */
+  /** Path relative to `cwd`, e.g. `.viki/.stop-running.lock`. */
   relativePath: string;
   /** Payload for the lock file body — typically `{ pid, started_at }`. */
   payload(): unknown;
