@@ -71,20 +71,3 @@ export { XenovaRuleEmbedder } from "./embedding/xenova-rule-embedder.js";
 export type { XenovaProgressEvent } from "./embedding/xenova-rule-embedder.js";
 export { SqliteSemanticRetriever } from "./retriever/sqlite-semantic-retriever.js";
 export { SqliteToolRetriever } from "./retriever/sqlite-tool-retriever.js";
-export {
-  FsBootstrap,
-  type BootstrapPort,
-  type ProjectProbe,
-} from "./m5/fs-bootstrap.js";
-export {
-  FsTeamRuleStore,
-  type TeamRuleStorePort,
-  type TeamRuleClaim,
-} from "./m5/fs-team-rule-store.js";
-
-export {
-  GhCliGitHubActivityAdapter,
-  type GhCliGitHubActivityAdapterOptions,
-  type GhSpawner,
-  type GhSpawnResult,
-} from "./github-activity/gh-cli-adapter.js";
