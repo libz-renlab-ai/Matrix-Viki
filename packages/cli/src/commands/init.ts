@@ -163,18 +163,6 @@ const MIRROR_CLAIM_STEP = `mirror-${CLAIM_TO_MERGE_SKILL_ID}-skill` as const;
  */
 const STATIC_USER_SKILLS_STEP = "mirror-static-user-skills" as const;
 
-/**
- * Repo-relative paths the FIXEDFLOW banner mentions. Exported so the unit
- * test can iterate and assert each one resolves on disk — protects against
- * silent doc renames making the banner lie.
- */
-export const FIXEDFLOW_BANNER_DOC_PATHS = [
-  `.claude/skills/${CLAIM_TO_MERGE_SKILL_ID}/SKILL.md`,
-  "docs/FIXEDFLOW.md",
-  "docs/PR-PLAN.md",
-  "docs/POSTPR.md",
-] as const;
-
 function resolvePaths(opts: InitOptions) {
   const home = opts.homeDir ?? os.homedir();
   const cwd = opts.cwd ?? process.cwd();
@@ -1354,37 +1342,6 @@ function doMirrorStaticUserSkills(
   return okStep(STATIC_USER_SKILLS_STEP, `已镜像静态用户级 skills：${summary}`);
 }
 
-/**
- * Append the FIXEDFLOW guidance banner (issue #218) to the given line buffer.
- * Doc paths come from FIXEDFLOW_BANNER_DOC_PATHS so the path-exists unit test
- * stays in sync with the banner content.
- */
-function appendFixedflowBanner(lines: string[]): void {
-  lines.push("━".repeat(36));
-  lines.push("🌊 FIXEDFLOW — 本仓库 issue → merged code 的唯一路径");
-  lines.push("━".repeat(36));
-  lines.push("");
-  lines.push("  产品特性");
-  lines.push("    你写 ≤50 字 issue + 贴 grill 评论 + 加 grill-ready label。");
-  lines.push("    maintainer 在 Claude Code 里手动跑 /fixed-flow-driver skill:");
-  lines.push("    worktree → 实现 → /review fix-loop（循环至 PASS）→ 普通 PR →");
-  lines.push("    squash-merge → 清理。无 watcher / 无后台轮询 / 无自动 dispatch。");
-  lines.push("    /review 出 issue 时强制走 PR-PLAN（禁开 follow-up issue）；");
-  lines.push("    POSTPR 仅 squash-merge（禁 --merge / --rebase）。");
-  lines.push("");
-  lines.push("  快速验证（复制运行）");
-  lines.push(
-    '    claudefast -p "explain TeamBrain FIXEDFLOW: 5 steps, who triggers step 3"',
-  );
-  lines.push("");
-  lines.push("  详情");
-  lines.push(`    ${FIXEDFLOW_BANNER_DOC_PATHS[0]} (TL;DR routing)`);
-  lines.push(
-    `    ${FIXEDFLOW_BANNER_DOC_PATHS[1]} / ${FIXEDFLOW_BANNER_DOC_PATHS[2]} / ${FIXEDFLOW_BANNER_DOC_PATHS[3]} (canonical)`,
-  );
-  lines.push("");
-}
-
 function doLinkCodexFiles(
   paths: ReturnType<typeof resolvePaths>,
   dryRun: boolean,
@@ -1904,14 +1861,9 @@ export function renderInitResult(result: InitResult): string {
   }
 
   if (result.ok) {
-    // Issue #326 RESCOPE item 6 + 7: FIXEDFLOW banner moves BEFORE the
-    // success block so the trailing block is the minimal 5-line
-    // "Viki 已就绪 + Next: cd / claude" per grill-spec-acceptance.md
-    // §Implementation summary item 6. Plugin tip and post-init what's-new
-    // tail are gated behind VIKI_VERBOSE_INIT (kept in source for
-    // doctor / future --verbose-init flag).
-    appendFixedflowBanner(lines);
-
+    // Plugin tip and post-init what's-new tail are gated behind
+    // VIKI_VERBOSE_INIT (kept in source for doctor / future
+    // --verbose-init flag).
     const verbose = process.env["VIKI_VERBOSE_INIT"] === "1";
     if (verbose) {
       const hasAnyCompileTarget = result.steps.some(
