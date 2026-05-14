@@ -47,20 +47,8 @@ export type {
   SecretMatch,
 } from "./secret-scan-port.js";
 export type {
-  ScopeClassifierPort,
-  ScopeClassification,
-} from "./scope-classifier-port.js";
-export type {
   InstallStateStore,
   InstallState,
   InstallStateSchemaVersion,
   InstallStepKey,
 } from "./install-state-store.js";
-export type {
-  GitHubActivityPort,
-  GitHubCommit,
-  GitHubPullRequest,
-  GitHubIssue,
-  FetchByAuthorOptions,
-} from "./github-activity-port.js";
-export { InMemoryGitHubActivityPort } from "./github-activity-port-inmemory.js";

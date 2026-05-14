@@ -14,15 +14,8 @@ export { runErrorSignalCollectorContract } from "./_archived/__tests__/error-sig
 export { runCandidateQueueContract } from "./_archived/__tests__/candidate-queue-contract.js";
 export { ruleEmbedderContractSuite } from "./__tests__/rule-embedder-contract.js";
 export { semanticRetrieverContractSuite } from "./__tests__/semantic-retriever-contract.js";
-export { runBootstrapPortContract } from "./_archived/__tests__/bootstrap-port-contract.js";
 export { runSecretScanPortContract } from "./__tests__/secret-scan-port-contract.js";
-export { runScopeClassifierPortContract } from "./__tests__/scope-classifier-port-contract.js";
-export { runTeamRuleStorePortContract } from "./_archived/__tests__/team-rule-store-port-contract.js";
 export {
   runInstallStateStoreContract,
   InMemoryInstallStateStore,
 } from "./__tests__/install-state-store-contract.js";
-export {
-  runGitHubActivityPortContract,
-  InMemoryGitHubActivityPort,
-} from "./__tests__/github-activity-port-contract.js";
