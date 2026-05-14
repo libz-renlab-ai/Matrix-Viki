@@ -1,2 +1,0 @@
-/tmp/feature1-sandbox.8S7p6e/.teamagent/.project-root
-/tmp/feature1-sandbox.8S7p6e/.teamagent/knowledge.db
