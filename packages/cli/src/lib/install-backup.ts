@@ -82,14 +82,36 @@ const DEFAULT_KEEP = 3;
 const IS_WINDOWS = process.platform === "win32";
 
 /**
+ * Detect whether the `tar` on PATH is GNU tar. `--force-local` is a
+ * GNU-tar-only flag; bsdtar (the Windows 10/11 System32 `tar.exe`, and macOS)
+ * rejects it outright ("Option --force-local is not supported"). bsdtar
+ * handles `C:\…` paths fine without it, so we only add the flag for GNU tar.
+ * Probed once and cached.
+ */
+let _tarIsGnu: boolean | null = null;
+function tarIsGnu(): boolean {
+  if (_tarIsGnu !== null) return _tarIsGnu;
+  try {
+    const out = execFileSync("tar", ["--version"], {
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true,
+      timeout: 5_000,
+    }).toString();
+    _tarIsGnu = /GNU tar/i.test(out);
+  } catch {
+    _tarIsGnu = false;
+  }
+  return _tarIsGnu;
+}
+
+/**
  * Build tar argv with platform-correct flags.
- *   Windows: prepend `--force-local` so GNU tar (often Git-for-Windows's, on
- *            PATH ahead of System32 bsdtar) does not interpret `C:\` as a
- *            remote host spec.
- *   Other:   pass straight through.
+ *   GNU tar on Windows: prepend `--force-local` so `C:\…` is not interpreted
+ *            as a remote `host:file` spec.
+ *   bsdtar / non-Windows: pass straight through (no `--force-local`).
  */
 function tarArgs(...flags: string[]): string[] {
-  return IS_WINDOWS ? ["--force-local", ...flags] : flags;
+  return IS_WINDOWS && tarIsGnu() ? ["--force-local", ...flags] : flags;
 }
 
 function backupRoot(homeDir: string): string {
