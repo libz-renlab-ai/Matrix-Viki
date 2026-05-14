@@ -17,9 +17,6 @@ const path = require("node:path");
 const SKILLS = [
   "duck",
   "grill-me",
-  "grill-via-web",
-  "fixed-flow-driver",
-  "claim-to-merge",
 ];
 
 const ROOT = path.resolve(__dirname, "..");

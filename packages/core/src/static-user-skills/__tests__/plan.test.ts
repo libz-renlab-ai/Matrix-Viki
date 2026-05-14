@@ -78,9 +78,9 @@ describe("planStaticUserSkillInstall", () => {
       joinPath,
       "/home/u",
       "claude",
-      "grill-via-web",
+      "duck",
     );
-    expect(dest).toBe("/home/u/.claude/skills/grill-via-web/SKILL.md");
+    expect(dest).toBe("/home/u/.claude/skills/duck/SKILL.md");
   });
 
   test("destPath derivation: codex target uses .codex/skills/<name>/SKILL.md", () => {
@@ -88,9 +88,9 @@ describe("planStaticUserSkillInstall", () => {
       joinPath,
       "/home/u",
       "codex",
-      "fixed-flow-driver",
+      "grill-me",
     );
-    expect(dest).toBe("/home/u/.codex/skills/fixed-flow-driver/SKILL.md");
+    expect(dest).toBe("/home/u/.codex/skills/grill-me/SKILL.md");
   });
 
   test("each (skill, target) appears exactly once with stable order", () => {

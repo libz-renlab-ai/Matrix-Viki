@@ -139,7 +139,7 @@ describe("viki init mirrors static user skills to ~/.claude + ~/.codex", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpHome, ".claude", "skills", "grill-via-web", "SKILL.md"),
+        path.join(tmpHome, ".claude", "skills", "duck", "SKILL.md"),
       ),
     ).toBe(true);
   });

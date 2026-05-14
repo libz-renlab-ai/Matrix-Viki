@@ -72,7 +72,7 @@ describe("renderInstallManifest", () => {
     }
   });
 
-  it("lists the 6 default project-level skills", () => {
+  it("lists the 5 default project-level skills", () => {
     const m = renderInstallManifest();
     const skillsBlock = [m.skills.header, ...m.skills.lines].join("\n");
     for (const id of DEFAULT_PROJECT_SKILLS) {

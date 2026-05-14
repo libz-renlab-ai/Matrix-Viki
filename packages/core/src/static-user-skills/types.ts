@@ -13,9 +13,6 @@
 export const STATIC_USER_SKILLS = [
   "duck",
   "grill-me",
-  "grill-via-web",
-  "fixed-flow-driver",
-  "claim-to-merge",
 ] as const;
 
 export type StaticUserSkillName = (typeof STATIC_USER_SKILLS)[number];

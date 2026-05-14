@@ -38,7 +38,6 @@ export const DEFAULT_PROJECT_SKILLS: readonly string[] = [
   "design-shotgun",
   "office-hours",
   "plan-ceo-review",
-  "claim-to-merge",
 ];
 
 /** Approximate vector model download size in MiB (issue #155 body says "120MB"). */

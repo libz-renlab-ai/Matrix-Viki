@@ -126,13 +126,13 @@ $refs"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/gstack-skill-mirrors.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
-# Issue #218 — non-gstack project skills with a byte-identical mirror
-# contract. Each skill listed here MUST exist at both .claude/skills/<id>/
-# and .codex/skills/<id>/ AND the SKILL.md content must be byte-identical.
+# Non-gstack project skills with a byte-identical mirror contract. Each
+# skill listed here MUST exist at both .claude/skills/<id>/ and
+# .codex/skills/<id>/ AND the SKILL.md content must be byte-identical.
 # This check runs BEFORE the broader skill-set diff so it stays effective
-# even while the full repo-wide mirror gap (out of scope for #218) is
-# pending a separate cleanup.
-NON_GSTACK_MIRRORED_SKILLS=(claim-to-merge)
+# even while the full repo-wide mirror gap is pending a separate cleanup.
+# Currently empty — no non-gstack skills require an enforced mirror.
+NON_GSTACK_MIRRORED_SKILLS=()
 for skill in "${NON_GSTACK_MIRRORED_SKILLS[@]}"; do
   claude_path=".claude/skills/$skill/SKILL.md"
   codex_path=".codex/skills/$skill/SKILL.md"

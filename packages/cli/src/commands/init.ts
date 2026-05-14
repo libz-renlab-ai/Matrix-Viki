@@ -140,26 +140,8 @@ export interface InitResult {
 }
 
 /**
- * Single source of truth for the claim-to-merge skill identity (issue #218).
- * Renaming the skill should require touching ONLY this constant — derived
- * downstream are MIRROR_CLAIM_STEP, the helper call site, and the banner
- * routing-doc path. Bash side (scripts/verify-gstack-skill-mirrors.sh)
- * mirrors this in NON_GSTACK_MIRRORED_SKILLS — keep them in sync.
- */
-const CLAIM_TO_MERGE_SKILL_ID = "claim-to-merge" as const;
-
-/**
- * Step key for the user-level mirror of project-level skills (issue #218).
- * Centralized so a typo can't silently de-register the step from any of:
- * the function body, stepGroups (renderInitResult), or stepLabel mapping.
- */
-const MIRROR_CLAIM_STEP = `mirror-${CLAIM_TO_MERGE_SKILL_ID}-skill` as const;
-
-/**
- * Step key for the broader static-user-skills mirror (docs/INIT-PROPAGATION.md).
- * Distinct from MIRROR_CLAIM_STEP because this one targets the top-level
- * ~/.claude/skills/<name>/ and ~/.codex/skills/<name>/ (not the
- * ~/.claude/skills/viki/<name>/ namespace).
+ * Step key for the static-user-skills mirror (docs/INIT-PROPAGATION.md).
+ * Targets the top-level ~/.claude/skills/<name>/ and ~/.codex/skills/<name>/.
  */
 const STATIC_USER_SKILLS_STEP = "mirror-static-user-skills" as const;
 
@@ -293,9 +275,6 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
   }
 
   steps.push(await doCompileSkills(paths, dryRun));
-  if (targetIncludesClaude(target)) {
-    steps.push(doMirrorClaimToMergeSkill(paths, dryRun));
-  }
   if (targetIncludesCodex(target)) {
     steps.push(doLinkCodexFiles(paths, dryRun));
   }
@@ -1183,96 +1162,9 @@ async function doCompileSkills(
 }
 
 /**
- * Allowed shape of a project-level skill directory name. Matches the
- * convention used by `.claude/skills/<id>/SKILL.md` (lowercase, digits,
- * hyphens; max 64 chars). Used to refuse `..`, slashes, or any
- * input-driven skillId from a future caller.
- */
-const SKILL_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
-
-/**
- * Mirror a project-level skill at `.claude/skills/<skillId>/SKILL.md` to the
- * user-level skills dir. Designed so future per-skill mirrors (e.g. another
- * routing skill) can call this directly without copy-pasting fs logic.
- *
- * Failure is intentionally non-fatal — see C2 (issue #218) for why.
- *
- * skillId MUST match SKILL_ID_PATTERN — defends against path traversal if
- * a future caller derives skillId from config/seed/CLI input instead of a
- * hard-coded literal.
- */
-export function mirrorProjectSkillToUserLevel(
-  skillId: string,
-  stepKey: string,
-  paths: ReturnType<typeof resolvePaths>,
-  dryRun: boolean,
-): InitStepResult {
-  if (!SKILL_ID_PATTERN.test(skillId)) {
-    return failStep(
-      stepKey,
-      `invalid skillId "${skillId.slice(0, 32)}" — must match ${SKILL_ID_PATTERN}`,
-    );
-  }
-  const sourcePath = path.join(
-    paths.cwd,
-    ".claude",
-    "skills",
-    skillId,
-    "SKILL.md",
-  );
-  const targetPath = path.join(paths.skillsDir, skillId, "SKILL.md");
-
-  if (!fs.existsSync(sourcePath)) {
-    return {
-      step: stepKey,
-      status: "skipped",
-      detail: `源 .claude/skills/${skillId}/SKILL.md 不存在（仅 TeamBrain 仓库需要）`,
-    };
-  }
-
-  if (dryRun) {
-    return okStep(
-      stepKey,
-      `(dry-run) 会复制 ${sourcePath} → ${targetPath}`,
-    );
-  }
-
-  try {
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.copyFileSync(sourcePath, targetPath);
-    return okStep(stepKey, `已复制到 ${targetPath}（用户级 FIXEDFLOW 入口）`);
-  } catch (err) {
-    // Cosmetic mirror failure (e.g. $HOME read-only, disk full) must NOT
-    // flip result.ok=false (line 517 aggregates `!steps.some(failed)`).
-    // If it did, the success message AND the FIXEDFLOW banner this step
-    // is meant to advertise would both get suppressed — exactly the
-    // outcome the grill spec guarded against with "失败不 fatal". Use
-    // okStep with a warning prefix so the failure is reported but
-    // non-fatal.
-    return okStep(
-      stepKey,
-      `⚠️ 镜像失败但 init 继续（cosmetic）: ${String(err).slice(0, 160)}`,
-    );
-  }
-}
-
-function doMirrorClaimToMergeSkill(
-  paths: ReturnType<typeof resolvePaths>,
-  dryRun: boolean,
-): InitStepResult {
-  return mirrorProjectSkillToUserLevel(
-    CLAIM_TO_MERGE_SKILL_ID,
-    MIRROR_CLAIM_STEP,
-    paths,
-    dryRun,
-  );
-}
-
-/**
- * Mirror the four static user-level skills (per `docs/INIT-PROPAGATION.md`)
+ * Mirror the static user-level skills (per `docs/INIT-PROPAGATION.md`)
  * to top-level `~/.claude/skills/<name>/SKILL.md` and
- * `~/.codex/skills/<name>/SKILL.md`. Distinct from
- * `doMirrorClaimToMergeSkill` (which targets a viki-namespaced dir).
+ * `~/.codex/skills/<name>/SKILL.md`.
  *
  * Plan computed by pure `planStaticUserSkillInstall` from @viki/core.
  * This shell does the actual fs writes, honoring:
@@ -1280,7 +1172,8 @@ function doMirrorClaimToMergeSkill(
  * - target filter (`--target=claude` / `--target=codex`)
  * - dry-run (preview only)
  *
- * Failure is non-fatal — same rationale as `mirrorProjectSkillToUserLevel`.
+ * Failure is non-fatal — a cosmetic mirror failure (e.g. $HOME read-only,
+ * disk full) must not flip `result.ok=false`.
  */
 function doMirrorStaticUserSkills(
   paths: ReturnType<typeof resolvePaths>,
@@ -1837,7 +1730,7 @@ export function renderInitResult(result: InitResult): string {
     { icon: "📦", label: "初始化知识库", stepKeys: ["pre-check", "create-dirs", "load-preset", "load-seed", "scan-rules", "structure-rules"] },
     { icon: "🔗", label: "注册集成", stepKeys: ["install-hook", "audit-orphan-hooks"] },
     { icon: "🔌", label: "安装团队标配插件", stepKeys: ["install-plugins"] },
-    { icon: "📄", label: "导出 Skills", stepKeys: ["compile-skills", MIRROR_CLAIM_STEP, STATIC_USER_SKILLS_STEP] },
+    { icon: "📄", label: "导出 Skills", stepKeys: ["compile-skills", STATIC_USER_SKILLS_STEP] },
     { icon: "🔗", label: "链接 Codex 文件", stepKeys: ["link-codex-files"] },
     { icon: "📦", label: "Stack packs", stepKeys: ["load-pack", "pack-prompt"] },
   ];
@@ -1978,7 +1871,6 @@ function stepLabel(step: string): string {
     "audit-orphan-hooks": "孤儿 .sh 审计",
     "install-plugins": "Plugin 安装",
     "compile-skills": "Skills",
-    [MIRROR_CLAIM_STEP]: "FIXEDFLOW Skill",
     [STATIC_USER_SKILLS_STEP]: "静态用户级 Skills",
     "link-codex-files": "Codex 软链接",
     "load-pack": "Pack 安装",
