@@ -1,0 +1,49 @@
+{
+  "name": "viki",
+  "version": "0.1.0",
+  "private": true,
+  "description": "个人 AI 规则助手——自动从 Claude Code 会话中学习，避免重复踩坑",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json --pretty false",
+    "viki": "tsx packages/cli/src/bin.ts",
+    "smoke:llm": "tsx scripts/smoke-llm.ts",
+    "smoke:hook": "tsx scripts/hook-smoke-test.ts",
+    "verify": "tsx packages/cli/src/bin.ts verify",
+    "build:publish": "pnpm --filter viki build",
+    "prepublish:viki": "pnpm build:publish && cd packages/viki && npm pack --dry-run",
+    "regen-static-user-skills": "node scripts/regen-static-user-skills.cjs",
+    "install:from-md": "tsx scripts/install-from-md.ts"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^2.1.121",
+    "@types/node": "^22.10.0",
+    "@xenova/transformers": "^2.17.2",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.14.0",
+    "sharp": "^0.33.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@anthropic-ai/claude-code",
+      "esbuild",
+      "protobufjs",
+      "sharp",
+      "tree-sitter-javascript",
+      "tree-sitter-python",
+      "tree-sitter-typescript"
+    ]
+  }
+}
