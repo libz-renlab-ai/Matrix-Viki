@@ -11,54 +11,6 @@ import {
   renderVerifyAnchorsTerminal,
 } from "./commands/verify-anchors.js";
 import {
-  runM5Infect,
-  parseM5InfectArgs,
-  renderM5InfectResult,
-} from "./commands/m5-infect.js";
-import {
-  runM5Bootstrap,
-  parseM5BootstrapArgs,
-  renderM5BootstrapResult,
-} from "./commands/m5-bootstrap.js";
-import {
-  runM5Share,
-  parseM5ShareArgs,
-  renderM5ShareResult,
-} from "./commands/m5-share.js";
-import {
-  runM5Sync,
-  parseM5SyncArgs,
-  renderM5SyncResult,
-} from "./commands/m5-sync.js";
-import {
-  runM5Delete,
-  parseM5DeleteArgs,
-  renderM5DeleteResult,
-} from "./commands/m5-delete.js";
-import {
-  runM5Status,
-  parseM5StatusArgs,
-  renderM5StatusResult,
-} from "./commands/m5-status.js";
-import {
-  executeInspectMember,
-  parseInspectMemberArgs,
-  renderInspectMemberHelp,
-  renderInspectMemberResult,
-  InspectMemberError,
-} from "./commands/inspect-member.js";
-import {
-  runM5Publish,
-  parseM5PublishArgs,
-  renderM5PublishResult,
-} from "./commands/m5-publish.js";
-import {
-  executeM5Replay,
-  parseM5ReplayArgs,
-  renderM5ReplayResult,
-  M5ReplayArgError,
-} from "./commands/m5-replay.js";
-import {
   executePitfall,
   runPitfallInteractive,
   parsePitfallArgs,
@@ -83,11 +35,6 @@ import {
   renderInitResult,
 } from "./commands/init.js";
 import {
-  executeRequiredCheck,
-  parseRequiredCheckArgs,
-  renderRequiredCheckResult,
-} from "./commands/required-check.js";
-import {
   disable,
   enable,
   uninstall,
@@ -105,24 +52,9 @@ import {
   renderVerifyTerminal,
 } from "./commands/verify.js";
 import {
-  executeE2EEvaluate,
-  parseE2EEvaluateArgs,
-  renderE2EEvaluateResult,
-} from "./commands/e2e-evaluate.js";
-import {
-  executeDogfoodReport,
-  parseDogfoodReportArgs,
-} from "./commands/dogfood-report.js";
-import {
   executeBugReport,
   parseBugReportArgs,
 } from "./commands/bug-report.js";
-import {
-  DashboardArgsError,
-  launchDashboard,
-  parseDashboardArgs,
-  renderDashboardLaunch,
-} from "./commands/dashboard.js";
 import { executeIngest, parseIngestArgs } from "./commands/ingest.js";
 import {
   executeCompile,
@@ -130,21 +62,11 @@ import {
   renderCompileResult,
 } from "./commands/compile.js";
 import {
-  executeCompileCursor,
-  parseCompileCursorArgs,
-  renderCompileCursorResult,
-} from "./commands/compile-cursor.js";
-import {
   executeDaily,
   parseDailyArgs,
   renderDailyHelp,
   renderDailyStdout,
 } from "./commands/daily.js";
-import {
-  executeDocsPropagate,
-  parseDocsPropagateArgs,
-  renderDocsPropagationResult,
-} from "./commands/docs-propagate.js";
 import { executeConfig } from "./commands/config.js";
 import {
   executeDoctor,
@@ -163,34 +85,6 @@ import {
   parseReviewCandidatesArgs,
 } from "./commands/review-candidates.js";
 import {
-  executeTeamExport,
-  executeTeamImport,
-  parseTeamExportArgs,
-  parseTeamImportArgs,
-} from "./commands/team-transfer.js";
-import {
-  executeGitSyncPush,
-  executeGitSyncPull,
-  parseGitSyncArgs,
-} from "./commands/git-sync.js";
-import { executePrCycle, parsePrCycleArgs } from "./commands/pr-cycle.js";
-import {
-  executePairAccept,
-  executePairCapsule,
-  executePairKnock,
-  executePairList,
-  parsePairArgs,
-  renderPairAcceptResult,
-  renderPairCapsuleResult,
-  renderPairKnockResult,
-  renderPairList,
-} from "./commands/pair.js";
-import {
-  executeRecording,
-  parseRecordingArgs,
-  renderRecordingResult,
-} from "./commands/recording.js";
-import {
   executePackAdd,
   executePackList,
   executePackRemove,
@@ -200,29 +94,11 @@ import {
   renderPackList,
   renderPackRemove,
 } from "./commands/pack.js";
-import { executePresence } from "./commands/presence.js";
-import {
-  executeDigitalTwin,
-  parseDigitalTwinArgs,
-  DigitalTwinArgError,
-} from "./commands/digital-twin.js";
 import {
   executeRecord,
   parseRecordArgs,
   RecordArgError,
 } from "./commands/record.js";
-import {
-  executeVideo,
-  parseVideoArgs,
-  VideoArgError,
-  VIDEO_HELP,
-} from "./commands/video.js";
-import { runBpp, BppArgError } from "./commands/bpp.js";
-// BPP Phase 5 — `teamagent team init` / `team transfer-lead`. These two
-// command files shipped in PR #430 but were never wired into this
-// dispatcher; the `case "team":` block below is that wiring.
-import { runTeamInit } from "./commands/team-init.js";
-import { runTeamTransferLead } from "./commands/team-transfer-lead.js";
 import {
   executeFixtureReplay,
   parseFixtureReplayArgs,
@@ -230,12 +106,6 @@ import {
   renderFixtureReplayHelp,
   FixtureReplayArgError,
 } from "./commands/fixture-replay.js";
-import {
-  executeSymphony,
-  parseSymphonyArgs,
-  renderSymphonyHelp,
-  SymphonyArgError,
-} from "./commands/symphony.js";
 
 function findPackageVersion(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -307,131 +177,6 @@ async function main(): Promise<void> {
     case "skeleton-demo": {
       const output = await runSkeletonDemo();
       if (output) process.stdout.write(output + "\n");
-      return;
-    }
-    case "m5-infect": {
-      const opts = parseM5InfectArgs(rest);
-      const result = await runM5Infect(opts);
-      process.stdout.write(renderM5InfectResult(result) + "\n");
-      return;
-    }
-    case "m5-bootstrap": {
-      const opts = parseM5BootstrapArgs(rest);
-      try {
-        const result = await runM5Bootstrap(opts);
-        const { output, exitCode } = renderM5BootstrapResult(result);
-        process.stdout.write(output + "\n");
-        if (exitCode !== 0) process.exit(exitCode);
-      } catch (err) {
-        // W15-011: hard manifest errors (corrupt JSON, schema_version
-        // unsupported, missing created_by, ...) must exit non-zero so
-        // CI / pre-commit / wrapper scripts can detect the failure.
-        // Use exit 2 to distinguish from the generic main() crash path
-        // (1) — same convention as m5-share validation errors.
-        process.stderr.write(
-          `[m5-bootstrap] ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-        process.exit(2);
-      }
-      return;
-    }
-    case "m5-share": {
-      const opts = parseM5ShareArgs(rest);
-      if (!opts.text) {
-        process.stderr.write(
-          "[m5-share] 必须提供 --text \"<规则文本>\"\n"
-        );
-        process.exit(1);
-      }
-      try {
-        const result = await runM5Share(opts);
-        process.stdout.write(renderM5ShareResult(result) + "\n");
-      } catch (err) {
-        const { M5ShareValidationError } = await import("./commands/m5-share.js");
-        if (err instanceof M5ShareValidationError) {
-          process.stderr.write(`[m5-share] ${err.message}\n`);
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
-    case "m5-sync": {
-      const opts = parseM5SyncArgs(rest);
-      const result = await runM5Sync(opts);
-      process.stdout.write(renderM5SyncResult(result) + "\n");
-      return;
-    }
-    case "m5-replay": {
-      try {
-        const opts = parseM5ReplayArgs(rest);
-        const result = await executeM5Replay(opts);
-        if (opts.json) {
-          process.stdout.write(JSON.stringify(result) + "\n");
-        } else {
-          process.stdout.write(renderM5ReplayResult(result) + "\n");
-        }
-        if (!result.passed) {
-          process.exit(1);
-        }
-      } catch (err) {
-        if (err instanceof M5ReplayArgError) {
-          process.stderr.write(`[m5-replay] ${err.message}\n`);
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
-    case "m5-delete": {
-      const opts = parseM5DeleteArgs(rest);
-      if (!opts.ruleId) {
-        process.stderr.write("[m5-delete] 必须提供 --rule-id <id>\n");
-        process.exit(1);
-      }
-      try {
-        const result = await runM5Delete(opts);
-        process.stdout.write(renderM5DeleteResult(result) + "\n");
-      } catch (err) {
-        const { M5DeleteValidationError } = await import("./commands/m5-delete.js");
-        if (err instanceof M5DeleteValidationError) {
-          process.stderr.write(`[m5-delete] ${err.message}\n`);
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
-    case "m5-status": {
-      const opts = parseM5StatusArgs(rest);
-      const result = await runM5Status(opts);
-      process.stdout.write(renderM5StatusResult(result) + "\n");
-      return;
-    }
-    case "m5-publish": {
-      const opts = parseM5PublishArgs(rest);
-      const result = await runM5Publish(opts);
-      process.stdout.write(renderM5PublishResult(result) + "\n");
-      return;
-    }
-    case "inspect-member": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(renderInspectMemberHelp() + "\n");
-        return;
-      }
-      try {
-        const opts = parseInspectMemberArgs(rest);
-        const out = await executeInspectMember(opts);
-        process.stdout.write(renderInspectMemberResult(out) + "\n");
-      } catch (err) {
-        if (err instanceof InspectMemberError) {
-          process.stderr.write(`inspect-member: ${err.message}\n`);
-          process.stderr.write(renderInspectMemberHelp() + "\n");
-          process.exitCode = 2;
-          return;
-        }
-        throw err;
-      }
       return;
     }
     case "pitfall": {
@@ -581,31 +326,6 @@ async function main(): Promise<void> {
     case "review": {
       const opts = parseReviewArgs(rest);
       process.stdout.write(executeReview(opts));
-      return;
-    }
-    case "required-check": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage: teamagent required-check [--project <dir>] [--json]\n" +
-          "\n" +
-          "Validates this repository's TeamAgent required-mode contract:\n" +
-          "  - reads `.teamagent/required.json` (written by `teamagent init .`)\n" +
-          "  - confirms its schema and mode are `teamagent.required.v1` / `required`\n" +
-          "\n" +
-          "Exit code:\n" +
-          "  0 — OK; the project is configured for required mode.\n" +
-          "  2 — `.teamagent/required.json` missing or malformed.\n" +
-          "  3 — schema or mode unsupported.\n" +
-          "\n" +
-          "Hook-safe (no DB access, no network, no writes). Designed to be\n" +
-          "invoked from `.claude/hooks/check-teamagent.sh` before Claude tool use.\n",
-        );
-        return;
-      }
-      const opts = parseRequiredCheckArgs(rest);
-      const r = executeRequiredCheck(opts);
-      process.stdout.write(renderRequiredCheckResult(r, opts.json ?? false) + "\n");
-      if (r.exitCode !== 0) process.exit(r.exitCode);
       return;
     }
     case "init": {
@@ -775,17 +495,6 @@ async function main(): Promise<void> {
       if (r.failCount > 0) process.exit(1);
       return;
     }
-    case "e2e-evaluate": {
-      const opts = parseE2EEvaluateArgs(rest);
-      const result = await executeE2EEvaluate(opts);
-      if (opts.json) {
-        process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-      } else {
-        process.stdout.write(renderE2EEvaluateResult(result));
-      }
-      if (!result.ok) process.exit(1);
-      return;
-    }
     case "ingest": {
       let opts;
       try {
@@ -804,30 +513,6 @@ async function main(): Promise<void> {
         return;
       }
       process.stdout.write(output);
-      return;
-    }
-    case "dogfood-report": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage: teamagent dogfood-report [--output=path]\n" +
-          "\n" +
-          "Options:\n" +
-          "  --output=PATH    Write report to PATH (default: docs/dogfood/自举报告.md)\n" +
-          "\n" +
-          "Scans events.db + knowledge.db + git log to generate a self-bootstrapping\n" +
-          "dogfood report. Shows knowledge stats, hook interventions, top fired rules,\n" +
-          "and confidence changes across all sandbox tiers.\n" +
-          "\n" +
-          "Tier isolation: operates on current sandbox state without crossing tier\n" +
-          "boundaries. Use --output to redirect to a different path.\n",
-        );
-        return;
-      }
-      const opts = parseDogfoodReportArgs(rest);
-      const r = await executeDogfoodReport(opts);
-      process.stdout.write(
-        `📊 自举报告生成: ${r.outputPath}\n  ${r.totalEntries} 条知识 / ${r.totalEvents} 个事件 / ${r.archivedCount} 自动归档\n`,
-      );
       return;
     }
     case "bug-report": {
@@ -860,79 +545,6 @@ async function main(): Promise<void> {
           `Bug report written: ${result.outputPath}\n` +
             "Attach this file when reporting first-install or hook failures.\n",
         );
-      }
-      return;
-    }
-    case "dashboard": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage: teamagent dashboard [--watch|--once] [--host=127.0.0.1] [--port=8787] [--interval=2s] [--open]\n" +
-          "\n" +
-          "Options:\n" +
-          "  --watch          Start HTTP server; regenerate dashboard on interval (default)\n" +
-          "  --once           Generate docs/dashboard.html once and exit\n" +
-          "  --open           Open browser after server starts\n" +
-          "  --host=HOST      Bind host (default 127.0.0.1)\n" +
-          "  --port=PORT      Port (default 8787)\n" +
-          "  --interval=DUR   Refresh interval, e.g. 2s, 500ms (default 2s)\n" +
-          "\n" +
-          "Dashboard shows VERIFIED / PLANNED feature status and live rule/event stats.\n",
-        );
-        return;
-      }
-      try {
-        const opts = parseDashboardArgs(rest);
-        const result = await launchDashboard(opts);
-        process.stdout.write(renderDashboardLaunch(result));
-      } catch (err) {
-        if (err instanceof DashboardArgsError) {
-          process.stderr.write(
-            `${err.message}\n` +
-              "Usage: teamagent dashboard [--watch|--once] [--host=127.0.0.1] [--port=8787] [--interval=2s] [--open]\n",
-          );
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
-    case "presence": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage: teamagent presence\n" +
-          "\n" +
-          "Probes ${TEAMAGENT_REALTIME_URL}/api/cc-status/latest for the\n" +
-          "current teammate's latest snapshot and prints the derived green\n" +
-          "light state (active | idle | offline | error). One-line output.\n" +
-          "\n" +
-          "Env:\n" +
-          "  TEAMAGENT_REALTIME_URL    receiver base URL (required for live state)\n" +
-          "  TEAMAGENT_REALTIME_TOKEN  optional bearer\n" +
-          "\n" +
-          "Issue #308 grill verdict §11: presence = green/yellow/gray/red.\n",
-        );
-        return;
-      }
-      try {
-        const result = await executePresence({});
-        process.stdout.write(result.stdout);
-        if (result.exitCode !== 0) process.exit(result.exitCode);
-      } catch (err) {
-        process.stderr.write(
-          `${err instanceof Error ? err.message : String(err)}\n`,
-        );
-        process.exit(2);
-      }
-      return;
-    }
-    case "recording": {
-      try {
-        const opts = parseRecordingArgs(rest);
-        const result = await executeRecording({ ...opts, cwd: process.cwd() });
-        process.stdout.write(renderRecordingResult(result));
-      } catch (err) {
-        process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-        process.exit(2);
       }
       return;
     }
@@ -978,38 +590,6 @@ async function main(): Promise<void> {
       }
       return;
     }
-    case "digital-twin": {
-      if (rest.length === 0 || rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage:\n" +
-            "  teamagent digital-twin login <token>     Save the bearer token to ~/.teamagent/digital-twin.json\n" +
-            "  teamagent digital-twin logout            Clear uploader.token\n" +
-            "  teamagent digital-twin status            Show config + queue + daemon status\n" +
-            "  teamagent digital-twin pause             Disable uploader (uploader.enabled=false)\n" +
-            "  teamagent digital-twin resume            Enable uploader (uploader.enabled=true)\n" +
-            "  teamagent digital-twin inject-mock       Write a synthetic transcript and tap it (end-to-end smoke test)\n" +
-            "         [--cwd <path>] [--session-id <id>]\n" +
-            "  teamagent digital-twin member-stats      Show this member's upload stats (total / last upload / redaction count)\n" +
-            "         [--server <url>] [--user <id>] [--json]\n" +
-            "\n" +
-            "Manages the TeamBrain Digital Twin sidecar configuration in ~/.teamagent/.\n",
-        );
-        return;
-      }
-      let parsed;
-      try {
-        parsed = parseDigitalTwinArgs(rest);
-      } catch (err) {
-        if (err instanceof DigitalTwinArgError) {
-          process.stderr.write(err.message + "\n");
-          process.exit(2);
-        }
-        throw err;
-      }
-      const result = await executeDigitalTwin(parsed);
-      if (result.exitCode !== 0) process.exit(result.exitCode);
-      return;
-    }
     case "record": {
       if (rest.length === 0 || rest.includes("--help") || rest.includes("-h")) {
         process.stdout.write(
@@ -1037,37 +617,6 @@ async function main(): Promise<void> {
       if (result.exitCode !== 0) process.exit(result.exitCode);
       return;
     }
-    case "video": {
-      if (rest.length === 0 || rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(VIDEO_HELP);
-        return;
-      }
-      let parsedVideo;
-      try {
-        parsedVideo = parseVideoArgs(rest, process.env.TEAMAGENT_VIDEO_ENDPOINT);
-      } catch (err) {
-        if (err instanceof VideoArgError) {
-          process.stderr.write(err.message + "\n");
-          process.exit(2);
-        }
-        throw err;
-      }
-      const result = await executeVideo(parsedVideo);
-      if (result.exitCode !== 0) process.exit(result.exitCode);
-      return;
-    }
-    case "bpp": {
-      try {
-        await runBpp(rest);
-      } catch (err) {
-        if (err instanceof BppArgError) {
-          process.stderr.write(`[bpp] ${err.message}\n`);
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
     case "fixture": {
       try {
         if (rest.length === 0 || rest.includes("--help") || rest.includes("-h")) {
@@ -1091,25 +640,6 @@ async function main(): Promise<void> {
       }
       return;
     }
-    case "symphony": {
-      try {
-        if (rest.includes("--help") || rest.includes("-h")) {
-          process.stdout.write(renderSymphonyHelp());
-          return;
-        }
-        const opts = parseSymphonyArgs(rest);
-        const result = await executeSymphony(opts, process.cwd());
-        process.stdout.write(result.output);
-        if (result.exitCode !== 0) process.exit(result.exitCode);
-      } catch (err) {
-        if (err instanceof SymphonyArgError) {
-          process.stderr.write(err.message.endsWith("\n") ? err.message : err.message + "\n");
-          process.exit(2);
-        }
-        throw err;
-      }
-      return;
-    }
     case "compile": {
       let opts;
       try {
@@ -1126,12 +656,6 @@ async function main(): Promise<void> {
       process.stdout.write(renderCompileResult(result, opts.dryRun));
       return;
     }
-    case "compile-cursor": {
-      const opts = parseCompileCursorArgs(rest);
-      const result = await executeCompileCursor(opts);
-      process.stdout.write(renderCompileCursorResult(result));
-      return;
-    }
     case "daily": {
       let opts;
       try {
@@ -1146,13 +670,6 @@ async function main(): Promise<void> {
       }
       const out = executeDaily(opts);
       process.stdout.write(renderDailyStdout(out, opts));
-      return;
-    }
-    case "docs-propagate": {
-      const opts = parseDocsPropagateArgs(rest);
-      const result = await executeDocsPropagate(opts);
-      process.stdout.write(renderDocsPropagationResult(result));
-      if (!result.ok) process.exit(1);
       return;
     }
     case "config": {
@@ -1253,197 +770,6 @@ async function main(): Promise<void> {
       if (output) process.stdout.write(output);
       return;
     }
-    case "team-export": {
-      const result = executeTeamExport(parseTeamExportArgs(rest));
-      process.stdout.write(result.output);
-      if (!result.ok) process.exit(1);
-      return;
-    }
-    case "team-import": {
-      const result = executeTeamImport(parseTeamImportArgs(rest));
-      process.stdout.write(result.output);
-      if (!result.ok) process.exit(1);
-      return;
-    }
-    case "team": {
-      // BPP team setup — `team init` (join + become lead) / `team
-      // transfer-lead`. `--dir` defaults to the same store dir
-      // bin-prod-server.ts uses so the CLI and BPP server share it.
-      const teamSub = rest[0];
-      const teamRest = rest.slice(1);
-      const resolveTeamDir = (argv: string[]): string => {
-        for (const a of argv) {
-          if (a.startsWith("--dir=")) return a.slice("--dir=".length);
-        }
-        return (
-          process.env.TEAMAGENT_COLLECTOR_DIR ??
-          path.join(os.homedir(), "teamagent-collector")
-        );
-      };
-      const teamWrite = (s: string, channel?: "stdout" | "stderr"): void => {
-        (channel === "stderr" ? process.stderr : process.stdout).write(s);
-      };
-      if (
-        teamSub === undefined ||
-        teamSub === "--help" ||
-        teamSub === "-h" ||
-        teamSub === "help"
-      ) {
-        process.stdout.write(
-          [
-            "teamagent team — BPP 团队设置",
-            "",
-            "用法:",
-            "  teamagent team init --user-id=<id> --display-name=<名字> [--dir=<path>]",
-            "                                   加入团队并成为团队负责人（交互中输入 I AGREE 确认）",
-            "  teamagent team transfer-lead --from=<id> --to=<id> [--dir=<path>]",
-            "                                   把主 lead 角色从 --from 转移给 --to",
-            "",
-            "  --dir=<path>   BPP 数据目录（默认 $TEAMAGENT_COLLECTOR_DIR 或 ~/teamagent-collector）",
-            "",
-          ].join("\n"),
-        );
-        return;
-      }
-      if (teamSub === "init") {
-        if (teamRest.includes("--help") || teamRest.includes("-h")) {
-          process.stdout.write(
-            "Usage: teamagent team init --user-id=<id> --display-name=<名字> [--dir=<path>]\n",
-          );
-          return;
-        }
-        let userId: string | undefined;
-        let displayName: string | undefined;
-        for (const a of teamRest) {
-          if (a.startsWith("--dir=")) {
-            // consumed by resolveTeamDir
-          } else if (a.startsWith("--user-id=")) {
-            userId = a.slice("--user-id=".length);
-          } else if (a.startsWith("--display-name=")) {
-            displayName = a.slice("--display-name=".length);
-          } else {
-            process.stderr.write(`team init: 未知参数 ${a}\n`);
-            process.exit(2);
-          }
-        }
-        if (userId === undefined || displayName === undefined) {
-          process.stderr.write(
-            "team init: 必须提供 --user-id / --display-name\n",
-          );
-          process.exit(2);
-        }
-        const readlineMod = await import("node:readline/promises");
-        const rl = readlineMod.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-        });
-        try {
-          const result = await runTeamInit({
-            readline: () => rl.question(""),
-            write: teamWrite,
-            now: () => new Date().toISOString(),
-            rootDir: resolveTeamDir(teamRest),
-            user_id: userId,
-            display_name: displayName,
-          });
-          if (!result.ok) process.exit(result.exitCode);
-        } finally {
-          rl.close();
-        }
-        return;
-      }
-      if (teamSub === "transfer-lead") {
-        if (teamRest.includes("--help") || teamRest.includes("-h")) {
-          process.stdout.write(
-            "Usage: teamagent team transfer-lead --from=<id> --to=<id> [--dir=<path>]\n",
-          );
-          return;
-        }
-        let fromUserId: string | undefined;
-        const transferArgv: string[] = [];
-        for (const a of teamRest) {
-          if (a.startsWith("--dir=")) {
-            // consumed by resolveTeamDir
-          } else if (a.startsWith("--from=")) {
-            fromUserId = a.slice("--from=".length);
-          } else {
-            // --to=<id> is parsed by team-transfer-lead's own parser
-            transferArgv.push(a);
-          }
-        }
-        if (fromUserId === undefined) {
-          process.stderr.write(
-            "team transfer-lead: 必须提供 --from=<当前主 lead 的 id>\n",
-          );
-          process.exit(2);
-        }
-        const result = runTeamTransferLead({
-          write: teamWrite,
-          rootDir: resolveTeamDir(teamRest),
-          from_user_id: fromUserId,
-          argv: transferArgv,
-        });
-        if (!result.ok) process.exit(result.exitCode);
-        return;
-      }
-      process.stderr.write(`未知 team 子命令: ${teamSub}\n`);
-      process.exit(1);
-      return;
-    }
-    case "sync": {
-      let syncArgs;
-      try {
-        syncArgs = parseGitSyncArgs(rest);
-      } catch (err) {
-        process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-        process.exit(1);
-        return;
-      }
-      const syncOpts = { ...syncArgs, cwd: syncArgs.cwd ?? process.cwd() };
-      const syncResult =
-        syncArgs.subcommand === "push"
-          ? executeGitSyncPush(syncOpts)
-          : executeGitSyncPull(syncOpts);
-      process.stdout.write(syncResult.output + "\n");
-      if (!syncResult.ok) process.exit(1);
-      return;
-    }
-    case "pr-cycle": {
-      if (rest.includes("--help") || rest.includes("-h")) {
-        process.stdout.write(
-          "Usage: teamagent pr-cycle [--pr=N] [--wait-ms=300000] [--dry-run]\n" +
-          "\n" +
-          "Options:\n" +
-          "  --pr=N           Target existing PR number instead of creating one\n" +
-          "  --no-create      Skip PR creation; locate current branch PR\n" +
-          "  --wait-ms=N      Wait N ms before checking review (default 300000)\n" +
-          "  --dry-run        Preview commands without running them\n" +
-          "  --base=BRANCH    Base branch for new PR\n" +
-          "  --title=TITLE    PR title\n" +
-          "  --body=BODY      PR body\n" +
-          "\n" +
-          "Creates/locates a PR, waits, then checks review. Blocks if Codex review\n" +
-          "finds issues requiring doc/rule updates before code changes.\n",
-        );
-        return;
-      }
-      let opts;
-      try {
-        opts = parsePrCycleArgs(rest);
-      } catch (err) {
-        process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-        process.exit(1);
-        return;
-      }
-      const result = await executePrCycle(opts);
-      if (result.blocked) {
-        process.stderr.write(result.output);
-        process.exit(2);
-        return;
-      }
-      process.stdout.write(result.output);
-      return;
-    }
     case "doctor": {
       // Issue #172: `teamagent doctor --help` previously executed doctor
       // (because parseDoctorArgs ignored unknown flags). Make `--help`/`-h`
@@ -1513,37 +839,6 @@ async function main(): Promise<void> {
       const r = executeWhatsNew(opts);
       process.stdout.write(r.output);
       process.exit(r.ok ? 0 : 1);
-    }
-    case "pair": {
-      const parsed = parsePairArgs(rest);
-      if (parsed.subcommand === "capsule") {
-        const result = executePairCapsule(parsed.options as unknown as Parameters<typeof executePairCapsule>[0]);
-        process.stdout.write(renderPairCapsuleResult(result));
-        return;
-      }
-      if (parsed.subcommand === "accept") {
-        const result = executePairAccept(parsed.options as unknown as Parameters<typeof executePairAccept>[0]);
-        process.stdout.write(renderPairAcceptResult(result));
-        return;
-      }
-      if (parsed.subcommand === "knock") {
-        const opts = parsed.options as unknown as Parameters<typeof executePairKnock>[0];
-        const result = executePairKnock(opts);
-        if (opts.json) {
-          process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-        } else {
-          process.stdout.write(renderPairKnockResult(result));
-        }
-        if (!result.ok) process.exit(1);
-        return;
-      }
-      const book = executePairList(parsed.options as Parameters<typeof executePairList>[0]);
-      if ((parsed.options as { json?: boolean }).json) {
-        process.stdout.write(JSON.stringify(book, null, 2) + "\n");
-      } else {
-        process.stdout.write(renderPairList(book));
-      }
-      return;
     }
     case "reclassify": {
       if (rest.includes("--help") || rest.includes("-h") || rest[0] === "--help" || rest[0] === "-h") {
@@ -1617,20 +912,6 @@ async function main(): Promise<void> {
           "用法:",
           "  teamagent try                    30 秒一键体验：依次播放 5 个经典 hook 拦截场景（首次安装推荐入口）",
           "  teamagent skeleton-demo          M0 Walking Skeleton 演示",
-          "  teamagent m5-infect [--project-root=<path>] [--author=<name>]",
-          "                                   [M5-A] 把 TeamAgent 病毒式契约写入项目（幂等）",
-          "  teamagent m5-bootstrap [--project-root=<path>] [--check]",
-          "                                   [M5-A] 读项目 manifest，报告本机与契约的差异",
-          "  teamagent m5-share [--project-root=<path>] --text=\"<规则文本>\" [--rule-id=<id>] [--scope=personal|team] [--author=<n>]",
-          "                                   [M5-B] 跑闸门 1+2 决定规则归宿；shareable 的写到 .teamagent/team/",
-          "  teamagent m5-sync [--project-root=<path>]",
-          "                                   [M5-C] 读 .teamagent/team/ 所有 claim，LWW 合并报告团队规则集",
-          "  teamagent m5-delete --rule-id=<id> [--by=<n>] [--reason=<text>]",
-          "                                   [M5-C] 写 tombstone（任意人删任意规则）",
-          "  teamagent m5-status [--project-root=<path>]",
-          "                                   [M5-D] 综合面板：契约 + 本机 diff + 团队规则集统计",
-          "  teamagent m5-publish [--project-root=<path>] [--push]",
-          "                                   [M5-E] 自动 commit .teamagent/team/ 待变化（--push 同时推 origin）",
           "  teamagent pitfall                手动记录一条踩坑经验 (交互)",
           "  teamagent pitfall --non-interactive --trigger=... --wrong=... --correct=... --reason=...",
           "                                   非交互模式 (可选: --category=C|E|S|K --tags=a,b --level=personal|team|global --nature=objective|subjective)",
@@ -1670,13 +951,6 @@ async function main(): Promise<void> {
           "                                   注册团队标配 plugins（与 .claude/settings.json:enabledPlugins 同步）",
           "                                   通过 'claude plugin marketplace add' + 'claude plugin install' 调 CC CLI",
           "                                   默认装全部；--only 限定子集；--dry-run 只预览",
-          "  teamagent pair capsule --name=<device> --host=<host> [--user=<user>] [--out=<file>]",
-          "                                   生成短期 teammate 配对胶囊（不包含 SSH 私钥）",
-          "  teamagent pair accept <capsule-file|token> [--local-name=<device>]",
-          "                                   接受胶囊，写入 peer 账本、SSH config 受管块和收据",
-          "  teamagent pair knock <peer> [--json] [--simulate]",
-          "                                   通过 SSH 验证配对；--simulate 用于离线验收",
-          "  teamagent pair list              列出已配对 teammate",
           "  teamagent disable                临时禁用 Hook（保留数据）",
           "  teamagent enable                 重新启用 Hook",
           "  teamagent uninstall [--delete-data] [--dry-run]",
@@ -1691,39 +965,21 @@ async function main(): Promise<void> {
           "                                   (c) 引用的 docs/*.md 路径是否存在；",
           "                                   (d) anchor sentence 是否唯一不重复。",
           "                                   跑 5 个验证场景（踩坑→学习→避坑），输出 PRR/KP 指标",
-          "  teamagent e2e-evaluate [--json] [--keep-temp]",
-          "                                   真实 SQLite + analyze + compile + PreToolUse 测评学习、触发、误触发和新成员可见性",
-          "  teamagent recording --help",
-          "                                   Recording Memory 导入、检索、注入、指标和 golden benchmark",
           "  teamagent daily [--projects-root=PATH] [--archive] [--format=json|context] [--help]",
           "                                   [issue-371] 跨项目扫 ~/.claude/projects 今天活动，输出 member×project 一句话日报骨架",
-          "  teamagent dogfood-report [--output=path]",
-          "                                   扫 events.jsonl + knowledge.jsonl + git log，自动生成自举报告",
           "  teamagent bug-report [--out=path] [--stdout]",
           "                                   生成可附到 issue 的诊断报告：系统信息 + hook 配置 + 原始日志（自动脱敏）",
-          "  teamagent dashboard --watch [--open] [--port=8787] [--interval=2s]",
-          "                                   启动实时 HTML dashboard：生成 docs/dashboard.html，周期刷新真实规则/事件数据并本地服务",
-          "  teamagent dashboard --once",
-          "                                   只生成一次 docs/dashboard.html，不启动服务器",
           "  teamagent compile [--dry-run] [--skills-only] [--markdown-only] [--force] [--legacy-claude-md] [--target=claude|codex|both]",
           "                                   编译 Agent Skills (stable+)；CLAUDE.md 规则块输出已禁用",
           "                                   --legacy-claude-md: 显式恢复旧 CLAUDE.md managed block 输出",
           "                                   --dry-run: 预览将写/删哪些文件，不实际写入",
           "                                   --skills-only / --markdown-only: legacy flags",
-          "  teamagent docs-propagate --rule-id=<id>",
-          "                                   将新规则自然传播到 docs/ 并用 cheap runner 验证",
           "  teamagent config stop-mode <sync|async>  切换 Stop hook 运行模式（默认 sync）",
           "  teamagent config show                    查看当前配置",
           "  teamagent scan-errors [--mode=efficient|full] [--since=<duration|ISO>] [--min-freq=N] [--dry-run] [--quiet]",
           "                                   自动采集错误信号 → 提取候选规则 → 写入候选队列",
           "  teamagent review-candidates [--limit=N] [--approve-scope=personal|team|global]",
           "                                   交互式审核候选规则：[a]批准 [r]拒绝 [s]跳过 [q]退出；可把批准项提升为本地 team scope",
-          "  teamagent team-export [--out=path]",
-          "                                   导出本地 active team scope 规则到 JSON；导出前执行隐私守门",
-          "  teamagent team-import [--file=path]",
-          "                                   从 team-export JSON 导入本地 team scope 规则，已存在 id 会跳过",
-          "  teamagent pr-cycle [--pr=N] [--wait-ms=300000] [--dry-run]",
-          "                                   创建/定位 PR，等待后检查 review；有反馈时要求先更新文档/规则并用 claudefast/codexfastg 验证答案",
           "  teamagent migrate-v6 [--dry-run] [--limit=N] [--db=<path>]",
           "                                   迁移旧规则（trigger_description 为空）通过 LLM 生成双描述，并写入 vec0 和 FTS5",
           "  teamagent migrate-v7 [--dry-run] [--limit=N] [--db=<path>]",
@@ -1732,26 +988,12 @@ async function main(): Promise<void> {
           "                                   列出已安装 / 可用的 stack packs（ADR 0002 — agent 决定装哪些）",
           "  teamagent pack add <names>       例 pack add frontend-js,ops-safety；从 seed/packs/<name>.{jsonl,meta.json} 读取并注入用户全局 store",
           "  teamagent pack remove <names>    按 tag pack:<name> 过滤删除全局 store 中对应规则",
-          "  teamagent digital-twin <login|logout|status|pause|resume|inject-mock>",
-          "                                   管理 TeamBrain Digital Twin sidecar 配置（~/.teamagent/digital-twin.json）；inject-mock 走端到端 smoke",
           "  teamagent record <start|stop|import>",
           "                                   本地工作录音子命令（ffmpeg → Opus/OGG → queue/pending/）",
-          "  teamagent video upload <file> [--endpoint <url>] [--label <l>] [--user-id <id>] [--json]",
-          "                                   Feature #3 wedge：上传屏幕录像到中心化存储（mov/mp4/webm/mkv），返回 shareable link",
-          "                                   录制本身用系统原生工具（macOS `screencapture -v`/Linux `ffmpeg -f x11grab`/Win `ffmpeg -f gdigrab`）",
-          "                                   详见 docs/features/video-record-upload.md",
           "  teamagent ingest --from-insights <path> | --from-audit | --from-pr <n>",
           "                   | --from-git [--since=30d] | --from-ci [--since=30d] | --from-candidates <path>",
           "                                   多源摄入：Claude /insights / npm audit / PR review / git hotspot / CI failure",
           "                                   半自动源加 --dry-run 只产出候选 md 供人工勾选",
-          "  teamagent bpp serve [--port=<n>] [--host=<host>] [--dir=<path>]",
-          "                                   启动 BPP（团队最佳实践推送）中心服务；子命令见 `teamagent bpp --help`",
-          "  teamagent bpp join --user-id=<id> --display-name=<名字> [--server=<url>]",
-          "                                   BPP 成员客户端：以 member 身份一键接入中心服务",
-          "  teamagent team init --user-id=<id> --display-name=<名字> [--dir=<path>]",
-          "                                   加入 BPP 团队并成为团队负责人；子命令见 `teamagent team --help`",
-          "  teamagent team transfer-lead --from=<id> --to=<id> [--dir=<path>]",
-          "                                   把 BPP 主 lead 角色转移给另一个成员",
           "",
           "环境变量:",
           "  TEAMAGENT_VISIBILITY=silent|smart|verbose    归因渲染模式（默认 verbose）",
