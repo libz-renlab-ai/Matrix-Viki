@@ -1,7 +1,7 @@
 ---
 name: install-walkthrough
 description: |
-  Non-technical install guide and onboarding walkthrough for TeamBrain. Reads INSTALL.md
+  Non-technical install guide and onboarding walkthrough for Matrix-Viki. Reads INSTALL.md
   and narrates each step in plain Chinese for non-developers. Handles install errors by
   matching against known error patterns and explaining the fix aloud.
   Use when: "install", "onboarding", "walkthrough", "pnpm 是什么", "怎么安装",
@@ -39,8 +39,8 @@ triggers:
 ## 第一步：读取安装文档
 
 ```bash
-# 确认 INSTALL.md 存在
-ls /Users/m1/projects/TeamBrain/.claude/worktrees/issues85/INSTALL.md 2>/dev/null || echo "NOT_FOUND"
+# 确认 INSTALL.md 存在（在当前项目目录下）
+ls ./INSTALL.md 2>/dev/null || echo "NOT_FOUND"
 ```
 
 如果输出是 `NOT_FOUND`，告诉用户：
@@ -49,8 +49,8 @@ ls /Users/m1/projects/TeamBrain/.claude/worktrees/issues85/INSTALL.md 2>/dev/nul
 > 打开终端，复制下面这行，粘贴后按回车：
 >
 > ```bash
-> git clone https://github.com/libz-renlab-ai/TeamBrain
-> cd TeamBrain
+> git clone https://github.com/libz-renlab-ai/Matrix-Viki
+> cd Matrix-Viki
 > ```
 >
 > 完成后，再重新告诉我"帮我安装"。
@@ -101,9 +101,10 @@ ls /Users/m1/projects/TeamBrain/.claude/worktrees/issues85/INSTALL.md 2>/dev/nul
 4. 如果没有匹配到，说：
 
 > 这个错误我手边没有现成方案。把下面这段信息发给项目维护者：
-> https://github.com/libz-renlab-ai/TeamBrain/issues/new
+> https://github.com/libz-renlab-ai/Matrix-Viki/issues/new
 >
 > 记得把错误完整复制过去，一个字都不要省。
+> 提示：先跑 `pnpm viki bug-report --out=/tmp/viki-bug.md` 生成自动脱敏的诊断报告，可以直接粘贴。
 
 ## 边界情况
 
@@ -122,7 +123,7 @@ ls /Users/m1/projects/TeamBrain/.claude/worktrees/issues85/INSTALL.md 2>/dev/nul
 > 恭喜，安装完成！你可以用下面的命令确认一切正常：
 >
 > ```bash
-> pnpm teamagent --help
+> pnpm viki doctor
 > ```
 >
-> 看到命令帮助信息说明成功了。如果遇到任何问题，随时找我。
+> 看到一排 ✅ 说明成功了。如果遇到任何问题，随时找我。
