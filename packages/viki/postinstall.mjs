@@ -364,6 +364,23 @@ function spawnDetachedWarmup(binJsPath) {
 }
 
 async function main() {
+  // 源码 / monorepo install guard: 当用户 `git clone` + `pnpm install` 时，
+  // dist/bin.js 还不存在（要 `pnpm build` 才会生成）。继续往下跑 doctor /
+  // install-user-hook 会必报 MODULE_NOT_FOUND，把日志和终端 banner 染成红色，
+  // 让源码用户误以为安装坏了。检测到这种情况就清爽退出，告诉用户下一步是
+  // `pnpm build && pnpm viki init`。发布壳 (`npm i -g viki`) 走 npm pack 时
+  // dist/ 已经预 build 进 tarball，这个分支不会触发。
+  if (!fs.existsSync(binPath)) {
+    recordSetupStatus("postinstall", "skipped", "source-install-no-dist");
+    process.stderr.write(
+      duckify(
+        "ℹ️  源码安装：dist/ 还没构建，跳过 postinstall（这是正常的）\n" +
+          "   下一步: pnpm build && pnpm viki init\n",
+      ),
+    );
+    return;
+  }
+
   // === Stage 1: doctor + install-user-hook in parallel ===
   // 二者彼此不依赖；以前串行白白多花 ~5s（doctor 15s timeout + hook 10s timeout
   // 顺序跑）。并行后只算慢的那一个的 wall-clock。stdio:"pipe" 静默捕捉，避免
