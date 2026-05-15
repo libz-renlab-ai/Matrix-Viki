@@ -1,122 +1,110 @@
 ---
-date: 2026-05-07
-audience: non-technical
-schema-version: 1
+date: 2026-05-15
+audience: end-user + contributor
+schema-version: 2
 ---
 
 ```text
-  git clone
+  git clone https://github.com/libz-renlab-ai/Matrix-Viki
       |
       v
-  pnpm install       <-- 下载所有依赖（约 30–60 秒）
+  pnpm install        <-- 下载依赖（~30–60s）；末尾会看到
+      |                   "源码安装：dist/ 还没构建，跳过 postinstall"
+      v                   ← 这是正常的，不是失败
+  pnpm build          <-- 编译 + 9 个 Claude Code hook bundle（~30s）
       |
       v
-  pnpm build         <-- 把源码编译成可执行文件
+  pnpm viki init      <-- 注册 hook + 注入种子规则 + 后台预热向量模型
       |
       v
-  pnpm teamagent skeleton-demo  <-- 验证安装成功
+  重启 Claude Code    <-- 完整关窗口重开，hook 在新会话才挂上
       |
       v
-  pnpm teamagent init  <-- 注册 hook（AI 犯错前提醒等）+ 状态栏 + 预热向量模型
-      |                   ⚠ 跳过这一步会导致状态栏和 4 类 hook 都不生效
-      |
-  error? -------> fix 提示（见每个步骤的 common_errors）
+  pnpm viki doctor    <-- 验证；看到 skills-propagated/codex 红 X 但你不用 codex 的话忽略
       |
       v
-    done!
+    done — 打开任何项目，AI 犯老错时 Viki 会预警
 ```
 
-# INSTALL.md — TeamAgent 安装指南
+# INSTALL.md — Matrix-Viki 安装指南
 
-> 本文件同时被 **installer 脚本** 与 **AI 向导** 读取，是安装流程的唯一来源。
-> 修改这里的说明，脚本与 AI 向导会自动同步更新。
+> 本文同时被 **installer 脚本** 与 **AI 安装向导** 读取，是 4-step 流程的唯一来源。
+> 修改下面 `yaml install-step` 块，向导与脚本会自动同步。
+
+**前置要求**：
+- Node ≥ 22.5.0（`node -v` 验证）
+- pnpm 9.x（`npm install -g pnpm@9.15.9` 装；版本与 `package.json:packageManager` 字段对齐）
+- Claude Code 已安装（hook 要挂在它上面）
+
+**当前发布状态**：
+
+| 路径 | 状态 |
+|---|---|
+| `git clone` + 源码构建 | ✅ 可用（本文主路径） |
+| `bash scripts/bootstrap.sh` | ✅ 可用（封装了下面 3 步） |
+| `curl ... release/install.sh \| bash` | ⚠️ 脚本内部仍是 TeamBrain 命名（`teamagent` / `.teamagent/`），未完成 rebrand |
+| `npm install -g viki` | ❌ 不可用 — npm 上的 `viki@0.0.2` 是第三方同名包，不是 Matrix-Viki |
 
 ---
 
-## 推荐路径（issue #155 落地后；V1=1 单 prompt）
+## 推荐路径：源码安装（V1=1, contributors & end-users 通用）
 
-> **End user / AI 装 TeamBrain：** 一行 `curl|bash` 就够。装完自动跑 `teamagent init`。
->
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/libz-renlab-ai/TeamBrain/release/install.sh | bash
-> ```
->
-> 加 `--preview` 先看清单不装；加 `--skip-vector-model` opt-out 120MB 向量模型：
->
-> ```bash
-> curl -fsSL .../release/install.sh | bash -s -- --preview            # 只看清单
-> curl -fsSL .../release/install.sh | bash -s -- --skip-vector-model  # 跳过向量模型
-> ```
->
-> **Contributor / 想改源码：** clone repo 后跑 `bash scripts/bootstrap.sh`，同样 1 prompt。
->
-> ```bash
-> git clone https://github.com/libz-renlab-ai/TeamBrain.git
-> cd TeamBrain
-> bash scripts/bootstrap.sh        # pnpm install + pnpm build + pnpm teamagent init
-> bash scripts/bootstrap.sh --preview          # 仅看清单不装
-> bash scripts/bootstrap.sh --skip-vector-model
-> ```
->
-> 5 段安装清单（写哪些文件、下多大模型、怎么 refuse）见 [`docs/install-manifest.txt`](docs/install-manifest.txt)。
-> 中断后重跑 = 自动续 (底层幂等; 详见 [`docs/adr/0011-install-resumption-via-idempotency.md`](docs/adr/0011-install-resumption-via-idempotency.md))。
-
-如果已经在源码 checkout 里，AI 向导或开发者也可以直接跑：
+打开终端，复制粘贴以下命令：
 
 ```bash
-pnpm teamagent install
+git clone https://github.com/libz-renlab-ai/Matrix-Viki
+cd Matrix-Viki
+bash scripts/bootstrap.sh
 ```
 
-这条命令会先打印 `[config]` / `[skills]` / `[kb]` / `[download]` / `[refusal]` 五段清单，再只问一次确认；拒绝时不会写文件。向量模型预热在后台异步运行，`pnpm teamagent install` 不提供前台 `--skip-vector-model` flag。
+`bootstrap.sh` 等价于 `pnpm install && pnpm build && pnpm viki init`，一次 Bash 调用搞定（适合 Claude Code 严格权限模式）。
+
+`bootstrap.sh` 支持的 flag：
+- `--preview` — 只看 5 段清单不装
+- `--skip-vector-model` — opt-out 120MB 向量模型预热
+- `--skip-init` — 装但不自动跑 `viki init`
+
+装完按下面"装完之后"段做验证。
 
 ---
 
-## Dev fallback：手动 4 步（issue #155 落地后降级；保留是为了想分别看输出的开发者）
+## 手动 3 步（想分别看每步输出的开发者）
 
-下面的 4 步 YAML schema 是 issue #155 之前的推荐路径。**新用户应该直接用上面的 install.sh 或 bootstrap.sh**；
-但如果你是 dev、想分别看每一步的输出，或者推荐路径在你的环境出问题，下面的 4 步等价（手动跑而已，
-prompt 数变成 4 而非 1）。
-
-### Schema 说明（给开发者看）
-
-每个安装步骤写成一个 fenced YAML 代码块，格式如下：
+下面 3 步 YAML schema 是给 AI 向导 / installer 解析用的。每个 `yaml install-step` 块字段：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | 字符串 | 步骤唯一标识，如 `step-1` |
-| `command` | 字符串 | 在终端里执行的命令（英文，可直接复制粘贴） |
-| `explanation` | 字符串 | 用中文解释"这一步在做什么"，面向非技术用户，不超过 200 字 |
-| `progress` | 字符串 | 当前步骤在整体流程中的位置，格式 `"i/N"`，如 `"1/3"` |
-| `common_errors` | 列表 | 常见错误，每项包含 `pattern`（错误关键词，正则表达式）和 `fix`（可直接复制粘贴的修复命令） |
-
-### 4-step 详细流程
+| `id` | 字符串 | 步骤唯一标识 |
+| `command` | 字符串 | 终端命令（可直接复制粘贴） |
+| `explanation` | 字符串 | 中文白话解释 |
+| `progress` | 字符串 | `"i/N"`，如 `"1/3"` |
+| `common_errors` | 列表 | 每项 `pattern`（错误关键词正则）+ `fix`（修复命令） |
 
 ```yaml install-step
 id: step-1
 command: pnpm install
 explanation: |
-  这一步会自动下载 TeamAgent 运行所需的所有"配件"（技术上叫依赖包）。
-  类比：就像第一次用一台新电脑，系统要先下载并安装各种驱动程序，之后才能正常工作。
-  首次执行大约需要 1–3 分钟，速度取决于网络状况。请耐心等待，看到"Done"或没有红色报错就表示成功。
-progress: "1/4"
+  下载所有依赖。首次约 30–60 秒，看到 "Done in Xs" 即成功。
+  末尾会看到 "ℹ️  源码安装：dist/ 还没构建，跳过 postinstall（这是正常的）"，
+  不要慌——postinstall 是给 `npm i -g viki` 发布壳用的，源码模式下不该跑。
+progress: "1/3"
 common_errors:
   - pattern: "command not found.*pnpm|pnpm.*not found|pnpm: No such file"
-    fix: "npm install -g pnpm"
+    fix: "npm install -g pnpm@9.15.9"
   - pattern: "EACCES|permission denied|access denied"
     fix: "sudo chown -R $(whoami) ~/.npm && pnpm install"
   - pattern: "ETIMEDOUT|network timeout|ECONNRESET|ENOTFOUND"
-    fix: "pnpm install --prefer-offline"
+    fix: "pnpm install --prefer-offline   # 或见'踩坑清单 b' 走镜像源"
 ```
 
 ```yaml install-step
 id: step-2
 command: pnpm build
 explanation: |
-  这一步把源代码"翻译"成计算机能直接运行的形式（技术上叫编译）。
-  类比：就像把乐谱（源代码）演奏成实际能听的音乐（可执行程序）。
-  执行过程中你会看到一些文字滚动，大约需要 30 秒到 1 分钟。
-  执行完没有红色报错、最后看到类似"Build succeeded"的提示就表示成功。
-progress: "2/4"
+  把源码编译成可执行 + 生成 9 个 Claude Code hook bundle（CJS, ~30s）。
+  没有这一步, `pnpm viki init` 会报 "Hook bundle not found"。
+  执行完看到 "Build success in Xms" 即成功。
+progress: "2/3"
 common_errors:
   - pattern: "Cannot find module|Module not found|ERR_MODULE_NOT_FOUND"
     fix: "pnpm install && pnpm build"
@@ -128,97 +116,66 @@ common_errors:
 
 ```yaml install-step
 id: step-3
-command: pnpm teamagent skeleton-demo
+command: pnpm viki init
 explanation: |
-  这一步运行一个"冒烟测试"，验证编译是否完全成功。
-  类比：就像新买了电视，开机看能不能播放画面——不是真的在看节目，只是确认设备工作正常。
-  成功时会在终端打印出一系列绿色的对勾（✓）和"demo complete"字样。
-  注意：到这一步只是"代码能跑"，真正的产品功能（AI 犯错前提醒、纠正一次下次记住、状态栏统计）
-  还没启用——下一步才会启用它们。
-progress: "3/4"
-common_errors:
-  - pattern: "teamagent.*not found|cannot find.*teamagent|Unknown command.*teamagent"
-    fix: "pnpm build && pnpm teamagent skeleton-demo"
-  - pattern: "sqlite.*error|database.*locked|SQLITE_CANTOPEN"
-    fix: "rm -f .teamagent/knowledge.db && pnpm teamagent skeleton-demo"
-  - pattern: "ENOENT.*knowledge|no such file.*db"
-    fix: "mkdir -p .teamagent && pnpm teamagent skeleton-demo"
-```
+  把 Viki 正式装到这台机器：
+    · 创建 .viki/ 目录 + 初始化知识库
+    · 注入元原则（8 条） + 打包规则（约 58 条）
+    · 注册 PreToolUse hook 到项目级 .claude/settings.local.json
+      + 用户级 ~/.claude/settings.json (issue #161 viral install)
+    · 导出 Skills 到 ~/.claude/skills/viki/
+    · 后台预热向量模型（约 120MB，~10 分钟静默完成）
 
-```yaml install-step
-id: step-4
-command: pnpm teamagent init
-explanation: |
-  这一步把 TeamAgent 的"提醒贴纸"和状态栏正式贴到你这台机器的 Claude Code 配置里。
-  类比：到上一步为止你只是把微波炉接通了电；这一步才把 4 张提醒贴纸（AI 即将动手前提醒、
-  事后归因、经验自动注入上下文、每次结束自检）和门上的小屏幕（状态栏）都贴好。
-  执行过程：注册 4 类 hook → 写入状态栏 → 注入 universal pack（约 15 条跨语言经验）→
-  在后台预热语义匹配的向量模型（约 120MB，~10 分钟内静默完成）。
-  执行完成后请重启你的 Claude Code（输入 /clear 或关闭重开），然后状态栏和提醒就生效了。
-  ⚠ **跳过这一步**会导致：状态栏不显示、AI 犯错时不会提前提醒、纠正后下次还会犯同样的错——
-  也就是说产品的核心卖点全部哑掉。如果你只跑了 step-3，请务必再跑一次 step-4。
-progress: "4/4"
+  ⚠ **执行完必须完整关窗口重开 Claude Code**（不是 /clear），新会话才挂上 hook。
+  跳过这一步 → hook 不生效 → AI 犯老错时不会预警。
+
+  规则库是**全局共享**的：一次 init，所有项目共用同一份规则。
+progress: "3/3"
 common_errors:
   - pattern: "Hook bundle not found|bin-pre-tool-use\\.cjs"
-    fix: "pnpm --filter @teamagent/cli build:hook && pnpm teamagent init"
+    fix: "pnpm --filter @viki/cli build:hook && pnpm viki init"
   - pattern: "EACCES|permission denied.*\\.claude"
-    fix: "ls -la .claude/ && chmod -R u+rw .claude/ && pnpm teamagent init"
+    fix: "chmod -R u+rw .claude/ && pnpm viki init"
   - pattern: "warmup.*failed|onnxruntime|model.*download"
-    fix: "pnpm teamagent init --skip-warmup    # 先装 hook，向量模型晚点再热"
+    fix: "pnpm viki init --skip-warmup    # 先装 hook, 向量模型晚点热"
+  - pattern: "嵌套项目守卫|nested.*viki|already has .viki"
+    fix: "cd 到祖先项目，或加 --force-nested-init 创建独立子项目"
 ```
 
 ---
 
-## Upgrade — 卡在 v0.10.x 的 `secure crypto unusable`
+## 装完之后
 
-如果跑 `teamagent --version` 或 `teamagent init` 直接炸：
-
+```bash
+pnpm viki try            # 30 秒一键演示 5 个经典拦截场景（推荐首次入口）
+pnpm viki stats          # 看规则库内容（应看到 66 条左右）
+pnpm viki pitfall        # 交互记一条踩坑经验
+pnpm viki doctor         # 环境自检
+pnpm viki --help         # 完整命令列表
 ```
-Error: secure crypto unusable, insecure Math.random not allowed
-    at detectPrng (.../dist/bin.js:...)
-  source: 'ulid'
+
+全局安装（让任何项目都能直接 `viki ...` 而不必前缀 `pnpm`）：
+
+```bash
+# 进入 packages/viki 后用 npm link 把 dist/bin.js 软链到全局 PATH
+cd packages/viki
+npm link
+viki --version           # 验证全局可用
 ```
-
-说明你装的是 **v0.10.x** — 这一版 `ulid` 被错误 bundle 进 ESM bin.js，Node 22
-上 tsup 的 `__require("crypto")` 拿不到真 `crypto`，ulid 拒绝降级到
-`Math.random` 就 throw 了。Issue #158 已修，落在 **v0.11.0**。
-
-升级两条路：
-
-1. **重跑 install.sh**（推荐 / end user）—— 自动拉 release 分支最新 build：
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/libz-renlab-ai/TeamBrain/release/install.sh | bash
-   ```
-2. **从源码 build 再 npm install -g**（contributor）—— clone 之后：
-   ```bash
-   cd TeamBrain
-   pnpm install && pnpm --filter teamagent build
-   npm install -g packages/teamagent       # 覆盖卡住的 v0.10.x
-   teamagent --version                       # → 0.11.0
-   ```
-
-升级后再跑 `teamagent init`，如果父目录已经有 `.teamagent/`，会看到清楚的
-`🛡️ 前置守卫: 嵌套项目守卫 ...` 报错；按提示 `cd` 到祖先项目，或加
-`--force-nested-init` 创建独立子项目。
 
 ---
 
-## 装机踩坑清单（issue #368）
-
-下面这几条都真的把一个 teammate 卡住过——按顺序对照即可。
+## 踩坑清单
 
 ### a) `pnpm: command not found`
 
-`pnpm install` 报 `command not found` / `pnpm: No such file`：先全局装 pnpm，再回到 step-1。
-
 ```bash
-npm install -g pnpm
-pnpm install
+npm install -g pnpm@9.15.9    # 锁版本与 package.json:packageManager 一致
 ```
 
-### b) 中国大陆网络 — `pnpm install` 卡死 / `sharp` / `vips` 下载超时
+### b) 中国大陆网络 — `pnpm install` 卡死 / `sharp` / `vips` 超时
 
-走镜像源，但**只用临时环境变量，不要动全局 `~/.npmrc`**（污染全局会影响别的项目）：
+走镜像源，**只用临时环境变量**，不要动 `~/.npmrc`（污染全局会影响别的项目）：
 
 ```bash
 npm_config_registry=https://registry.npmmirror.com \
@@ -227,29 +184,73 @@ npm_config_sharp_binary_host=https://npmmirror.com/mirrors/sharp \
 pnpm install
 ```
 
-（Windows PowerShell：用 `$env:npm_config_registry='https://registry.npmmirror.com'; ...; pnpm install`，跑完后 `Remove-Item Env:npm_config_registry` 等清掉。）
+Windows PowerShell：
 
-### c) `teamagent init` 报 `Hook bundle not found` / `bin-pre-tool-use.cjs`
-
-hook bundle 没 build 出来。先单独 build hook bundle，再重跑 init：
-
-```bash
-pnpm --filter @teamagent/cli build:hook
-pnpm teamagent init
+```powershell
+$env:npm_config_registry = 'https://registry.npmmirror.com'
+$env:npm_config_sharp_libvips_binary_host = 'https://npmmirror.com/mirrors/sharp-libvips'
+$env:npm_config_sharp_binary_host = 'https://npmmirror.com/mirrors/sharp'
+pnpm install
+Remove-Item Env:npm_config_registry, Env:npm_config_sharp_libvips_binary_host, Env:npm_config_sharp_binary_host
 ```
 
-### d) 装完没数据上来？先**完全重启 Claude Code**
+### c) `pnpm viki init` 报 `Hook bundle not found`
 
-Stop hook（数字孪生 transcript 上传 + 学习管道）是在 Claude Code **下次启动**时才挂上的。`pnpm teamagent init` 之后必须**彻底退出并重开** Claude Code（关窗口重开，不是 `/clear`），Stop hook 才生效。
+hook bundle 没 build 出来：
 
-> 如果重启之后 dashboard 上还是看不到本机数据，跑 `teamagent doctor` 看 `digital-twin-uploader:` 那一行；显示 `BROKEN` 会附带具体原因，`teamagent digital-twin status` 的 `uploader log:` 段会给出 daemon 最近一次崩溃的错误行。
+```bash
+pnpm --filter @viki/cli build:hook
+pnpm viki init
+```
+
+### d) 装完没数据 / hook 不触发？先**彻底重启 Claude Code**
+
+PreToolUse / Stop / SessionStart hook 是在 Claude Code **下次启动**时挂上的。`pnpm viki init` 之后必须**关窗口重开**（不是 `/clear`），hook 才生效。
+
+### e) `viki doctor` 报 `❌ skills-propagated ... missing duck/codex, grill-me/codex`
+
+已知 cosmetic bug：默认 `--target=claude` 时不该把 codex 变体 skill 缺失算 fail。如果你不用 codex，忽略它（其他检查全绿就 OK）。
+
+### f) `viki doctor` 显示 `~/.viki` 路径而非 `--home=` 指定的沙盒路径
+
+已知 bug：doctor 的 `home-dir` / `plugin-sync` 检查没贯彻 `--home=` flag，会读真实 home。如果你在做 CI / judge 隔离测试要绕开。
 
 ---
 
-## 遇到没见过的报错？
+## 卸载
 
-如果遇到上面 `common_errors` 里没有覆盖的错误，请：
+```bash
+pnpm viki uninstall                # 移除 hook 注册 + 清 CLAUDE.md 区块；保留数据
+pnpm viki uninstall --delete-data  # 同时删 .viki/ 知识库
+pnpm viki uninstall --dry-run      # 预览要删哪些文件
+```
 
-1. 把终端里完整的报错文字复制下来。
-2. 在 Claude Code 里问：`我在执行 pnpm install/build/teamagent skeleton-demo 时遇到了以下报错：<粘贴报错>`。
-3. 或者直接提交 bug report：`bash scripts/bugreport-collect.sh > /tmp/bug.md`，再把 `/tmp/bug.md` 贴进 https://github.com/libz-renlab-ai/TeamBrain/issues/new。
+临时停用（不卸载，保留数据）：
+
+```bash
+pnpm viki disable                  # 临时禁用 hook
+pnpm viki enable                   # 重新启用
+```
+
+---
+
+## 升级
+
+```bash
+cd Matrix-Viki
+git pull
+pnpm install
+pnpm build
+pnpm viki doctor
+```
+
+knowledge.db schema 升级会通过 `viki migrate-v6` / `viki migrate-v7` 自动跑（如有必要）；手动触发见 `pnpm viki --help`。
+
+---
+
+## 遇到没见过的报错
+
+1. 把终端**完整的报错文字**复制下来（不要省略堆栈）
+2. 在 Claude Code 里问：`我在执行 pnpm install / pnpm build / pnpm viki init 时遇到了以下报错：<粘贴>`
+3. 或者直接提 issue：https://github.com/libz-renlab-ai/Matrix-Viki/issues/new
+4. 附诊断报告（自动脱敏）：`pnpm viki bug-report --out=/tmp/viki-bug.md`
