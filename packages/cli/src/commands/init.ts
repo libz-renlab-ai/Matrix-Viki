@@ -449,7 +449,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
       );
     } else {
       try {
-        const result = executePackAdd(requested, {
+        const result = await executePackAdd(requested, {
           ...(opts.packsDir ? { packsDir: opts.packsDir } : {}),
           userGlobalDbPath: paths.userGlobalDbPath,
         });
@@ -1085,6 +1085,14 @@ async function doImportRules(
       }
     }
     store.close();
+    // Backfill descriptions + vec0 vectors so the imported personal-scope
+    // rules show up in semantic retrieval. Without this, --structure imports
+    // would land in the project DB but stay invisible to the matcher (same
+    // bug class as the seed-load path fixed in init's auto-embed step).
+    if (imported > 0) {
+      const { ensureNewRulesEmbedded } = await import("../auto-embed.js");
+      await ensureNewRulesEmbedded(paths.projectDbPath);
+    }
     steps.push(
       okStep(
         "structure-rules",

@@ -188,6 +188,16 @@ export async function executeReviewCandidates(
     } catch (err) {
       output.write(`⚠ 校准/导出失败: ${String(err).slice(0, 100)}\n`);
     }
+
+    // Backfill descriptions + vec0 vectors for newly-approved rules so
+    // semantic match works on them immediately. store.add() above writes
+    // the row but does not embed; without this, approved rules sit in the
+    // DB invisible to the semantic retriever until a manual migrate-v6.
+    try {
+      const { ensureNewRulesEmbedded } = await import("../auto-embed.js");
+      const r = await ensureNewRulesEmbedded(userGlobalDbPath);
+      if (r.embedded > 0) output.write(`✓ 已嵌入 ${r.embedded} 条规则向量\n`);
+    } catch { /* best-effort */ }
   }
 
   store.close();

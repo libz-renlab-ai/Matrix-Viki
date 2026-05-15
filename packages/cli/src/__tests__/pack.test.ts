@@ -63,8 +63,8 @@ describe("pack CLI", () => {
   });
 
   describe("executePackAdd", () => {
-    it("adds 1 rule per pack and reports totals", () => {
-      const r = executePackAdd(["frontend-js", "ops-safety"], {
+    it("adds 1 rule per pack and reports totals", async () => {
+      const r = await executePackAdd(["frontend-js", "ops-safety"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -76,8 +76,8 @@ describe("pack CLI", () => {
       expect(r.failed).toEqual([]);
     });
 
-    it("reports notFound for unknown pack names", () => {
-      const r = executePackAdd(["does-not-exist"], {
+    it("reports notFound for unknown pack names", async () => {
+      const r = await executePackAdd(["does-not-exist"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -86,12 +86,12 @@ describe("pack CLI", () => {
       expect(packAddExitCode(r)).toBe(1);
     });
 
-    it("returns alreadyInstalled on second invocation", () => {
-      executePackAdd(["frontend-js"], {
+    it("returns alreadyInstalled on second invocation", async () => {
+      await executePackAdd(["frontend-js"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
-      const r2 = executePackAdd(["frontend-js"], {
+      const r2 = await executePackAdd(["frontend-js"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -100,8 +100,8 @@ describe("pack CLI", () => {
       expect(packAddExitCode(r2)).toBe(0);
     });
 
-    it("supports the special name 'all'", () => {
-      const r = executePackAdd(["all"], {
+    it("supports the special name 'all'", async () => {
+      const r = await executePackAdd(["all"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -113,8 +113,8 @@ describe("pack CLI", () => {
   });
 
   describe("executePackRemove", () => {
-    it("deletes only entries tagged pack:<name>", () => {
-      executePackAdd(["frontend-js", "ops-safety"], {
+    it("deletes only entries tagged pack:<name>", async () => {
+      await executePackAdd(["frontend-js", "ops-safety"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -153,10 +153,10 @@ describe("pack CLI", () => {
 
   // Regression — Codex review on PR #110 (P2): packaging mismatches must fail loud.
   describe("registry / packaging mismatches (Codex P2 fixes)", () => {
-    it("pack add fails when meta exists but rule jsonl is missing", () => {
+    it("pack add fails when meta exists but rule jsonl is missing", async () => {
       // Remove the rule file but keep the meta — simulates a packaging mismatch.
       fs.unlinkSync(path.join(dirs.packsDir, "frontend-js.jsonl"));
-      const r = executePackAdd(["frontend-js"], {
+      const r = await executePackAdd(["frontend-js"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });
@@ -166,9 +166,9 @@ describe("pack CLI", () => {
       expect(packAddExitCode(r)).toBe(1);
     });
 
-    it("pack list shows orphan pack (rules in store but meta missing)", () => {
+    it("pack list shows orphan pack (rules in store but meta missing)", async () => {
       // Install both, then delete one's meta to make it orphan.
-      executePackAdd(["frontend-js", "ops-safety"], {
+      await executePackAdd(["frontend-js", "ops-safety"], {
         packsDir: dirs.packsDir,
         homeDir: dirs.home,
       });

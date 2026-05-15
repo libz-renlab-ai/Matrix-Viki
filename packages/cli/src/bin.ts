@@ -572,7 +572,7 @@ async function main(): Promise<void> {
         return;
       }
       if (args.sub === "add") {
-        const result = executePackAdd(args.names, {});
+        const result = await executePackAdd(args.names, {});
         process.stdout.write(renderPackAdd(result));
         const code = packAddExitCode(result);
         if (code !== 0) process.exit(code);

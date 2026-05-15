@@ -181,10 +181,10 @@ export function executePackList(opts: PackCommonOptions = {}): PackListResult {
   return { installed, available, packsDir: packsDir ?? null };
 }
 
-export function executePackAdd(
+export async function executePackAdd(
   names: string[],
   opts: PackCommonOptions = {},
-): PackAddResult {
+): Promise<PackAddResult> {
   const packsDir = resolvePacksDir(opts.packsDir);
   const dbPath = resolveUserGlobalDb(opts);
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -233,6 +233,14 @@ export function executePackAdd(
     };
   } finally {
     store.close();
+    // Backfill descriptions + vec0 vectors for any rules that just landed via
+    // store.add() (no embedder wired). Without this, semantic match returns
+    // 0 candidates for pack-added rules forever — exactly the bug we fixed
+    // for init.ts seed loading. See auto-embed.ts for design notes.
+    if (added.some((a) => a.rules > 0)) {
+      const { ensureNewRulesEmbedded } = await import("../auto-embed.js");
+      await ensureNewRulesEmbedded(dbPath);
+    }
   }
 }
 
