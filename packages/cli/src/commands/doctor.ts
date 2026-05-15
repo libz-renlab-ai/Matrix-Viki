@@ -956,21 +956,45 @@ export function checkInstallTableBundles(
   };
 }
 
-export function checkStaticUserSkillsPropagated(home: string): DoctorCheckResult {
+export function checkStaticUserSkillsPropagated(
+  home: string,
+  env: NodeJS.ProcessEnv = process.env,
+): DoctorCheckResult {
+  // Default scope: Claude Code only (project decision: 只做 CC，不做别的平台).
+  // Codex/multi-platform users can opt back in via VIKI_DOCTOR_TARGETS=claude,codex.
+  // (README known-issue #1: doctor was failing exit-1 because it unconditionally
+  // checked codex destinations even when init ran with the default --target=claude.)
+  const raw = (env.VIKI_DOCTOR_TARGETS ?? "claude").trim();
+  const targets = raw
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter((t): t is "claude" | "codex" => t === "claude" || t === "codex");
+
+  if (targets.length === 0) {
+    return {
+      name: "skills-propagated",
+      status: "skip",
+      detail: `VIKI_DOCTOR_TARGETS=${raw} 不包含 claude 或 codex，跳过`,
+    };
+  }
+
   const plan = planStaticUserSkillInstall({
     homeDir: home,
     fileExists: (p) => fs.existsSync(p),
     joinPath: path.join,
+    targets,
   });
-  const expected = plan.length;
-  const present = plan.filter((e) => e.action === "skip-exists").length;
-  const missingEntries = plan.filter((e) => e.action === "create");
+  const applicable = plan.filter((e) => e.action !== "skip-disabled");
+  const expected = applicable.length;
+  const present = applicable.filter((e) => e.action === "skip-exists").length;
+  const missingEntries = applicable.filter((e) => e.action === "create");
 
   if (present === expected) {
+    const targetsLabel = targets.join("+");
     return {
       name: "skills-propagated",
       status: "pass",
-      detail: `static user skills propagated ✓ ${present}/${expected}（${STATIC_USER_SKILLS.length} skills × 2 targets）`,
+      detail: `static user skills propagated ✓ ${present}/${expected}（${STATIC_USER_SKILLS.length} skills × ${targets.length} target [${targetsLabel}]）`,
     };
   }
 
