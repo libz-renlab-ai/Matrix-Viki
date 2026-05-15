@@ -130,7 +130,7 @@ describe("executeDemoHook", () => {
       cwd: tmp.cwd,
       homeDir: tmp.home,
     });
-    expect(out.output).toContain("通过 (无规则命中)");
+    expect(out.output).toContain("通过 (关键词路径无规则命中)");
     expect(out.output).toContain("🟢");
   });
 

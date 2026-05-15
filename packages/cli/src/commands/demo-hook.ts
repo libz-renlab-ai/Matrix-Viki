@@ -51,6 +51,15 @@ function formatWarnMessage(rule: KnowledgeEntry): string {
  *
  * 返回归因式 stdout 文本（人类可读），而不是 hook JSON——便于命令行查看。
  *
+ * 重要范围限定（不要悄悄改）：
+ *   demo-hook 只走**关键词路径**（`@viki/core` 的 matchRules）。它**不**初始化
+ *   embedder daemon、**不**查 vec0 虚表、**不**计算 cosine 相似度。这是为了让
+ *   `viki try` 100% 离线 + 确定性（语义打分依赖 daemon 是否预热完、模型版本、
+ *   网络抖动 → 不适合做 fixture 断言）。生产 PreToolUse hook 走两条路并 merge：
+ *   `bin-pre-tool-use.cjs` 同时跑 keyword + semantic 然后用
+ *   `mergeSemanticAndLegacyMatches` 合并。要真实测语义，把一段 PreToolUse JSON
+ *   piped 到那个 bin（设 `VIKI_HOOK_DEBUG=1` 看 retriever / matcher 调试输出）。
+ *
  * B-066 — IRON LAW: demo-hook 是离线诊断命令，**严禁**写入 events.db、
  * 触发 store.update / hit_count / success_count 增量、或向 attribution
  * bus emit 任何被下游 calibrate 视为真实证据的事件。校准管线靠 events.db
@@ -92,7 +101,8 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       `▸ 工具: ${toolName}`,
       `▸ 输入: ${JSON.stringify(toolInput)}`,
-      "▸ 决策: 通过 (无规则命中)",
+      "▸ 决策: 通过 (关键词路径无规则命中)",
+      "▸ 提示: 此命令只测关键词路径；语义路径只在真实 Claude Code 会话里跑。",
       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "",
     ].join("\n");
