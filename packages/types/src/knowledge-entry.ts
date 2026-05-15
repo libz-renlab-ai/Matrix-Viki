@@ -25,14 +25,32 @@ export type Scope = z.infer<typeof ScopeSchema>;
  * positives observed in chaos-qa-hunter Wave 11/12: short natural-language
  * shell commands (ls / pwd / echo / cd / git fetch / ps aux) embedded near
  * many code-style rules in the multilingual-e5-small space, producing
- * combined scores 0.45–0.79 against unrelated rules. With fire_threshold
- * = 0.65, the matcher now only fires when at least one of triggerSim or
- * patternSim is high (true semantic overlap), not on generic shell-vs-rule
- * cosine drift.
+ * combined scores 0.45–0.79 against unrelated rules. The historical 0.65
+ * was chosen to sit above that noise floor.
  *
- * Individual rules can still override per-rule via `fire_threshold`.
+ * Re-tuning to 0.42 (current): live measurement on the seed pack against
+ * realistic tool inputs (e.g. `npm install moment`) shows soft-AND scores
+ * cluster in 0.40–0.55 even for relevant matches — the multilingual e5-small
+ * model produces narrow score distributions on this domain. With the 0.65
+ * floor, the semantic layer fires zero rules in practice; keyword does all
+ * the work and the entire RAG infrastructure goes unused. 0.42 lets the
+ * top 1–2 semantic matches per query through, recovering recall from
+ * paraphrased / non-literal inputs that keyword can't catch (e.g. an
+ * unfamiliar moment-replacement library name with similar usage shape).
+ *
+ * Trade-off: precision drops on the noisy shell-command class — mitigation
+ * is to set per-rule `fire_threshold` higher on rules whose semantics
+ * collide with shell verbs (the override path is unchanged).
+ *
+ * If false positives reappear in real use, raise back toward 0.50–0.55
+ * BEFORE going to 0.65; document the reproducer in this comment so the
+ * next tuner has the data.
+ *
+ * Existing-DB note: migrate-v6 stamps this value into knowledge.fire_threshold
+ * on every row. After changing the constant, run `viki migrate-v6 --repair-all
+ * --fast` (or re-run `viki init`) so old rows pick up the new threshold.
  */
-export const DEFAULT_FIRE_THRESHOLD = 0.65;
+export const DEFAULT_FIRE_THRESHOLD = 0.42;
 
 /**
  * 支持证据：多少次验证过这条知识有效。
