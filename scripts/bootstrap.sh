@@ -90,6 +90,23 @@ done
 
 cd "$REPO_ROOT"
 
+# ── sharp libvips mirror (defense for unstable github.com TLS) ───────────────
+# @xenova/transformers@2.17.2 hard-pins sharp@0.32.6, whose postinstall
+# downloads a ~10 MB libvips binary from
+#   https://github.com/lovell/sharp-libvips/releases/download/v8.14.5/...
+# That host TLS-disconnects intermittently from networks behind the GFW,
+# making `pnpm install` fail loudly on otherwise-healthy machines. The
+# binary is byte-identical on npmmirror's CDN, which mirrors GitHub
+# release assets reliably for both China and global users.
+# Override: `SHARP_DIST_BASE_URL=... bash scripts/bootstrap.sh` or
+# `unset SHARP_DIST_BASE_URL` to use sharp's default github.com URL.
+: "${SHARP_DIST_BASE_URL:=https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/}"
+export SHARP_DIST_BASE_URL
+printf '[bootstrap] SHARP_DIST_BASE_URL=%s\n' "$SHARP_DIST_BASE_URL"
+
+# Friendly hint if pnpm install fails (most commonly: sharp libvips download).
+trap 'rc=$?; if [ $rc -ne 0 ]; then printf "\n[bootstrap] ❌ failed (exit %d)\n" "$rc" >&2; printf "[bootstrap] If sharp/libvips download was the cause, try:\n" >&2; printf "[bootstrap]   SHARP_DIST_BASE_URL=https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/ bash scripts/bootstrap.sh\n" >&2; printf "[bootstrap] Other common errors documented in INSTALL.md.\n" >&2; fi' EXIT
+
 # ── Step 1: pnpm install ─────────────────────────────────────────────────────
 # Idempotent: pnpm cache + lockfile means re-running is fast (no re-download).
 printf '[bootstrap] [1/3] pnpm install...\n'

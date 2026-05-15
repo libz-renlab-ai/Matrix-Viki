@@ -20,7 +20,7 @@ schema-version: 2
   重启 Claude Code    <-- 完整关窗口重开，hook 在新会话才挂上
       |
       v
-  pnpm viki doctor    <-- 验证；看到 skills-propagated/codex 红 X 但你不用 codex 的话忽略
+  pnpm viki doctor    <-- 验证；全 ✅ 表示 hook + 向量 + skills 都到位
       |
       v
     done — 打开任何项目，AI 犯老错时 Viki 会预警
@@ -41,8 +41,8 @@ schema-version: 2
 | 路径 | 状态 |
 |---|---|
 | `git clone` + 源码构建 | ✅ 可用（本文主路径） |
-| `bash scripts/bootstrap.sh` | ✅ 可用（封装了下面 3 步） |
-| `curl ... release/install.sh \| bash` | ⚠️ 脚本内部仍是 TeamBrain 命名（`teamagent` / `.teamagent/`），未完成 rebrand |
+| `bash scripts/bootstrap.sh` | ✅ 可用（封装了下面 3 步 + 国内 sharp 镜像） |
+| `curl ... release/install.sh \| bash` | ✅ 已 rebrand 到 viki/Matrix-Viki，但 release tarball 尚未发布 |
 | `npm install -g viki` | ❌ 不可用 — npm 上的 `viki@0.0.2` 是第三方同名包，不是 Matrix-Viki |
 
 ---
@@ -173,25 +173,36 @@ viki --version           # 验证全局可用
 npm install -g pnpm@9.15.9    # 锁版本与 package.json:packageManager 一致
 ```
 
-### b) 中国大陆网络 — `pnpm install` 卡死 / `sharp` / `vips` 超时
+### b) 中国大陆网络 — `pnpm install` 卡死在 `sharp` / `libvips` 下载
 
-走镜像源，**只用临时环境变量**，不要动 `~/.npmrc`（污染全局会影响别的项目）：
+`@xenova/transformers@2.17.2` 锁了 `sharp@0.32.6`，其 postinstall 从
+`github.com/lovell/sharp-libvips/releases/...` 下载约 10 MB 的 libvips 二进制。
+GFW 后这个 host 经常 TLS 断开。
+
+**`bootstrap.sh` 已自动处理** —— 它默认设 `SHARP_DIST_BASE_URL` 指向 npmmirror。
+直接 `bash scripts/bootstrap.sh` 就行，不必额外操作。
+
+如果你**手动跑 `pnpm install`**（不走 bootstrap.sh），自己设这个变量：
 
 ```bash
-npm_config_registry=https://registry.npmmirror.com \
-npm_config_sharp_libvips_binary_host=https://npmmirror.com/mirrors/sharp-libvips \
-npm_config_sharp_binary_host=https://npmmirror.com/mirrors/sharp \
-pnpm install
+SHARP_DIST_BASE_URL=https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/ pnpm install
 ```
 
 Windows PowerShell：
 
 ```powershell
-$env:npm_config_registry = 'https://registry.npmmirror.com'
-$env:npm_config_sharp_libvips_binary_host = 'https://npmmirror.com/mirrors/sharp-libvips'
-$env:npm_config_sharp_binary_host = 'https://npmmirror.com/mirrors/sharp'
+$env:SHARP_DIST_BASE_URL = 'https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/'
 pnpm install
-Remove-Item Env:npm_config_registry, Env:npm_config_sharp_libvips_binary_host, Env:npm_config_sharp_binary_host
+Remove-Item Env:SHARP_DIST_BASE_URL
+```
+
+**注意** URL 末尾的 `v8.14.5/` 必须保留 —— sharp@0.32 把版本拼接到 BASE 之后，缺这段会 404。
+
+如果 npm registry 也慢，可以**叠加** registry 镜像：
+```bash
+npm_config_registry=https://registry.npmmirror.com \
+SHARP_DIST_BASE_URL=https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/ \
+pnpm install
 ```
 
 ### c) `pnpm viki init` 报 `Hook bundle not found`
@@ -207,13 +218,37 @@ pnpm viki init
 
 PreToolUse / Stop / SessionStart hook 是在 Claude Code **下次启动**时挂上的。`pnpm viki init` 之后必须**关窗口重开**（不是 `/clear`），hook 才生效。
 
-### e) `viki doctor` 报 `❌ skills-propagated ... missing duck/codex, grill-me/codex`
+### e) Windows pnpm launcher 报 `'pnpm' is not recognized` 但 `pnpm --version` 又似乎正常
 
-已知 cosmetic bug：默认 `--target=claude` 时不该把 codex 变体 skill 缺失算 fail。如果你不用 codex，忽略它（其他检查全绿就 OK）。
+某些环境下 `%LOCALAPPDATA%\pnpm\pnpm.CMD` 内部硬编码了一个不存在的二进制路径
+（`.tools\pnpm-exe\10.x\pnpm` 没 `.exe`）。绕过：用 Node 22 自带的 corepack
+（package.json 的 `packageManager` 字段会让 corepack 自动拉对版本）：
 
-### f) `viki doctor` 显示 `~/.viki` 路径而非 `--home=` 指定的沙盒路径
+```bash
+corepack pnpm install
+corepack pnpm build
+corepack pnpm viki init
+```
 
-已知 bug：doctor 的 `home-dir` / `plugin-sync` 检查没贯彻 `--home=` flag，会读真实 home。如果你在做 CI / judge 隔离测试要绕开。
+或者一劳永逸：把 `%LOCALAPPDATA%\pnpm\pnpm.CMD` 改成
+```
+@echo off
+corepack pnpm %*
+```
+
+### f) `viki doctor` 退出码 1 / 看到红 ❌
+
+按检查项类型决定：
+
+| 检查项 | 含义 | 修法 |
+|---|---|---|
+| `vec-coverage` 失败 | 规则向量没生成 → 语义匹配静默降级到关键词 | `pnpm viki migrate-v6 --repair-all --fast` |
+| `skills-propagated` 失败 | 静态 skill 镜像不全 | `pnpm viki init` |
+| `home-dir` 失败 | `~/.viki/` 不可写 | `chmod u+rw ~/.viki/` |
+| `hook-spawn` 失败 | hook bundle 加载报错 | 看详情；通常 `pnpm build` 重出 dist |
+
+如果用其他 target（比如 codex）：默认 doctor 只检 claude，要把 codex 也算进来：
+`VIKI_DOCTOR_TARGETS=claude,codex pnpm viki doctor`
 
 ---
 
