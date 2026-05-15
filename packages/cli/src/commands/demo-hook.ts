@@ -166,7 +166,27 @@ export function executeDemoHook(opts: DemoHookOptions): DemoHookResult {
 export function parseDemoHookArgs(args: string[]): DemoHookOptions | null {
   if (args.length === 0) return null;
   const toolName = args[0]!;
-  const rest = args.slice(1);
+
+  // README known-issue #3: peel off --cwd= / --home= (and their space-separated
+  // variants) before the key=value slot parser, otherwise they get swallowed as
+  // tool-input slots (key="--cwd", value="path") and demo-hook silently runs
+  // against the real ~/.viki/ instead of the sandbox the caller asked for.
+  let cwd: string | undefined;
+  let homeDir: string | undefined;
+  const rest: string[] = [];
+  const tail = args.slice(1);
+  for (let i = 0; i < tail.length; i++) {
+    const a = tail[i]!;
+    if (a.startsWith("--cwd=")) { cwd = a.slice("--cwd=".length); continue; }
+    if (a.startsWith("--home=")) { homeDir = a.slice("--home=".length); continue; }
+    if (a === "--cwd" && tail[i + 1] !== undefined && !tail[i + 1]!.startsWith("--")) {
+      cwd = tail[++i]; continue;
+    }
+    if (a === "--home" && tail[i + 1] !== undefined && !tail[i + 1]!.startsWith("--")) {
+      homeDir = tail[++i]; continue;
+    }
+    rest.push(a);
+  }
 
   // Form 2: 单个 slot 且以 `{` 开头 `}` 结尾，整体当 JSON 解析为 toolInput
   if (rest.length === 1) {
@@ -176,7 +196,7 @@ export function parseDemoHookArgs(args: string[]): DemoHookOptions | null {
         const parsed = JSON.parse(only);
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
           const toolInput = parsed as Record<string, unknown>;
-          return { toolName, toolInput, tool: toolName, input: toolInput };
+          return { toolName, toolInput, tool: toolName, input: toolInput, cwd, homeDir };
         }
       } catch {
         // JSON parse 失败时 fallthrough 到普通 key=value 解析
@@ -199,5 +219,5 @@ export function parseDemoHookArgs(args: string[]): DemoHookOptions | null {
     }
   }
 
-  return { toolName, toolInput, tool: toolName, input: toolInput };
+  return { toolName, toolInput, tool: toolName, input: toolInput, cwd, homeDir };
 }
