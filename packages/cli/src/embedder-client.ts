@@ -19,11 +19,19 @@ import {
 export interface EmbedderClientOptions {
   /** Override state file path (tests). */
   statePath?: string;
-  /** Per-request timeout in ms. Default 200ms (hook critical path budget). */
+  /** Per-request timeout in ms. Default 1000ms.
+   *  Tuning history on Windows hook process:
+   *    200ms (original) → ~30% NULL-vector failures (cold daemon recovery)
+   *    500ms            → ~20% NULL-vector failures (GC pauses still cross)
+   *    1000ms (current) → 0% in 5-run smoke; preserves headroom for
+   *                       occasional ONNX inference outliers
+   *  Direct daemon probes are 45ms; fresh hook + worst-case daemon idle
+   *  recovery is the long tail this guards. Still well under Claude Code's
+   *  multi-second per-hook budget. */
   timeoutMs?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 200;
+const DEFAULT_TIMEOUT_MS = 1000;
 
 /**
  * Try to embed via the daemon. Returns vectors[] on success, null on any

@@ -57,7 +57,7 @@ export class DaemonFirstEmbedder implements RuleEmbedder {
     this.modelId = opts.modelId ?? DEFAULT_MODEL;
     this.dim = opts.dim ?? DEFAULT_DIM;
     this.statePath = opts.statePath ?? defaultEmbedderStatePath();
-    this.timeoutMs = opts.timeoutMs ?? 200;
+    this.timeoutMs = opts.timeoutMs ?? 1000;
     this.autoSpawn = opts.autoSpawn ?? true;
   }
 
