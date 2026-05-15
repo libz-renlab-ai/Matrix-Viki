@@ -107,20 +107,29 @@ export interface DoctorOptions {
 }
 
 export function parseDoctorArgs(argv: string[]): DoctorOptions {
-  let cwd: string | undefined;
-  for (const arg of argv) {
-    if (arg.startsWith("--cwd=")) { cwd = arg.slice("--cwd=".length); break; }
-  }
-  const cwdIdx = argv.indexOf("--cwd");
-  if (cwdIdx !== -1 && argv[cwdIdx + 1] && !argv[cwdIdx + 1]!.startsWith("--")) {
-    cwd = argv[cwdIdx + 1];
-  }
+  // Parse --cwd= / --cwd <path> and --home= / --home <path>. README known-issue
+  // #2: `--home=` was advertised in `viki doctor --help` but never actually
+  // parsed, so checks like home-dir / plugin-sync / skills-propagated always
+  // read the real ~/.viki/ even when the user wanted to point doctor at a
+  // sandboxed home (CI, integration tests).
+  const parseFlag = (name: string): string | undefined => {
+    const eq = `--${name}=`;
+    for (const arg of argv) {
+      if (arg.startsWith(eq)) return arg.slice(eq.length);
+    }
+    const idx = argv.indexOf(`--${name}`);
+    if (idx !== -1 && argv[idx + 1] && !argv[idx + 1]!.startsWith("--")) {
+      return argv[idx + 1];
+    }
+    return undefined;
+  };
   return {
     fix: argv.includes("--fix"),
     dryRun: argv.includes("--dry-run"),
     json: argv.includes("--json"),
     postinstall: argv.includes("--postinstall"),
-    cwd,
+    cwd: parseFlag("cwd"),
+    homeDir: parseFlag("home"),
   };
 }
 
