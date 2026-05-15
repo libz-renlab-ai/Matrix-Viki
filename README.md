@@ -303,11 +303,13 @@ pnpm smoke:hook  # hook 烟雾测试
 
 | 问题 | 影响 | 状态 |
 |---|---|---|
-| `viki doctor` 报 `❌ skills-propagated ... missing duck/codex` | doctor 退出码 1，新用户误以为装坏 | 待修（默认 target=claude 时不该 fail） |
-| `viki doctor --home=` 没贯彻到所有检查 | `home-dir` / `plugin-sync` 漏到真实 `~/.viki/` | 待修（影响 CI 隔离） |
-| `viki demo hook` 不识别 `--cwd` / `--home` | 这俩 flag 会被当成 slot 输入 | 待修（小 UX bug） |
-| `release/install.sh` 仍是 TeamBrain 命名 | curl\|bash 路径假装是 Matrix-Viki 但内部还是 `teamagent` | 待 rebrand |
-| `.claude/skills/install-walkthrough/SKILL.md` 硬编码 TeamBrain 路径 | install-walkthrough skill 用不了 | 待重写 |
+| ~~`viki doctor` 报 `❌ skills-propagated ... missing duck/codex`~~ | doctor 退出码 1，新用户误以为装坏 | ✅ 已修：默认只检 claude target；要检 codex 用 `VIKI_DOCTOR_TARGETS=claude,codex` |
+| ~~`viki doctor --home=` 没贯彻到所有检查~~ | `home-dir` / `plugin-sync` 漏到真实 `~/.viki/` | ✅ 已修：`parseDoctorArgs` 现在解析 `--home=` |
+| ~~`viki demo hook` 不识别 `--cwd` / `--home`~~ | 这俩 flag 会被当成 slot 输入 | ✅ 已修：parser 在进 key=value 前剥离 |
+| ~~`release/install.sh` 仍是 TeamBrain 命名~~ | curl\|bash 路径内部命名为 `teamagent` | ✅ 已修：39 处 rebrand → viki/Matrix-Viki |
+| ~~`.claude/skills/install-walkthrough/SKILL.md` 硬编码 TeamBrain 路径~~ | install-walkthrough skill 用不了 | ✅ 已修：路径相对化 + repo URL 更新 |
+| **国内网络**：`sharp@0.32.6` postinstall 从 `github.com/lovell/sharp-libvips/releases/...` 下载 libvips TLS 易断 | `pnpm install` 卡住 | 解决方案：`SHARP_DIST_BASE_URL=https://registry.npmmirror.com/-/binary/sharp-libvips/v8.14.5/` |
+| Windows pnpm launcher 损坏（旧版 corepack/pnpm 切换残留） | `pnpm` 命令直接报 "not recognized" | 解决方案：用 `corepack` 直跑（Node 22 自带），见 INSTALL.md |
 
 完整的待办 / 已修问题流见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
@@ -315,10 +317,10 @@ pnpm smoke:hook  # hook 烟雾测试
 
 - ✅ B1 学习引擎核心闭环（识别 → 提取 → 校验 → 校准 → 编译）
 - ✅ Walking Skeleton（M0）跑通
-- 🚧 doctor 隔离 / codex 误报修复
-- 🚧 `release/install.sh` rebrand → 真发布 `viki` 到 npm
-- 📋 跨项目 stack pack 生态
-- 📋 团队模式（从 Matrix-Viki 升回 TeamBrain）
+- ✅ doctor 隔离 / codex 误报修复（5 个 README 已知 bug 全清）
+- ✅ `release/install.sh` rebrand
+- 🚧 真发布 `viki` 到 npm
+- 📋 国内网络一键化（postinstall 自动设 `SHARP_DIST_BASE_URL`）
 
 ---
 
