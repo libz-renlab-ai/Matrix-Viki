@@ -366,6 +366,14 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   // ~/.claude/skills/<name>/SKILL.md and ~/.codex/skills/<name>/SKILL.md.
   checks.push(checkStaticUserSkillsPropagated(home));
 
+  // Check 9c: vector coverage. If active rules exist but their trigger/pattern
+  // vec0 rows don't, semantic matching silently no-ops (returns 0 candidates
+  // every call, leaving keyword as the only working layer). This was the root
+  // cause of "low trigger rate" before init started auto-embedding — see
+  // doAutoEmbedRules in init.ts. Keep this check around to catch (a) older
+  // installs predating that fix, (b) future regressions in the embed pipeline.
+  checks.push(checkVectorCoverage(path.join(home, ".viki", "global.db")));
+
   // Check 10: codex binary presence
   checks.push(checkCodexBin(opts.codexProbe));
 
@@ -1019,6 +1027,58 @@ export function checkStaticUserSkillsPropagated(
     detail: `static user skills propagation incomplete: ${present}/${expected}; missing ${missingShort}${more}`,
     fix: "viki init",
   };
+}
+
+/**
+ * Active rules without vec0 rows mean semantic match returns 0 candidates
+ * and the system silently degrades to keyword-only matching — exactly the
+ * "trigger rate too low" failure mode users hit before init learned to
+ * auto-embed. This check loudly surfaces the gap.
+ *
+ * Status semantics:
+ *   - skip: db missing (no install yet) or query unsupported (vec0 absent)
+ *   - pass: every active rule has both trigger AND pattern vectors
+ *   - fail: at least one active rule is missing one of its vectors;
+ *           recipe is `viki migrate-v6 --repair-all --fast`
+ */
+export function checkVectorCoverage(globalDbPath: string): DoctorCheckResult {
+  const name = "vec-coverage";
+  if (!fs.existsSync(globalDbPath)) {
+    return { name, status: "skip", detail: `${globalDbPath} 不存在（先跑 viki init）` };
+  }
+  let db;
+  try {
+    db = openDb(globalDbPath);
+  } catch (e) {
+    return { name, status: "skip", detail: `打开失败: ${String(e).slice(0, 80)}` };
+  }
+  try {
+    const active = (db.prepare("SELECT COUNT(*) as c FROM knowledge WHERE status='active'").get() as { c: number }).c;
+    if (active === 0) {
+      return { name, status: "skip", detail: "暂无活跃规则" };
+    }
+    const trigVec = (db.prepare("SELECT COUNT(*) as c FROM knowledge_trigger_vec_rowids").get() as { c: number }).c;
+    const patVec = (db.prepare("SELECT COUNT(*) as c FROM knowledge_pattern_vec_rowids").get() as { c: number }).c;
+    const minVec = Math.min(trigVec, patVec);
+    if (minVec >= active) {
+      return {
+        name,
+        status: "pass",
+        detail: `语义向量覆盖完整 (${active} 活跃规则 × trigger+pattern)`,
+      };
+    }
+    const missing = active - minVec;
+    return {
+      name,
+      status: "fail",
+      detail: `${missing}/${active} 条活跃规则缺少向量 (trigger=${trigVec}, pattern=${patVec})；语义匹配静默降级到关键词`,
+      fix: "viki migrate-v6 --repair-all --fast",
+    };
+  } catch (e) {
+    return { name, status: "skip", detail: `vec 表查询失败: ${String(e).slice(0, 80)}` };
+  } finally {
+    try { db.close(); } catch { /* ok */ }
+  }
 }
 
 export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {

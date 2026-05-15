@@ -243,6 +243,17 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
   const importStep = await doImportRules(paths, opts, dryRun, now);
   steps.push(...importStep.steps);
 
+  // After seed/preset/import inject rules, auto-generate vec0 vectors so
+  // semantic matching works out of the box. Previously this required users
+  // to manually run `viki migrate-v6 --repair-all --fast`; the seed jsonl
+  // ships without trigger_description/pattern_description, and store.add()
+  // does not auto-embed → all vec tables stayed empty → semantic match
+  // returned 0 candidates 100% of the time, with the system silently falling
+  // back to keyword-only. Calling executeMigrateV6 here uses the in-process
+  // XenovaRuleEmbedder + fallback (LLM-free) descriptions so init stays
+  // offline-safe and predictable.
+  steps.push(await doAutoEmbedRules(paths.userGlobalDbPath, dryRun, opts.skipWarmup));
+
   if (targetIncludesClaude(target) && !opts.skipHook) {
     steps.push(
       doInstallHook(paths.cwd, opts.hookEntry, dryRun, opts.userLevelHook ?? true),
@@ -911,6 +922,64 @@ function doLoadSeed(
       step: failStep("load-seed", String(err).slice(0, 200)),
       addedCount: 0,
       wouldAddCount: 0,
+    };
+  }
+}
+
+/**
+ * Auto-embed all unembedded rules so semantic matching works on first hook
+ * call. Reuses executeMigrateV6 in fast (LLM-free) mode + repairAll so that
+ * any rule with empty trigger_description gets a fallback description AND a
+ * vec0 row. In-process XenovaRuleEmbedder loads the model once for the batch
+ * (~3-5s on first init, near-instant on re-runs since rows are skipped via
+ * fast path's idempotency).
+ *
+ * Failure modes that result in `skipped` rather than `failed` (we never want
+ * to fail a whole init over embedding):
+ *   - dryRun: no writes anyway
+ *   - skipWarmup: caller explicitly opted out of vector model load
+ *   - vector deps absent on disk (incomplete install / source-only checkout)
+ *   - any unexpected error during embedding
+ *
+ * The doctor `vec-coverage` check covers the missed-embed case for users who
+ * end up here with an empty vec table (e.g. older install upgraded in place).
+ */
+async function doAutoEmbedRules(
+  userGlobalDbPath: string,
+  dryRun: boolean,
+  skipWarmup: boolean | undefined,
+): Promise<InitStepResult> {
+  if (dryRun) {
+    return { step: "auto-embed", status: "skipped", detail: "dry-run" };
+  }
+  if (skipWarmup) {
+    return {
+      step: "auto-embed",
+      status: "skipped",
+      detail: "skipWarmup=true（语义匹配将不可用，需后续跑 viki migrate-v6 --repair-all --fast）",
+    };
+  }
+  if (process.env["NODE_ENV"] === "test" || process.env["VIKI_SKIP_AUTO_EMBED"] === "1") {
+    return { step: "auto-embed", status: "skipped", detail: "test env or VIKI_SKIP_AUTO_EMBED=1" };
+  }
+  try {
+    const { executeMigrateV6 } = await import("./migrate-v6.js");
+    const result = await executeMigrateV6({
+      dryRun: false,
+      dbPath: userGlobalDbPath,
+      fast: true,
+      repairAll: true,
+    });
+    return okStep(
+      "auto-embed",
+      `已嵌入 ${result.migrated} 条规则向量（trigger + pattern；语义匹配开箱可用）`,
+    );
+  } catch (err) {
+    const msg = String(err).slice(0, 160);
+    return {
+      step: "auto-embed",
+      status: "skipped",
+      detail: `跳过自动嵌入: ${msg}（可手动 viki migrate-v6 --repair-all --fast 补回）`,
     };
   }
 }
@@ -1727,7 +1796,7 @@ export function renderInitResult(result: InitResult): string {
   const stepGroups: Array<{ icon: string; label: string; stepKeys: string[] }> = [
     { icon: "🛡️", label: "前置守卫", stepKeys: ["nested-init-guard"] },
     { icon: "🔍", label: "检测项目环境", stepKeys: ["detect-stack"] },
-    { icon: "📦", label: "初始化知识库", stepKeys: ["pre-check", "create-dirs", "load-preset", "load-seed", "scan-rules", "structure-rules"] },
+    { icon: "📦", label: "初始化知识库", stepKeys: ["pre-check", "create-dirs", "load-preset", "load-seed", "auto-embed", "scan-rules", "structure-rules"] },
     { icon: "🔗", label: "注册集成", stepKeys: ["install-hook", "audit-orphan-hooks"] },
     { icon: "🔌", label: "安装团队标配插件", stepKeys: ["install-plugins"] },
     { icon: "📄", label: "导出 Skills", stepKeys: ["compile-skills", STATIC_USER_SKILLS_STEP] },
@@ -1865,6 +1934,7 @@ function stepLabel(step: string): string {
     "create-dirs": "目录创建",
     "load-preset": "预置规则",
     "load-seed": "打包规则",
+    "auto-embed": "向量嵌入",
     "scan-rules": "扫描规则",
     "structure-rules": "导入规则",
     "install-hook": "Hook 注册",
