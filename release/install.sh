@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TeamBrain / teamagent installer
+# Matrix-Viki / viki installer
 # Security constraints: URL-pinned, SHA-256 verified, explicit TLS, two-step, redirect-checked, fallback URL
 
-TEAMAGENT_VERSION="${TEAMAGENT_VERSION:-v0.9.4}"
+VIKI_VERSION="${VIKI_VERSION:-v0.9.4}"
 PRIMARY_BASE="https://raw.githubusercontent.com/libz-renlab-ai/Matrix-Viki/release"
-FALLBACK_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${TEAMAGENT_VERSION}"
-TARBALL_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${TEAMAGENT_VERSION}"
-TARBALL_NAME="teamagent-${TEAMAGENT_VERSION}.tgz"
+FALLBACK_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${VIKI_VERSION}"
+TARBALL_BASE="https://github.com/libz-renlab-ai/Matrix-Viki/releases/download/${VIKI_VERSION}"
+TARBALL_NAME="viki-${VIKI_VERSION}.tgz"
 ARCHIVE_FALLBACK_URL="https://github.com/libz-renlab-ai/Matrix-Viki/archive/refs/heads/release.tar.gz"
 
 SAFE_MODE=1
@@ -28,15 +28,15 @@ for arg in "$@"; do
     --no-run)      DRY_RUN=1 ;;   # alias
     --preview)     PREVIEW_MODE=1 ;;   # issue #155 Q6: print 5-section manifest, exit 0
     --skip-vector-model) SKIP_VECTOR_MODEL=1 ;;  # issue #155 Q5/Q6: opt-out of 120MB vector model load
-    --skip-init)   SKIP_INIT=1 ;;   # issue #155 Q2 escape hatch: don't auto-run teamagent init
+    --skip-init)   SKIP_INIT=1 ;;   # issue #155 Q2 escape hatch: don't auto-run viki init
     --help|-h)
       printf 'usage: install.sh [--safe] [--auto] [--dry-run|--verify|--no-run] [--preview] [--skip-vector-model] [--skip-init]\n'
       printf '  --safe              (default) download, show script, prompt y/N before exec\n'
       printf '  --auto              skip review prompt (equivalent to pipe-to-sh mode)\n'
       printf '  --dry-run           echo plan only, do not install\n'
       printf '  --preview           print 5-section install manifest, exit 0 (no install, no network)\n'
-      printf '  --skip-vector-model opt-out of the 120MB vector model load (writes ~/.teamagent/.skip-vector-model marker)\n'
-      printf '  --skip-init         install binary but do NOT auto-run `teamagent init` (issue #155 Q2 escape hatch)\n'
+      printf '  --skip-vector-model opt-out of the 120MB vector model load (writes ~/.viki/.skip-vector-model marker)\n'
+      printf '  --skip-init         install binary but do NOT auto-run `viki init` (issue #155 Q2 escape hatch)\n'
       exit 0
       ;;
     *) printf 'unknown flag: %s\n' "$arg" >&2; exit 1 ;;
@@ -61,14 +61,14 @@ _print_manifest() {
 # 详见 docs/CONTEXT.md "5-section manifest" 词条 + issue #155 grill Q6 (B 选项).
 
 [config]
-  ~/.teamagent/                 # 用户级配置目录 (~10 KB)
+  ~/.viki/                 # 用户级配置目录 (~10 KB)
   ~/.claude/settings.json       # Claude Code hook 注册项
 
 [skills]
-  ~/.claude/skills/teamagent/   # 项目 skill 文件 (66 个文件)
+  ~/.claude/skills/viki/   # 项目 skill 文件 (66 个文件)
 
 [kb]
-  <project>/.teamagent/         # 项目级 knowledge base (per-project)
+  <project>/.viki/         # 项目级 knowledge base (per-project)
 
 [download]
   vector model                  # ~120 MB; 可用 --skip-vector-model opt-out
@@ -89,7 +89,7 @@ fi
 
 # ── Dry-run gate ─────────────────────────────────────────────────────────────
 if [ "$DRY_RUN" -eq 1 ]; then
-  printf '[dry-run] Would install teamagent %s\n' "$TEAMAGENT_VERSION"
+  printf '[dry-run] Would install viki %s\n' "$VIKI_VERSION"
   printf '[dry-run] install.sh source : %s/install.sh\n' "$PRIMARY_BASE"
   printf '[dry-run] tarball           : %s/%s\n' "$TARBALL_BASE" "$TARBALL_NAME"
   printf '[dry-run] fallback tarball  : %s/%s\n' "$FALLBACK_BASE" "$TARBALL_NAME"
@@ -191,7 +191,7 @@ _verify_sha256() {
 TMPDIR_INSTALL=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_INSTALL"' EXIT
 
-# Step 1: Download install.sh itself + its sha256 (P4 P-01 URL pin: uses TEAMAGENT_VERSION tag)
+# Step 1: Download install.sh itself + its sha256 (P4 P-01 URL pin: uses VIKI_VERSION tag)
 # Note: install.sh lives on the 'release' branch raw URL (spec decision 5 + §G4).
 # The tarball it installs lives under GitHub Releases (P8 Route B + §G4).
 SELF_URL="${PRIMARY_BASE}/install.sh"
@@ -220,7 +220,7 @@ TARBALL_FALLBACK="${FALLBACK_BASE}/${TARBALL_NAME}"
 TARBALL_SHA_PRIMARY="${TARBALL_BASE}/${TARBALL_NAME}.sha256"
 TARBALL_SHA_FALLBACK="${FALLBACK_BASE}/${TARBALL_NAME}.sha256"
 
-printf '[install] Downloading teamagent %s...\n' "$TEAMAGENT_VERSION"
+printf '[install] Downloading viki %s...\n' "$VIKI_VERSION"
 SKIP_TARBALL_SHA=0
 if ! _download_with_fallback "$TARBALL_PRIMARY" "$TARBALL_FALLBACK" "$TMPDIR_INSTALL/$TARBALL_NAME"; then
   printf '[install] tarball download failed; will attempt archive fallback\n' >&2
@@ -272,7 +272,7 @@ if [ "$SAFE_MODE" -eq 1 ] && [ "$AUTO_MODE" -eq 0 ]; then
     printf '[install]   curl -fsSL .../release/install.sh | bash -s -- --auto\n' >&2
     exit 1
   fi
-  printf 'Proceed with installation of teamagent %s? [y/N] ' "$TEAMAGENT_VERSION"
+  printf 'Proceed with installation of viki %s? [y/N] ' "$VIKI_VERSION"
   read -r answer </dev/tty
   case "$answer" in
     [Yy]|[Yy][Ee][Ss]) ;;
@@ -281,16 +281,16 @@ if [ "$SAFE_MODE" -eq 1 ] && [ "$AUTO_MODE" -eq 0 ]; then
 fi
 
 # Step 4: Extract and install
-INSTALL_DIR="${HOME}/.local/lib/teamagent"
+INSTALL_DIR="${HOME}/.local/lib/viki"
 BIN_DIR="${HOME}/.local/bin"
-BACKUP_DIR="${HOME}/.teamagent/backups"
-SETUP_LOG="${HOME}/.teamagent/postinstall.log"
+BACKUP_DIR="${HOME}/.viki/backups"
+SETUP_LOG="${HOME}/.viki/postinstall.log"
 BACKUP_KEEP=3
 
 # ── Issue #158 safety net: snapshot existing install before destructive steps ─
 # Defense-in-depth so a future failure between `mkdir -p` and the final `ln`
 # (or any non-atomic step in `tar -xzf …`) cannot leave the user without a
-# working teamagent. The install.sh-installed surface lives at INSTALL_DIR;
+# working viki. The install.sh-installed surface lives at INSTALL_DIR;
 # the original #158 reproducer (`npm i -g github:…`) bypasses install.sh
 # entirely and is fixed by removing tree-sitter deps from package.json. The
 # spec / tests for this policy live in
@@ -324,16 +324,16 @@ _backup_existing_install() {
     return 0
   fi
   # /review iter-1 hardening: only back up directories that look like a
-  # real teamagent install. ls -A on a freshly-mkdired dir is empty so the
+  # real viki install. ls -A on a freshly-mkdired dir is empty so the
   # original guard already handles "first install" (skip), but on hostile
   # filesystems (network FS with eventual consistency, chroot leaving
   # spurious .nfs* / .smbXXXX files) it returns non-empty. Use dist/bin.js
   # as the canary — that's the file the symlink points at and it must
-  # exist for any teamagent to be functional.
+  # exist for any viki to be functional.
   if [ ! -f "$INSTALL_DIR/dist/bin.js" ]; then
     BACKUP_PATH=""
     _log_setup "stage=backup status=skipped reason=no-dist-bin"
-    printf '[install] no functional teamagent at %s (missing dist/bin.js) — skip backup\n' "$INSTALL_DIR"
+    printf '[install] no functional viki at %s (missing dist/bin.js) — skip backup\n' "$INSTALL_DIR"
     return 0
   fi
   local ts
@@ -389,7 +389,7 @@ _rollback_from_backup() {
     # Use ts shorthand from the filename for the user message.
     local ts
     ts=$(basename "$BACKUP_PATH" .tgz)
-    printf '\n⚠️  teamagent install failed; restored backup from %s\n' "$ts" >&2
+    printf '\n⚠️  viki install failed; restored backup from %s\n' "$ts" >&2
   else
     _log_setup "stage=install status=rollback-failed reason=tar-extract-failed"
     printf '\n[install] WARNING: backup restore failed; backup preserved at: %s\n' "$BACKUP_PATH" >&2
@@ -410,46 +410,46 @@ mkdir -p "$INSTALL_DIR" "$BIN_DIR"
 
 tar -xzf "$TMPDIR_INSTALL/$TARBALL_NAME" -C "$INSTALL_DIR" --strip-components=1
 chmod +x "$INSTALL_DIR/dist/bin.js" 2>/dev/null || true
-ln -sf "$INSTALL_DIR/dist/bin.js" "$BIN_DIR/teamagent"
+ln -sf "$INSTALL_DIR/dist/bin.js" "$BIN_DIR/viki"
 
 # Disarm rollback trap — install completed successfully past the destructive window.
 trap - ERR
 
 # Step 5: PATH hint
-if ! command -v teamagent >/dev/null 2>&1; then
+if ! command -v viki >/dev/null 2>&1; then
   printf '\n[install] Add to PATH:\n'
   printf '  export PATH="%s:$PATH"\n' "$BIN_DIR"
   printf 'Or add the above line to your ~/.zshrc / ~/.bashrc.\n'
 fi
 
-printf '\n[install] teamagent %s installed successfully.\n' "$TEAMAGENT_VERSION"
+printf '\n[install] viki %s installed successfully.\n' "$VIKI_VERSION"
 
 # issue #155 Q5/Q6: write skip-vector-model marker if requested
 if [ "$SKIP_VECTOR_MODEL" -eq 1 ]; then
-  mkdir -p "$HOME/.teamagent"
-  printf 'created by install.sh --skip-vector-model on %s\n' "$(_iso_now_log)" > "$HOME/.teamagent/.skip-vector-model"
-  printf '[install] skip-vector-model marker written to %s/.teamagent/.skip-vector-model\n' "$HOME"
+  mkdir -p "$HOME/.viki"
+  printf 'created by install.sh --skip-vector-model on %s\n' "$(_iso_now_log)" > "$HOME/.viki/.skip-vector-model"
+  printf '[install] skip-vector-model marker written to %s/.viki/.skip-vector-model\n' "$HOME"
   printf '[install] (intent recorded for future use; current daemon does not yet read this marker — see issue #155 follow-up)\n'
 fi
 
-# issue #155 Q2: auto-run `teamagent init` to achieve V1=1 (single-prompt install).
+# issue #155 Q2: auto-run `viki init` to achieve V1=1 (single-prompt install).
 # Skipped on --skip-init (escape hatch for advanced users / CI scenarios where init runs separately).
 if [ "$SKIP_INIT" -eq 1 ]; then
-  printf '[install] --skip-init given; skipping `teamagent init`. Run it manually: teamagent init\n'
+  printf '[install] --skip-init given; skipping `viki init`. Run it manually: viki init\n'
 else
-  printf '\n[install] Running teamagent init (issue #155 V1=1 single-prompt flow)...\n'
+  printf '\n[install] Running viki init (issue #155 V1=1 single-prompt flow)...\n'
   if [ "$SKIP_VECTOR_MODEL" -eq 1 ]; then
-    TEAMAGENT_SKIP_VECTOR_MODEL=1 "$BIN_DIR/teamagent" init || {
-      printf '[install] WARNING: `teamagent init` failed; binary is installed but hooks/skills may not be registered.\n' >&2
-      printf '[install] Re-run manually with: teamagent init\n' >&2
+    VIKI_SKIP_VECTOR_MODEL=1 "$BIN_DIR/viki" init || {
+      printf '[install] WARNING: `viki init` failed; binary is installed but hooks/skills may not be registered.\n' >&2
+      printf '[install] Re-run manually with: viki init\n' >&2
       exit 1
     }
   else
-    "$BIN_DIR/teamagent" init || {
-      printf '[install] WARNING: `teamagent init` failed; binary is installed but hooks/skills may not be registered.\n' >&2
-      printf '[install] Re-run manually with: teamagent init\n' >&2
+    "$BIN_DIR/viki" init || {
+      printf '[install] WARNING: `viki init` failed; binary is installed but hooks/skills may not be registered.\n' >&2
+      printf '[install] Re-run manually with: viki init\n' >&2
       exit 1
     }
   fi
-  printf '[install] teamagent init completed successfully.\n'
+  printf '[install] viki init completed successfully.\n'
 fi
