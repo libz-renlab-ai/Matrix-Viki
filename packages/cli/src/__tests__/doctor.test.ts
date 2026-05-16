@@ -944,4 +944,32 @@ describe("doctor skip-not-fail gates (Bugs 2 + 3)", () => {
       workspace.cleanup();
     }
   });
+
+  it("vec-coverage SKIPs when warmup was explicitly skipped (--skip-warmup opt-out)", () => {
+    // Write a .warmup-state.json with status="skipped" to simulate `viki init --skip-warmup`.
+    const workspace = makeTempWorkspaceSkip();
+    try {
+      const vikiDir = path.join(workspace.homeDir, ".viki");
+      fs.mkdirSync(vikiDir, { recursive: true });
+      const warmupStatePath = path.join(vikiDir, ".warmup-state.json");
+      fs.writeFileSync(
+        warmupStatePath,
+        JSON.stringify({
+          status: "skipped",
+          model: "all-MiniLM-L6-v2",
+          started_at: new Date().toISOString(),
+          pid: 0,
+        }),
+      );
+      const globalDbPath = path.join(workspace.homeDir, ".viki", "global.db");
+      const row = checkVectorCoverage(globalDbPath, workspace.homeDir);
+      expect(row).toBeDefined();
+      expect(row.status).toBe("skip");
+      // Message should mention the skip reason and point at warmup/repair-semantic
+      expect(row.detail).toMatch(/已跳过|skipped|init --skip-warmup/);
+      expect(row.detail).toMatch(/viki warmup|viki repair-semantic/);
+    } finally {
+      workspace.cleanup();
+    }
+  });
 });

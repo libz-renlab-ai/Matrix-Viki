@@ -1056,11 +1056,14 @@ export function checkVectorCoverage(globalDbPath: string, home?: string): Doctor
   // on a fresh install where the user hasn't run warmup yet.
   if (home !== undefined) {
     const r = describeSemanticReadiness(home);
-    if (!r.ready && r.reason === "missing") {
+    if (!r.ready && (r.reason === "missing" || r.reason === "skipped")) {
       return {
         name,
         status: "skip",
-        detail: "warmup 未完成；运行 viki warmup 或 viki repair-semantic",
+        detail:
+          r.reason === "skipped"
+            ? "warmup 已跳过 (init --skip-warmup)；运行 viki warmup 或 viki repair-semantic 恢复语义匹配"
+            : "warmup 未完成；运行 viki warmup 或 viki repair-semantic",
       };
     }
   }
@@ -1113,7 +1116,7 @@ function readEnabledPluginsFromAllSettings(home: string, cwd: string): Record<st
     try {
       if (fs.existsSync(p)) {
         const raw = JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, unknown>;
-        if (raw && typeof raw === "object" && raw["enabledPlugins"] && typeof raw["enabledPlugins"] === "object") {
+        if (raw && typeof raw === "object" && raw["enabledPlugins"] && typeof raw["enabledPlugins"] === "object" && !Array.isArray(raw["enabledPlugins"])) {
           Object.assign(merged, raw["enabledPlugins"] as Record<string, boolean>);
         }
       }
@@ -1132,7 +1135,7 @@ export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {
     return {
       name: "plugin-sync",
       status: "skip",
-      detail: "no plugins enabled (opt-in via viki install-plugins)",
+      detail: "未启用任何 plugin（opt-in：运行 viki install-plugins）",
     };
   }
 
