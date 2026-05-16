@@ -744,9 +744,8 @@ export async function runStopPipeline(
         // errors swallowed).
         const { describeSemanticReadiness } = await import("./warmup-state.js");
         const stopWarmup = describeSemanticReadiness(os.homedir());
-        const useLegacyMatcher =
-          (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy" ||
-          !stopWarmup.ready;
+        const envLegacy = (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy";
+        const useLegacyMatcher = envLegacy || !stopWarmup.ready;
         if (!useLegacyMatcher) {
           try {
             const contextText = lastTurn?.userMessage ?? "";
@@ -877,7 +876,7 @@ export async function runStopPipeline(
           } catch (hnErr) {
             logError(cwd, "hard-negative-accumulation", hnErr);
           }
-        } else {
+        } else if (!stopWarmup.ready) {
           emitWithFallback(
             emit,
             {
@@ -890,6 +889,7 @@ export async function runStopPipeline(
             `Viki: 语义扫描跳过 (${stopWarmup.reason}); 运行 viki repair-semantic\n`,
           );
         }
+        // (env-legacy opt-out: silent — user deliberately disabled semantic, no banner needed)
       }
     }
   } catch (e) {
