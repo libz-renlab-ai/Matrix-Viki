@@ -256,7 +256,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
 
   if (targetIncludesClaude(target) && !opts.skipHook) {
     steps.push(
-      doInstallHook(paths.cwd, opts.hookEntry, dryRun, opts.userLevelHook ?? true),
+      doInstallHook(paths.cwd, opts.hookEntry, dryRun, opts.userLevelHook ?? true, paths.home),
     );
     // B+C scope (2026-05-09): orphan .sh scanner. Surface unreferenced shell
     // hooks as a soft warning so future drift is visible during init. Never
@@ -1173,6 +1173,7 @@ function doInstallHook(
   hookEntry: string | undefined,
   dryRun: boolean,
   userLevel: boolean,
+  homeDir?: string,
 ): InitStepResult {
   if (dryRun) {
     const dest = userLevel
@@ -1185,6 +1186,7 @@ function doInstallHook(
       cwd,
       ...(hookEntry ? { hookEntry } : {}),
       userLevel,
+      ...(homeDir ? { homeDir } : {}),
     });
     const parts: string[] = [];
     parts.push(r.alreadyInstalled ? `已安装 (无变化): ${r.settingsPath}` : `已注册: ${r.settingsPath}`);
