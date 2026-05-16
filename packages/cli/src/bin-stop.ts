@@ -742,10 +742,8 @@ export async function runStopPipeline(
         // Skipped when VIKI_MATCHER=legacy or when the vector model is
         // not yet ready (issue #91 two-stage warmup). Never throws (all
         // errors swallowed).
-        const { describeWarmupReadiness: descRdy, defaultWarmupStatePath: dwsp } = await import(
-          "./warmup-state.js"
-        );
-        const stopWarmup = descRdy(dwsp(os.homedir()));
+        const { describeSemanticReadiness } = await import("./warmup-state.js");
+        const stopWarmup = describeSemanticReadiness(os.homedir());
         const useLegacyMatcher =
           (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy" ||
           !stopWarmup.ready;
