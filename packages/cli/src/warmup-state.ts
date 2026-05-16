@@ -205,6 +205,25 @@ export function readWarmupLastSuccess(filePath: string): WarmupSuccessState | nu
   }
 }
 
+/**
+ * Walk up from `startDir` looking for the nearest ancestor that contains a
+ * `node_modules` directory. Used to record which dependency tree resolved
+ * sharp / xenova during a successful warmup. Returns null if no ancestor
+ * has node_modules (very unusual outside test fixtures).
+ */
+export function resolveNodeModulesRoot(startDir: string): string | null {
+  let cur = path.resolve(startDir);
+  while (true) {
+    const candidate = path.join(cur, "node_modules");
+    try {
+      if (fs.existsSync(candidate)) return cur;
+    } catch { /* ignore */ }
+    const parent = path.dirname(cur);
+    if (parent === cur) return null;
+    cur = parent;
+  }
+}
+
 export function describeSemanticReadiness(homeDir: string = os.homedir()): {
   ready: boolean;
   reason:
