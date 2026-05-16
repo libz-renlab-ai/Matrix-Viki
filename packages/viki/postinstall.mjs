@@ -5,6 +5,12 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import {
+  detectChinaMirror,
+  formatSharpFailureMessage,
+  isWindowsPlatform,
+  NPMMIRROR_SHARP_LIBVIPS,
+} from "./postinstall-helpers.mjs";
 
 /**
  * Issue #164: as of v0.10.x the vector deps (@xenova/transformers +
@@ -379,6 +385,36 @@ async function main() {
       ),
     );
     return;
+  }
+
+  // === Stage 0a: Windows sharp mirror ===
+  // On Windows, sharp's native binary download from github.com/lovell/sharp-libvips
+  // frequently fails on China-network machines. Set SHARP_DIST_BASE_URL to the
+  // npmmirror CDN before any sharp postinstall could re-run, so that a subsequent
+  // `pnpm rebuild sharp` (or `viki repair-semantic`) picks up the mirror automatically.
+  if (isWindowsPlatform(process.platform)) {
+    const mirrorUrl = detectChinaMirror(process.env);
+    if (mirrorUrl) {
+      process.env.SHARP_DIST_BASE_URL = mirrorUrl;
+      process.stderr.write(
+        `[viki postinstall] Set SHARP_DIST_BASE_URL=${mirrorUrl} for Windows mirror.\n`,
+      );
+    }
+  }
+
+  // === Stage 0b: validate sharp native binary ===
+  // Probe require('sharp') and exit non-zero with fix instructions if the native
+  // binary is missing. This catches the silent failure where sharp installs but
+  // sharp-win32-x64.node was not downloaded.
+  try {
+    const req = createRequire(pathToFileURL(path.join(pkgDir, "package.json")).href);
+    req("sharp");
+    process.stderr.write("[viki postinstall] sharp native binary OK.\n");
+  } catch (e) {
+    const msg = formatSharpFailureMessage(e && e.message ? e.message : String(e));
+    process.stderr.write(msg);
+    recordSetupFailure("sharp-validate", e);
+    process.exit(1);
   }
 
   // === Stage 1: doctor + install-user-hook in parallel ===
