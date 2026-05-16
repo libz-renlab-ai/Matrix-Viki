@@ -5,6 +5,9 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import {
+  formatSharpFailureMessage,
+} from "./postinstall-helpers.mjs";
 
 /**
  * Issue #164: as of v0.10.x the vector deps (@xenova/transformers +
@@ -379,6 +382,32 @@ async function main() {
       ),
     );
     return;
+  }
+
+  // === Stage 0b: validate sharp native binary ===
+  // Probe sharp by (a) reading sharp.versions — a getter that forces the native
+  // binding to load — and (b) running a 1×1 pixel pipeline end-to-end.
+  // A plain require("sharp") only loads the JS wrapper; the .node binary is
+  // lazy-loaded on first real operation, so a shallow require() passes even
+  // when the native binary is missing (Fix #1 / code-review iter-2).
+  try {
+    const req = createRequire(pathToFileURL(path.join(pkgDir, "package.json")).href);
+    const sharpMod = req("sharp");
+    const sharpFn = sharpMod.default ?? sharpMod;
+    // Step 1: read .versions — forces binding load.
+    const _versions = sharpFn.versions; // eslint-disable-line no-unused-vars
+    // Step 2: run a 1×1 pipeline — exercises the actual code path consumers use.
+    await sharpFn({
+      create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    })
+      .png()
+      .toBuffer();
+    process.stderr.write("[viki postinstall] sharp native binary OK.\n");
+  } catch (e) {
+    const msg = formatSharpFailureMessage(e && e.message ? e.message : String(e));
+    process.stderr.write(msg);
+    recordSetupFailure("sharp-validate", e);
+    process.exit(1);
   }
 
   // === Stage 1: doctor + install-user-hook in parallel ===

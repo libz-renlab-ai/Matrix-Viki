@@ -742,13 +742,10 @@ export async function runStopPipeline(
         // Skipped when VIKI_MATCHER=legacy or when the vector model is
         // not yet ready (issue #91 two-stage warmup). Never throws (all
         // errors swallowed).
-        const { describeWarmupReadiness: descRdy, defaultWarmupStatePath: dwsp } = await import(
-          "./warmup-state.js"
-        );
-        const stopWarmup = descRdy(dwsp(os.homedir()));
-        const useLegacyMatcher =
-          (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy" ||
-          !stopWarmup.ready;
+        const { describeSemanticReadiness } = await import("./warmup-state.js");
+        const stopWarmup = describeSemanticReadiness(os.homedir());
+        const envLegacy = (process.env.VIKI_MATCHER ?? "").toLowerCase() === "legacy";
+        const useLegacyMatcher = envLegacy || !stopWarmup.ready;
         if (!useLegacyMatcher) {
           try {
             const contextText = lastTurn?.userMessage ?? "";
@@ -879,7 +876,20 @@ export async function runStopPipeline(
           } catch (hnErr) {
             logError(cwd, "hard-negative-accumulation", hnErr);
           }
+        } else if (!stopWarmup.ready) {
+          emitWithFallback(
+            emit,
+            {
+              kind: "hook-stop.semantic-skipped",
+              source: "hook-stop",
+              severity: "info",
+              timestamp: nowIso(),
+              reason: stopWarmup.reason,
+            },
+            `Viki: 语义扫描跳过 (${stopWarmup.reason}); 运行 viki repair-semantic\n`,
+          );
         }
+        // (env-legacy opt-out: silent — user deliberately disabled semantic, no banner needed)
       }
     }
   } catch (e) {

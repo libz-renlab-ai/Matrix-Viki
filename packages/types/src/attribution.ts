@@ -429,6 +429,23 @@ export interface UpdateInstalledEvent extends AttributionEventBase {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// hook-session-start channel —— bin-session-start banner
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface HookSessionStartSemanticBannerEvent extends AttributionEventBase {
+  kind: "hook-session-start.semantic-not-ready";
+  source: "hook-session-start";
+  reason: string;
+  repairCommand: string;
+}
+
+export interface HookStopSemanticSkippedEvent extends AttributionEventBase {
+  kind: "hook-stop.semantic-skipped";
+  source: "hook-stop";
+  reason: string;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // 顶层 union
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -479,7 +496,9 @@ export type AttributionEvent =
   | UpdatePromptShownEvent
   | UpdateSnoozedEvent
   | UpdateNeverSetEvent
-  | UpdateInstalledEvent;
+  | UpdateInstalledEvent
+  | HookSessionStartSemanticBannerEvent
+  | HookStopSemanticSkippedEvent;
 
 /** 所有合法的 kind 字面量集合，便于 runtime 校验/枚举。 */
 export type AttributionEventKind = AttributionEvent["kind"];

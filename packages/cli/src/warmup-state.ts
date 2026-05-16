@@ -165,3 +165,90 @@ export function writeInitialPlaceholder(
     model,
   });
 }
+
+export const WARMUP_LAST_SUCCESS_FILENAME = ".warmup-last-success.json";
+
+export interface WarmupSuccessState extends WarmupState {
+  status: "ready";
+  completed_at: string;
+  /** Absolute path of the cwd that produced this success. */
+  cwd: string;
+  /** Absolute path of the node_modules root that resolved sharp / xenova. */
+  node_modules_root: string;
+}
+
+export function defaultWarmupLastSuccessPath(homeDir: string = os.homedir()): string {
+  return path.join(homeDir, ".viki", WARMUP_LAST_SUCCESS_FILENAME);
+}
+
+export function writeWarmupLastSuccess(filePath: string, state: WarmupSuccessState): void {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmp = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf-8");
+  fs.renameSync(tmp, filePath);
+}
+
+export function readWarmupLastSuccess(filePath: string): WarmupSuccessState | null {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Partial<WarmupSuccessState>;
+    if (
+      parsed.status !== "ready" ||
+      typeof parsed.completed_at !== "string" ||
+      typeof parsed.cwd !== "string" ||
+      typeof parsed.node_modules_root !== "string"
+    ) return null;
+    return parsed as WarmupSuccessState;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Walk up from `startDir` looking for the nearest ancestor that contains a
+ * `node_modules` directory. Used to record which dependency tree resolved
+ * sharp / xenova during a successful warmup. Returns null if no ancestor
+ * has node_modules (very unusual outside test fixtures).
+ */
+export function resolveNodeModulesRoot(startDir: string): string | null {
+  let cur = path.resolve(startDir);
+  while (true) {
+    const candidate = path.join(cur, "node_modules");
+    try {
+      if (fs.existsSync(candidate)) return cur;
+    } catch { /* ignore */ }
+    const parent = path.dirname(cur);
+    if (parent === cur) return null;
+    cur = parent;
+  }
+}
+
+export function describeSemanticReadiness(homeDir: string = os.homedir()): {
+  ready: boolean;
+  reason:
+    | "ready_via_state"
+    | "ready_via_last_success"
+    | "missing"
+    | "downloading"
+    | "failed"
+    | "skipped"
+    | "stale_downloading"
+    | "malformed";
+  state: WarmupState | null;
+  lastSuccess: WarmupSuccessState | null;
+} {
+  const statePath = defaultWarmupStatePath(homeDir);
+  const successPath = defaultWarmupLastSuccessPath(homeDir);
+  const lastSuccess = readWarmupLastSuccess(successPath);
+  const stateRead = describeWarmupReadiness(statePath);
+
+  if (stateRead.ready) {
+    return { ready: true, reason: "ready_via_state", state: stateRead.state, lastSuccess };
+  }
+  if (lastSuccess) {
+    return { ready: true, reason: "ready_via_last_success", state: stateRead.state, lastSuccess };
+  }
+  const nonReadyReason = stateRead.reason as Exclude<typeof stateRead.reason, "ready">;
+  return { ready: false, reason: nonReadyReason, state: stateRead.state, lastSuccess: null };
+}

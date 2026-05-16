@@ -35,7 +35,6 @@ vi.mock("../scan-cursor.js", () => ({
   readSeen: vi.fn(() => new Set<string>()),
   writeSeen: vi.fn(),
 }));
-
 import { executeAnalyze } from "../commands/analyze.js";
 import { executeCalibrate } from "../commands/calibrate.js";
 import { executeCompile } from "../commands/compile.js";
@@ -289,6 +288,7 @@ describe("runStopPipeline", () => {
     expect(combined).not.toContain("✦ Viki");
     stdoutSpy.mockRestore();
   });
+
 });
 
 describe("isDetachedPipelineInvocation (B-068 env-leak resilience)", () => {

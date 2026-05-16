@@ -6,6 +6,9 @@ import { createRequire } from "node:module";
 import { duckifyText } from "@viki/core";
 import {
   writeWarmupState,
+  writeWarmupLastSuccess,
+  defaultWarmupLastSuccessPath,
+  resolveNodeModulesRoot,
   type WarmupState,
 } from "../warmup-state.js";
 
@@ -24,6 +27,12 @@ export interface WarmupOptions {
    * outcome is persisted to this JSON path so other processes can read it.
    */
   stateFilePath?: string;
+  /**
+   * Override the path for the sticky last-success file. Defaults to
+   * `~/.viki/.warmup-last-success.json`. Useful in tests to redirect writes
+   * to a temp dir so real home is not polluted.
+   */
+  lastSuccessFilePath?: string;
   /** Override the model name written to the state file (default e5-small). */
   stateModel?: string;
   /**
@@ -349,14 +358,29 @@ export async function runWarmup(opts: WarmupOptions = {}): Promise<WarmupResult>
     // 进度条最后一行用 \r 留在那；done 事件后换行 + ✅
     if (mode === "tty") stderr("\n");
     stderr(`✅ Viki: 模型预热完成 (${durationMs}ms)\n`);
+    const completedAt = new Date().toISOString();
     tryWriteState({
       status: "ready",
       started_at: startedAtIso,
-      completed_at: new Date().toISOString(),
+      completed_at: completedAt,
       pid: process.pid,
       model: stateModel,
       progress: { ...aggregated },
     });
+    try {
+      const lastSuccessPath = opts.lastSuccessFilePath ?? defaultWarmupLastSuccessPath(os.homedir());
+      writeWarmupLastSuccess(lastSuccessPath, {
+        status: "ready",
+        started_at: startedAtIso,
+        completed_at: completedAt,
+        pid: process.pid,
+        model: stateModel,
+        cwd: process.cwd(),
+        node_modules_root: resolveNodeModulesRoot(process.cwd()) ?? "(unknown)",
+      });
+    } catch {
+      /* best-effort; do not fail the warmup just because the sticky file errored */
+    }
     return { ok: true, durationMs };
   } catch (e) {
     if (mode === "tty") stderr("\n");

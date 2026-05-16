@@ -12,7 +12,7 @@ import path from "node:path";
 import os from "node:os";
 
 import { runWarmup } from "../commands/warmup.js";
-import { readWarmupState } from "../warmup-state.js";
+import { readWarmupState, defaultWarmupLastSuccessPath, readWarmupLastSuccess } from "../warmup-state.js";
 
 function mkTmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "warmup-state-int-"));
@@ -23,11 +23,13 @@ describe("runWarmup writes the state file", () => {
     const tmp = mkTmp();
     try {
       const stateFilePath = path.join(tmp, ".warmup-state.json");
+      const lastSuccessFilePath = defaultWarmupLastSuccessPath(tmp);
       // Fake embedder that resolves quickly.
       const r = await runWarmup({
         embedder: { embed: async () => [[0, 0]] },
         stderr: () => {},
         stateFilePath,
+        lastSuccessFilePath,
         forceProgressMode: "off",
       });
       expect(r.ok).toBe(true);
@@ -37,6 +39,11 @@ describe("runWarmup writes the state file", () => {
       expect(state!.completed_at).toMatch(/^\d{4}-/);
       expect(state!.pid).toBe(process.pid);
       expect(state!.model).toBe("Xenova/multilingual-e5-small");
+      // Dual-write: sticky last-success file must also be written.
+      const ls = readWarmupLastSuccess(lastSuccessFilePath);
+      expect(ls).not.toBeNull();
+      expect(ls?.status).toBe("ready");
+      expect(ls?.cwd).toBeTruthy();
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

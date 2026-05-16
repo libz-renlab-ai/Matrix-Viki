@@ -723,6 +723,59 @@ describe("executeInit", () => {
   });
 });
 
+describe("executeInit — --home redirects user-level hook write to sandbox", () => {
+  it("--home redirects user-level hook write to sandbox (does not touch real ~/.claude/)", async () => {
+    const sandboxHome = nodeFs.mkdtempSync(path.join(os.tmpdir(), "viki-init-home-"));
+    const sandboxCwd = nodeFs.mkdtempSync(path.join(os.tmpdir(), "viki-init-cwd-"));
+
+    // Create a dummy hook entry so installHook does not throw "bundle not found".
+    const dummyHookEntry = path.join(sandboxCwd, "dummy-hook.cjs");
+    nodeFs.writeFileSync(dummyHookEntry, "// dummy hook\n");
+
+    // Snapshot real ~/.claude/settings.json content (if any).
+    const realSettingsPath = path.join(os.homedir(), ".claude", "settings.json");
+    const realSnapshot = nodeFs.existsSync(realSettingsPath)
+      ? nodeFs.readFileSync(realSettingsPath, "utf-8")
+      : null;
+    const realMtimeBefore = nodeFs.existsSync(realSettingsPath)
+      ? nodeFs.statSync(realSettingsPath).mtimeMs
+      : 0;
+
+    try {
+      await executeInit({
+        homeDir: sandboxHome,
+        cwd: sandboxCwd,
+        skipWarmup: true,
+        skipSeed: true,
+        target: "claude",
+        // Provide a dummy hook entry so the bundle-existence check passes.
+        hookEntry: dummyHookEntry,
+        idGen: () => "sandbox-home-test",
+        now: () => new Date("2026-05-16T12:00:00Z"),
+      });
+
+      // 1. Sandbox should have user-level settings written by the viral install.
+      const sandboxSettingsPath = path.join(sandboxHome, ".claude", "settings.json");
+      expect(nodeFs.existsSync(sandboxSettingsPath)).toBe(true);
+      const sandboxSettings = JSON.parse(nodeFs.readFileSync(sandboxSettingsPath, "utf-8"));
+      expect(sandboxSettings.hooks).toBeDefined();
+
+      // 2. Real ~/.claude/settings.json was NOT touched.
+      const realSnapshotAfter = nodeFs.existsSync(realSettingsPath)
+        ? nodeFs.readFileSync(realSettingsPath, "utf-8")
+        : null;
+      expect(realSnapshotAfter).toEqual(realSnapshot);
+      const realMtimeAfter = nodeFs.existsSync(realSettingsPath)
+        ? nodeFs.statSync(realSettingsPath).mtimeMs
+        : 0;
+      expect(realMtimeAfter).toBe(realMtimeBefore);
+    } finally {
+      nodeFs.rmSync(sandboxHome, { recursive: true, force: true });
+      nodeFs.rmSync(sandboxCwd, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("parseInitArgs", () => {
   it("empty → {}", () => {
     expect(parseInitArgs([])).toEqual({});

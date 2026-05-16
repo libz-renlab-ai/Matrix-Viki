@@ -17,6 +17,7 @@ import {
   pathContainsNodeModulesBin,
   checkSettingsJsonScope,
   checkPluginSync,
+  checkVectorCoverage,
   checkCodexBin,
   checkMcpReachability,
   type InstallTableEnumerator,
@@ -388,11 +389,18 @@ describe("checkPluginSync", () => {
     return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
   }
 
+  /** Write a settings.json with at least one enabled plugin so the gate passes. */
+  function writeEnabledPluginSettings(settingsPath: string): void {
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(settingsPath, JSON.stringify({ enabledPlugins: { "some-plugin": true } }));
+  }
+
   it("pass when project .claude/plugins has at least one plugin dir", () => {
     const { dir, cleanup } = makeTmpDir();
     try {
       const pluginsDir = path.join(dir, ".claude", "plugins", "some-plugin");
       fs.mkdirSync(pluginsDir, { recursive: true });
+      writeEnabledPluginSettings(path.join(dir, ".claude", "settings.json"));
       const result = checkPluginSync(dir, path.join(dir, "home"));
       expect(result.status).toBe("pass");
       expect(result.detail).toContain("1");
@@ -404,6 +412,7 @@ describe("checkPluginSync", () => {
     try {
       const pluginsDir = path.join(dir, "home", ".claude", "plugins", "plugin-a");
       fs.mkdirSync(pluginsDir, { recursive: true });
+      writeEnabledPluginSettings(path.join(dir, "home", ".claude", "settings.json"));
       const result = checkPluginSync(path.join(dir, "project"), path.join(dir, "home"));
       expect(result.status).toBe("pass");
       expect(result.detail).toContain("用户级");
@@ -413,6 +422,7 @@ describe("checkPluginSync", () => {
   it("fail when plugins dir does not exist", () => {
     const { dir, cleanup } = makeTmpDir();
     try {
+      writeEnabledPluginSettings(path.join(dir, ".claude", "settings.json"));
       const result = checkPluginSync(dir, path.join(dir, "home"));
       expect(result.status).toBe("fail");
       expect(result.fix).toContain("install-plugins");
@@ -423,6 +433,7 @@ describe("checkPluginSync", () => {
     const { dir, cleanup } = makeTmpDir();
     try {
       fs.mkdirSync(path.join(dir, ".claude", "plugins"), { recursive: true });
+      writeEnabledPluginSettings(path.join(dir, ".claude", "settings.json"));
       const result = checkPluginSync(dir, path.join(dir, "home"));
       expect(result.status).toBe("fail");
       expect(result.detail).toContain("空");
@@ -887,5 +898,78 @@ describe("executeDoctor → install-table-bundles wiring (issue #299)", () => {
     expect(itb).toBeDefined();
     expect(itb?.status).toBe("fail");
     expect(r.allPassed).toBe(false);
+  });
+});
+
+// Bug 2: vec-coverage should SKIP when warmup has never succeeded (not FAIL)
+// Bug 3: plugin-sync should SKIP when no plugins are enabled anywhere (not FAIL)
+describe("doctor skip-not-fail gates (Bugs 2 + 3)", () => {
+  function makeTempWorkspaceSkip(): { cwd: string; homeDir: string; cleanup: () => void } {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "viki-doctor-skip-"));
+    const cwd = path.join(root, "workspace");
+    const homeDir = path.join(root, "home");
+    fs.mkdirSync(cwd, { recursive: true });
+    fs.mkdirSync(homeDir, { recursive: true });
+    return {
+      cwd,
+      homeDir,
+      cleanup: () => fs.rmSync(root, { recursive: true, force: true }),
+    };
+  }
+
+  it("vec-coverage SKIPs when warmup has never succeeded", () => {
+    // Fresh home with NO warmup-state.json and NO warmup-last-success.json.
+    const workspace = makeTempWorkspaceSkip();
+    try {
+      // No warmup state files written — home dir is empty, warmup never ran.
+      const globalDbPath = path.join(workspace.homeDir, ".viki", "global.db");
+      const row = checkVectorCoverage(globalDbPath, workspace.homeDir);
+      expect(row).toBeDefined();
+      expect(row.status).toBe("skip");
+      // Message should point the user at warmup action
+      expect(row.detail).toMatch(/viki warmup|viki repair-semantic/);
+    } finally {
+      workspace.cleanup();
+    }
+  });
+
+  it("plugin-sync SKIPs when no plugins are enabled in any settings.json", async () => {
+    // Fresh state with no enabledPlugins populated anywhere.
+    const workspace = makeTempWorkspaceSkip();
+    try {
+      const result = checkPluginSync(workspace.cwd, workspace.homeDir);
+      expect(result.status).toBe("skip");
+      expect(result.detail).toMatch(/no plugins enabled|install-plugins/);
+    } finally {
+      workspace.cleanup();
+    }
+  });
+
+  it("vec-coverage SKIPs when warmup was explicitly skipped (--skip-warmup opt-out)", () => {
+    // Write a .warmup-state.json with status="skipped" to simulate `viki init --skip-warmup`.
+    const workspace = makeTempWorkspaceSkip();
+    try {
+      const vikiDir = path.join(workspace.homeDir, ".viki");
+      fs.mkdirSync(vikiDir, { recursive: true });
+      const warmupStatePath = path.join(vikiDir, ".warmup-state.json");
+      fs.writeFileSync(
+        warmupStatePath,
+        JSON.stringify({
+          status: "skipped",
+          model: "all-MiniLM-L6-v2",
+          started_at: new Date().toISOString(),
+          pid: 0,
+        }),
+      );
+      const globalDbPath = path.join(workspace.homeDir, ".viki", "global.db");
+      const row = checkVectorCoverage(globalDbPath, workspace.homeDir);
+      expect(row).toBeDefined();
+      expect(row.status).toBe("skip");
+      // Message should mention the skip reason and point at warmup/repair-semantic
+      expect(row.detail).toMatch(/已跳过|skipped|init --skip-warmup/);
+      expect(row.detail).toMatch(/viki warmup|viki repair-semantic/);
+    } finally {
+      workspace.cleanup();
+    }
   });
 });
