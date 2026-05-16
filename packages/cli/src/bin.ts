@@ -101,6 +101,11 @@ import {
   renderFixtureReplayHelp,
   FixtureReplayArgError,
 } from "./commands/fixture-replay.js";
+import {
+  parseRepairSemanticArgs,
+  formatRepairResult,
+  executeRepairSemantic,
+} from "./commands/repair-semantic.js";
 
 function findPackageVersion(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -864,6 +869,12 @@ async function main(): Promise<void> {
       );
       process.exit(1);
       return;
+    }
+    case "repair-semantic": {
+      const opts = parseRepairSemanticArgs(rest);
+      const result = await executeRepairSemantic(opts);
+      process.stdout.write(formatRepairResult(result));
+      process.exit(result.ok ? 0 : 1);
     }
     case undefined: {
       const { runFirstRunWizard } = await import("./commands/first-run.js");
