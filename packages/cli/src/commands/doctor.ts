@@ -15,6 +15,7 @@ import {
   enumerateInstallTableBundlePaths,
   type InstallTableBundleEntry,
 } from "./install-hook.js";
+import { describeSemanticReadiness } from "../warmup-state.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -372,7 +373,9 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
   // cause of "low trigger rate" before init started auto-embedding — see
   // doAutoEmbedRules in init.ts. Keep this check around to catch (a) older
   // installs predating that fix, (b) future regressions in the embed pipeline.
-  checks.push(checkVectorCoverage(path.join(home, ".viki", "global.db")));
+  // Bug 2: pass `home` so the check can gate on warmup readiness and SKIP
+  // instead of FAILing when warmup has never run (new user first run).
+  checks.push(checkVectorCoverage(path.join(home, ".viki", "global.db"), home));
 
   // Check 10: codex binary presence
   checks.push(checkCodexBin(opts.codexProbe));
@@ -1036,13 +1039,32 @@ export function checkStaticUserSkillsPropagated(
  * auto-embed. This check loudly surfaces the gap.
  *
  * Status semantics:
- *   - skip: db missing (no install yet) or query unsupported (vec0 absent)
+ *   - skip: warmup has never run (reason=missing), db missing, or query unsupported
  *   - pass: every active rule has both trigger AND pattern vectors
  *   - fail: at least one active rule is missing one of its vectors;
  *           recipe is `viki migrate-v6 --repair-all --fast`
+ *
+ * Bug 2 gate: if `home` is provided and `describeSemanticReadiness` reports
+ * reason="missing" (warmup has never run at all), return skip with a
+ * user-friendly message rather than a misleading FAIL for new users.
  */
-export function checkVectorCoverage(globalDbPath: string): DoctorCheckResult {
+export function checkVectorCoverage(globalDbPath: string, home?: string): DoctorCheckResult {
   const name = "vec-coverage";
+
+  // Gate: if warmup has never run (no state file AND no last-success), skip
+  // instead of potentially failing with a confusing "missing vectors" message
+  // on a fresh install where the user hasn't run warmup yet.
+  if (home !== undefined) {
+    const r = describeSemanticReadiness(home);
+    if (!r.ready && r.reason === "missing") {
+      return {
+        name,
+        status: "skip",
+        detail: "warmup 未完成；运行 viki warmup 或 viki repair-semantic",
+      };
+    }
+  }
+
   if (!fs.existsSync(globalDbPath)) {
     return { name, status: "skip", detail: `${globalDbPath} 不存在（先跑 viki init）` };
   }
@@ -1081,7 +1103,39 @@ export function checkVectorCoverage(globalDbPath: string): DoctorCheckResult {
   }
 }
 
+function readEnabledPluginsFromAllSettings(home: string, cwd: string): Record<string, boolean> {
+  const merged: Record<string, boolean> = {};
+  for (const p of [
+    path.join(home, ".claude", "settings.json"),
+    path.join(cwd, ".claude", "settings.json"),
+    path.join(cwd, ".claude", "settings.local.json"),
+  ]) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, unknown>;
+        if (raw && typeof raw === "object" && raw["enabledPlugins"] && typeof raw["enabledPlugins"] === "object") {
+          Object.assign(merged, raw["enabledPlugins"] as Record<string, boolean>);
+        }
+      }
+    } catch { /* malformed JSON: treat as no plugins */ }
+  }
+  return merged;
+}
+
 export function checkPluginSync(cwd: string, home: string): DoctorCheckResult {
+  // Bug 3 gate: if no plugins are enabled in any settings.json, SKIP instead
+  // of FAILing. The plugins feature is opt-in; new users should not see a red
+  // ❌ just because they haven't run `viki install-plugins` yet.
+  const enabled = readEnabledPluginsFromAllSettings(home, cwd);
+  const anyEnabled = Object.values(enabled).some((v) => v === true);
+  if (!anyEnabled) {
+    return {
+      name: "plugin-sync",
+      status: "skip",
+      detail: "no plugins enabled (opt-in via viki install-plugins)",
+    };
+  }
+
   const projectPluginsDir = path.join(cwd, ".claude", "plugins");
   const userPluginsDir = path.join(home, ".claude", "plugins");
 
