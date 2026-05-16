@@ -46,6 +46,7 @@
 import os from "node:os";
 import path from "node:path";
 import type { SessionStartHookInput } from "@anthropic-ai/claude-agent-sdk";
+import type { AttributionEvent } from "@viki/types";
 import {
   decideAction,
   spawnAutoInit,
@@ -64,6 +65,33 @@ import { findVikiRoot } from "./lib/walk-up.js";
 import { tryDetachedSpawn } from "./daemon-first-embedder.js";
 import { defaultEmbedderStatePath } from "./embedder-state.js";
 import { postRegister } from "./embedder-client.js";
+import { describeSemanticReadiness } from "./warmup-state.js";
+
+/**
+ * Emit a loud banner if the semantic matcher isn't ready.
+ *
+ * Called during SessionStart so the user sees a soft reminder + repair
+ * command when the vector model hasn't completed warmup. This is soft
+ * enforcement — nothing is denied, rules fall back to keyword matching.
+ *
+ * @param homeDir  The user's home directory (injectable for tests).
+ * @param emit     Callback that receives the attribution event.
+ */
+export function emitSemanticBannerIfDegraded(
+  homeDir: string,
+  emit: (event: AttributionEvent) => void,
+): void {
+  const r = describeSemanticReadiness(homeDir);
+  if (r.ready) return;
+  emit({
+    kind: "hook-session-start.semantic-not-ready",
+    source: "hook-session-start",
+    severity: "warning",
+    timestamp: new Date().toISOString(),
+    reason: r.reason,
+    repairCommand: "viki repair-semantic",
+  });
+}
 
 /**
  * SessionStart accepts a Claude Code SessionStart payload (or empty stdin
@@ -182,6 +210,12 @@ async function main(): Promise<void> {
           `   完全静默: touch ~/.viki/auto-init.disabled`,
         );
       }
+
+      // Task 5: emit semantic-not-ready banner if warmup hasn't completed.
+      // Soft enforcement — rules fall back to keyword matching, nothing is denied.
+      try {
+        emitSemanticBannerIfDegraded(os.homedir(), (e) => ctx.bus.emit(e));
+      } catch (e) { logError("semantic-banner-failed", e); }
 
       // 自动更新：先显示上次更新完成的 banner，再决定是否后台 spawn updater.
       // session-start-logic 的 banner helper 默认写 process.stderr；这里改走
