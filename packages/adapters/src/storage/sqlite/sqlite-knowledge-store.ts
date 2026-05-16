@@ -422,8 +422,8 @@ export class SqliteKnowledgeStore {
     this.db.prepare(sql).run(params as Record<string, any>);
     // Sync FTS5 index (BM25 search). Use DELETE+INSERT because FTS5 virtual tables
     // don't support UPDATE. vec0 requires embedder — deferred to migrate-v6.
-    // TODO(Phase C): after accumulateHardNegative wiring, trigger_vec/pattern_vec
-    // sync should also happen here when embedder_model_id is present.
+    // Note: trigger_vec/pattern_vec syncing on update() is a separate concern
+    // (needs embedder injection into the store), tracked outside Phase C.
     const trigDescr = merged.trigger_description ?? (merged as any).trigger_description;
     const patDescr = merged.pattern_description ?? (merged as any).pattern_description;
     if (trigDescr || patDescr) {

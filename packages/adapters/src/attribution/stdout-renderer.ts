@@ -96,6 +96,8 @@ function describeAction(event: AttributionEvent): string {
       return `pre-hook 命中规则 ${event.ruleId} → ${event.permissionDecision}`;
     case "hook-pre.passed":
       return `pre-hook 通过 (扫描 ${event.ruleCount} 条规则)`;
+    case "hook-stop.hard-negatives-accumulated":
+      return `累积 hard_negative ${event.updated}/${event.scanned}`;
     case "user-prompt.injected":
       return `user-prompt 注入 ${event.injectedIds.length} 条规则`;
     case "user-prompt.flagged":

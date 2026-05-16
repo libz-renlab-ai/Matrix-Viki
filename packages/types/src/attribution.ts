@@ -339,6 +339,13 @@ export interface HookStopSkipConcurrentEvent extends AttributionEventBase {
   otherPid: number;
 }
 
+export interface HookStopHardNegativesAccumulatedEvent extends AttributionEventBase {
+  kind: "hook-stop.hard-negatives-accumulated";
+  source: "hook-stop";
+  scanned: number;
+  updated: number;
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // hook-pre channel —— bin-pre-tool-use（commit 11 会启用）
 // ──────────────────────────────────────────────────────────────────────────
@@ -464,6 +471,7 @@ export type AttributionEvent =
   | HookStopSemanticScanHitEvent
   | HookStopSemanticScanTimeoutEvent
   | HookStopSkipConcurrentEvent
+  | HookStopHardNegativesAccumulatedEvent
   | HookPreMatchedEvent
   | HookPrePassedEvent
   | UserPromptInjectedEvent

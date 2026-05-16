@@ -65,6 +65,7 @@ import { readCursor, writeCursorAndSeen, clearCursor, readSeen } from "./scan-cu
 import { appendHarvest } from "./harvest-writer.js";
 import { makeFallbackLLMClient } from "./llm-with-fallback.js";
 import { runStopNarrativeScan, readLastInjected, lastInjectedFilePath } from "./stop-narrative-scan.js";
+import { accumulateHardNegativesFromEvents } from "./stop-hard-negative-accumulation.js";
 import { rotateIfTooLarge } from "./log-rotate.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
 import type { AdvancedHookOptions } from "./hook-shell/index.js";
@@ -835,6 +836,48 @@ export async function runStopPipeline(
             }
           } catch (semErr) {
             logError(cwd, "semantic-scan", semErr);
+          }
+
+          // Step 6c (Phase C): write-back loop for the calibration cycle.
+          // Read recent override / regression events and feed each to
+          // `accumulateHardNegative` so the matched rule grows a hard_negative
+          // vector. The cosine suppression in semanticMatch then takes effect
+          // on the next call. Gated on the same warmup readiness as Step 6b
+          // because it shares the embedder. Never fails the pipeline.
+          try {
+            const hnStore = new DualLayerStore({
+              projectDbPath,
+              userGlobalDbPath: globalDbPath,
+            });
+            const hnEventsDb = openDb(eventsDbPath);
+            const hnEventLog = new SqliteEventLog(hnEventsDb);
+            try {
+              const res = await accumulateHardNegativesFromEvents({
+                events: hnEventLog,
+                store: hnStore,
+                embedder: getStopEmbedder(),
+                now: new Date(),
+              });
+              if (res.updated > 0) {
+                emitWithFallback(
+                  emit,
+                  {
+                    kind: "hook-stop.hard-negatives-accumulated",
+                    source: "hook-stop",
+                    severity: "info",
+                    timestamp: nowIso(),
+                    scanned: res.scanned,
+                    updated: res.updated,
+                  },
+                  `Viki: 累积 hard_negative ${res.updated}/${res.scanned}\n`,
+                );
+              }
+            } finally {
+              try { hnEventLog.close(); } catch { /* ok */ }
+              try { hnStore.close(); } catch { /* ok */ }
+            }
+          } catch (hnErr) {
+            logError(cwd, "hard-negative-accumulation", hnErr);
           }
         }
       }

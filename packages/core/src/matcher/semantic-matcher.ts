@@ -101,8 +101,7 @@ export async function semanticMatch(args: {
     .sort((a, b) => b.score - a.score);
 }
 
-// TODO(Phase C): wire accumulateHardNegative in bin-stop.ts Step 6c.
-// After Step 6b (semantic scan), read recent ai.override.ignored events from eventsDb,
-// call accumulateHardNegative({ event, store: globalStore, embedder, now }) for each,
-// and update rule hard_negatives via store.update(). This will populate hard_negatives
-// so the cosine suppression above takes effect on subsequent calls.
+// Phase C: hard_negatives are populated by bin-stop Step 6c
+// (packages/cli/src/stop-hard-negative-accumulation.ts), which runs after
+// Step 6b's semantic scan and feeds recent ai.override.ignored events
+// through accumulateHardNegative.
