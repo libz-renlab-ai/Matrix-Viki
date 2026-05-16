@@ -877,6 +877,18 @@ export async function runStopPipeline(
           } catch (hnErr) {
             logError(cwd, "hard-negative-accumulation", hnErr);
           }
+        } else {
+          emitWithFallback(
+            emit,
+            {
+              kind: "hook-stop.semantic-skipped",
+              source: "hook-stop",
+              severity: "info",
+              timestamp: nowIso(),
+              reason: stopWarmup.reason,
+            },
+            `Viki: 语义扫描跳过 (${stopWarmup.reason}); 运行 viki repair-semantic\n`,
+          );
         }
       }
     }

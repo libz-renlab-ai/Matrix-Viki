@@ -113,6 +113,8 @@ function describeAction(event: AttributionEvent): string {
       return `升级完成: ${event.fromVer || "(初装)"} → ${event.toVer} (用时 ${event.durationMs}ms)`;
     case "hook-session-start.semantic-not-ready":
       return `🛑 语义匹配未启动 (${event.reason})；规则保护降级到关键词。修复：${event.repairCommand}`;
+    case "hook-stop.semantic-skipped":
+      return `Stop 跳过语义扫描 (${event.reason})；运行 viki repair-semantic`;
     default: {
       // 编译期 exhaustiveness check：如果 AttributionEvent union 增加新 kind
       // 而这里漏了 case，TS 会在 `_exhaustive: never = event` 这行报错。

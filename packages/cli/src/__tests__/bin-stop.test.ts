@@ -35,11 +35,41 @@ vi.mock("../scan-cursor.js", () => ({
   readSeen: vi.fn(() => new Set<string>()),
   writeSeen: vi.fn(),
 }));
+// Mock warmup-state so semantic-skipped test can control readiness
+// without writing to the real os.homedir()
+vi.mock("../warmup-state.js", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../warmup-state.js")>();
+  return {
+    ...original,
+    describeSemanticReadiness: vi.fn(() => ({ ready: true, reason: "ready_via_state", state: null, lastSuccess: null })),
+  };
+});
+// Mock stop-narrative-scan to avoid SQLite I/O in tests that exercise the narrative-scan step
+vi.mock("../stop-narrative-scan.js", () => ({
+  runStopNarrativeScan: vi.fn(),
+  readLastInjected: vi.fn(() => []),
+  lastInjectedFilePath: vi.fn((dir: string, sid: string) => `${dir}/${sid}.last-injected.json`),
+}));
+// Mock @viki/adapters to avoid SQLite I/O in narrative-scan step
+vi.mock("@viki/adapters", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@viki/adapters")>();
+  const fakeDb = { prepare: vi.fn(() => ({ all: vi.fn(() => []), run: vi.fn() })), close: vi.fn() };
+  const FakeDualLayerStore = vi.fn(() => ({ findActive: vi.fn(() => []), close: vi.fn() }));
+  const FakeSqliteEventLog = vi.fn(() => ({ append: vi.fn(), close: vi.fn() }));
+  return {
+    ...original,
+    openDb: vi.fn(() => fakeDb),
+    DualLayerStore: FakeDualLayerStore,
+    SqliteEventLog: FakeSqliteEventLog,
+    syncRuleVectors: vi.fn(),
+  };
+});
 
 import { executeAnalyze } from "../commands/analyze.js";
 import { executeCalibrate } from "../commands/calibrate.js";
 import { executeCompile } from "../commands/compile.js";
 import { getRecentEntries } from "../commands/recent-entries.js";
+import { describeSemanticReadiness } from "../warmup-state.js";
 
 describe("runStopPipeline", () => {
   // B-070: analyze is now skipped when transcript_path doesn't exist on disk.
@@ -288,6 +318,33 @@ describe("runStopPipeline", () => {
     const combined = stdoutWrites.join("");
     expect(combined).not.toContain("✦ Viki");
     stdoutSpy.mockRestore();
+  });
+
+  it("emits semantic-skipped when warmup state is failed", async () => {
+    // Override describeSemanticReadiness to return not-ready with reason "failed"
+    vi.mocked(describeSemanticReadiness).mockReturnValueOnce({
+      ready: false,
+      reason: "failed",
+      state: null,
+      lastSuccess: null,
+    });
+    // Write a minimal valid transcript so parseSessionFile sees at least one turn
+    // (lastTurn must be defined for the semantic gate branch to be reached).
+    const userLine = JSON.stringify({ type: "user", message: { role: "user", content: "hello" } });
+    const assistantLine = JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "hi" }] } });
+    fs.writeFileSync(transcriptPath, `${userLine}\n${assistantLine}\n`, "utf-8");
+
+    const emitted: any[] = [];
+    const input: StopHookInput = {
+      session_id: "skip-test",
+      transcript_path: transcriptPath,
+      cwd: process.cwd(),
+      hook_event_name: "Stop",
+    };
+    await runStopPipeline(input, { emit: (e: any) => emitted.push(e) });
+    const skipEvent = emitted.find((e) => e.kind === "hook-stop.semantic-skipped");
+    expect(skipEvent).toBeDefined();
+    expect(skipEvent.reason).toBe("failed");
   });
 });
 

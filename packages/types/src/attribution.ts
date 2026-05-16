@@ -439,6 +439,12 @@ export interface HookSessionStartSemanticBannerEvent extends AttributionEventBas
   repairCommand: string;
 }
 
+export interface HookStopSemanticSkippedEvent extends AttributionEventBase {
+  kind: "hook-stop.semantic-skipped";
+  source: "hook-stop";
+  reason: string;
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // 顶层 union
 // ──────────────────────────────────────────────────────────────────────────
@@ -491,7 +497,8 @@ export type AttributionEvent =
   | UpdateSnoozedEvent
   | UpdateNeverSetEvent
   | UpdateInstalledEvent
-  | HookSessionStartSemanticBannerEvent;
+  | HookSessionStartSemanticBannerEvent
+  | HookStopSemanticSkippedEvent;
 
 /** 所有合法的 kind 字面量集合，便于 runtime 校验/枚举。 */
 export type AttributionEventKind = AttributionEvent["kind"];
