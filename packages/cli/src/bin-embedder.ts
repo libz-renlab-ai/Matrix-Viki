@@ -246,6 +246,14 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // could trigger idle-exit while embedder.embed was still running).
   let inFlight = 0;
 
+  // Stage 6: /embed concurrency cap. Caps simultaneous embed calls at 2
+  // (configurable via VIKI_EMBED_CONCURRENCY). Excess requests get 503 +
+  // Retry-After:1 — clients retry once the queue drains. Prevents a burst
+  // of concurrent SessionEnd / PreToolUse hooks from launching N parallel
+  // ONNX inferences and OOMing the daemon.
+  const MAX_EMBED_CONCURRENCY = parseInt(process.env["VIKI_EMBED_CONCURRENCY"] ?? "2", 10) || 2;
+  let activeEmbeds = 0;
+
   // Stage 1: outbox worker. Drains ~/.viki/outbox.jsonl tasks enqueued by
   // hook clients via POST /enqueue (or by hooks appending directly when
   // the daemon is offline). Stage 1 ships with a single test-only "ping"
@@ -253,6 +261,25 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // stop / pre-compact / session-start / updater) here.
   const daemonHome = process.env["VIKI_HOME"] ?? os.homedir();
   const outPaths = outboxPaths(daemonHome);
+  // Stage 6: cold scheduler. A handler whose kind starts with "cold-" only
+  // runs when system load is low (1-minute loadavg < 30% of CPU count on
+  // POSIX; on Windows os.loadavg() returns [0,0,0] so the gate is a no-op
+  // and cold tasks always run there — acceptable since the cold path is
+  // already a low-frequency event).
+  function isSystemIdle(): boolean {
+    try {
+      const cpus = os.cpus().length;
+      if (cpus === 0) return true;
+      const load1 = os.loadavg()[0] ?? 0;
+      // load == 0 on Windows
+      if (load1 === 0) return true;
+      // Heuristic: load < 30% of CPU count
+      return load1 < cpus * 0.3;
+    } catch {
+      return true; // best-effort — never block on observability errors
+    }
+  }
+
   const workerHandlers: Record<string, Handler> = {
     "ping": async () => { /* no-op test seam */ },
     // Stage 2: session-end and pre-compact tasks now run inside the daemon
@@ -303,6 +330,18 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     res.once("close", onDone);
 
     if (req.method === "POST" && req.url === "/embed") {
+      // Stage 6: semaphore. If at capacity, reject with 503 + Retry-After.
+      // Clients (DaemonFirstEmbedder) treat 503 as "daemon unreachable" and
+      // fall back to zero-vector + spawn-detached, which is acceptable for
+      // a burst. Far better than letting N parallel ONNX inferences chew
+      // memory.
+      if (activeEmbeds >= MAX_EMBED_CONCURRENCY) {
+        res.statusCode = 503;
+        res.setHeader("retry-after", "1");
+        res.end(JSON.stringify({ error: "embed concurrency limit" }));
+        return;
+      }
+      activeEmbeds++;
       const chunks: Buffer[] = [];
       req.on("data", (c: Buffer) => chunks.push(c));
       req.on("end", async () => {
@@ -324,9 +363,12 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
         } catch (err) {
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        } finally {
+          activeEmbeds = Math.max(0, activeEmbeds - 1);
         }
       });
       req.on("error", () => {
+        activeEmbeds = Math.max(0, activeEmbeds - 1);
         res.statusCode = 400;
         res.end();
       });
@@ -528,9 +570,31 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // Start the outbox worker AFTER status=running so /enqueue clients can
   // discover us and POST tasks. Worker polls every 1s if no /enqueue
   // notify arrives.
+  //
+  // Stage 6: wrap each handler with the cold-scheduler gate. Kinds with
+  // "cold-" prefix block until isSystemIdle() returns true; non-cold kinds
+  // run immediately. The "cold-" prefix is a convention used by stage-3
+  // logic (cold-full-rescan, cold-cleanup, etc.) and is otherwise free.
+  const gatedHandlers: Record<string, Handler> = {};
+  for (const [kind, handler] of Object.entries(workerHandlers)) {
+    if (kind.startsWith("cold-")) {
+      gatedHandlers[kind] = async (payload) => {
+        // Wait up to 30 min for system to become idle, polling every 30s.
+        // After that, just run (cold-path tasks shouldn't be blocked forever).
+        const deadline = Date.now() + 30 * 60 * 1000;
+        while (Date.now() < deadline && !isSystemIdle()) {
+          await new Promise((r) => setTimeout(r, 30_000));
+        }
+        return handler(payload);
+      };
+    } else {
+      gatedHandlers[kind] = handler;
+    }
+  }
+
   worker = startWorker({
     paths: outPaths,
-    handlers: workerHandlers,
+    handlers: gatedHandlers,
     pollIntervalMs: 1_000,
   });
   process.stderr.write(`[embedder] outbox worker started\n`);
