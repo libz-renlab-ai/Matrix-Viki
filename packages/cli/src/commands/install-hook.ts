@@ -542,6 +542,28 @@ export function applyUserLevelChannelOps(
   } finally {
     releaseSettingsLock(fd, lockPath);
   }
+
+  // 2026-05-17 fix: stage non-hook daemon bundles too. bin-embedder.cjs is
+  // the long-running embedder daemon — it's not registered in settings.json
+  // (no Claude Code hook channel triggers it; the hooks spawn it on-demand
+  // via daemon-first-embedder.ts), but its absence at ~/.viki/hooks/ means
+  // resolveEmbedderBin() walks an empty candidate list and the daemon never
+  // starts. Symptom: PreToolUse hooks fall back to BM25-only retrieval; no
+  // outbox tasks ever drain. Previously bin-embedder.cjs only landed at
+  // ~/.viki/hooks/ for monorepo-dev users who manually copied it; npm-global
+  // users found it via APPDATA candidates that don't always exist.
+  try {
+    const dist = path.join(cliRoot(), "dist");
+    const embedderSrc = path.join(dist, "bin-embedder.cjs");
+    if (fs.existsSync(embedderSrc)) {
+      stageBundleToUserViki(embedderSrc, homeDir);
+    }
+  } catch (err) {
+    process.stderr.write(
+      `viki install-hook: failed to stage bin-embedder.cjs ` +
+        `(${(err as { code?: string; message?: string }).code ?? (err as Error).message ?? err}) — daemon will fall back to BM25-only retrieval\n`,
+    );
+  }
 }
 
 function readSettings(file: string): ClaudeSettings {

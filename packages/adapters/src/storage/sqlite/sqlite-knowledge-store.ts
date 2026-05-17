@@ -118,20 +118,42 @@ function serializeEntry(entry: KnowledgeEntry): Record<string, unknown> {
   };
 }
 
+/**
+ * Defensive JSON parse — used for every JSON-stored column on knowledge rows.
+ * Returns `fallback` on parse failure instead of throwing.
+ *
+ * Why: external tooling (manual `sqlite3` REPL edits, partial migrations,
+ * different sqlite client versions handling embedded quotes differently) can
+ * leave a knowledge row with a malformed JSON literal in scope_paths / tags /
+ * evidence / conflict_with. Before this guard, deserializeRow threw inside
+ * findActive() on the very first malformed row, taking down the entire
+ * PreToolUse hook (`SyntaxError: Unexpected token ... is not valid JSON`).
+ * The whole rule retriever stack — semantic match, BM25, narrative —
+ * stopped working until the row was hand-fixed.
+ */
+function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (raw == null) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function deserializeRow(row: KnowledgeRow): KnowledgeEntry {
   const scope: Scope = {
     level: row.scope_level as Scope["level"],
     ...(row.scope_project != null ? { project: row.scope_project } : {}),
-    ...(row.scope_paths != null ? { paths: JSON.parse(row.scope_paths) } : {}),
-    ...(row.scope_file_types != null ? { file_types: JSON.parse(row.scope_file_types) } : {}),
-    ...(row.scope_branches != null ? { branches: JSON.parse(row.scope_branches) } : {}),
+    ...(row.scope_paths != null ? { paths: safeJsonParse<string[]>(row.scope_paths, []) } : {}),
+    ...(row.scope_file_types != null ? { file_types: safeJsonParse<string[]>(row.scope_file_types, []) } : {}),
+    ...(row.scope_branches != null ? { branches: safeJsonParse<string[]>(row.scope_branches, []) } : {}),
   };
 
   return {
     id: row.id,
     scope,
     category: row.category as KnowledgeEntry["category"],
-    tags: row.tags ? JSON.parse(row.tags) : [],
+    tags: safeJsonParse<string[]>(row.tags, []),
     type: row.type as KnowledgeEntry["type"],
     nature: row.nature as KnowledgeEntry["nature"],
     trigger: row.trigger,
@@ -150,14 +172,15 @@ export function deserializeRow(row: KnowledgeRow): KnowledgeEntry {
     hit_count: row.hit_count,
     success_count: row.success_count,
     override_count: row.override_count,
-    evidence: row.evidence
-      ? JSON.parse(row.evidence)
-      : { success_sessions: 0, success_users: 0, correction_sessions: 0 },
+    evidence: safeJsonParse<KnowledgeEntry["evidence"]>(
+      row.evidence,
+      { success_sessions: 0, success_users: 0, correction_sessions: 0 },
+    ),
     created_at: row.created_at,
     last_hit_at: row.last_hit_at ?? "",
     last_validated_at: row.last_validated_at ?? "",
     source: row.source as KnowledgeEntry["source"],
-    conflict_with: row.conflict_with ? JSON.parse(row.conflict_with) : [],
+    conflict_with: safeJsonParse<string[]>(row.conflict_with, []),
     channel: normalizeChannel(row.channel),
     // v6 semantic matching fields (default-safe for old rows)
     trigger_description: row.trigger_description ?? "",
