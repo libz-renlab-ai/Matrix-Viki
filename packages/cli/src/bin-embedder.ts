@@ -43,7 +43,7 @@ import {
 import { tryAcquireSpawnLock } from "./embedder-spawn-lock.js";
 import { outboxPaths, appendOutboxTask } from "./daemon-outbox.js";
 import { startWorker, type Handler, type WorkerHandle } from "./daemon-worker.js";
-import { runFullRescanPipeline, type StopHookInput } from "./bin-stop.js";
+import { runFullRescanPipeline, runStopPipeline, type StopHookInput } from "./bin-stop.js";
 
 const DEFAULT_IDLE_EXIT_MS = 30 * 60 * 1000; // 30 min — well past typical session
 
@@ -280,36 +280,77 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     }
   }
 
+  // Stage 3: 24h cold-rescan tracking. session-end / pre-compact handlers
+  // run incremental by default (much cheaper than full). Once every 24h
+  // they ALSO enqueue a "cold-full-rescan" task — the cold scheduler from
+  // stage 6 will defer it until the system is idle. This combines the
+  // perf win of incremental with the safety net of periodic full.
+  const COLD_FULL_RESCAN_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const lastFullRescanFile = path.join(daemonHome, ".viki", ".last-full-rescan");
+  function readLastFullRescan(): number {
+    try {
+      const raw = fs.readFileSync(lastFullRescanFile, "utf-8").trim();
+      const t = Date.parse(raw);
+      return Number.isFinite(t) ? t : 0;
+    } catch {
+      return 0;
+    }
+  }
+  function writeLastFullRescan(): void {
+    try {
+      fs.mkdirSync(path.dirname(lastFullRescanFile), { recursive: true });
+      fs.writeFileSync(lastFullRescanFile, new Date().toISOString(), "utf-8");
+    } catch { /* best-effort */ }
+  }
+
+  function normalizePipelineInput(payload: unknown, defaultHook: string): StopHookInput {
+    const input = payload as Record<string, unknown>;
+    if (!input || typeof input.session_id !== "string" || typeof input.cwd !== "string") {
+      throw new Error(`pipeline task: missing session_id or cwd`);
+    }
+    return {
+      session_id: input.session_id,
+      transcript_path: typeof input.transcript_path === "string" ? input.transcript_path : "",
+      cwd: input.cwd,
+      hook_event_name: typeof input.hook_event_name === "string" ? input.hook_event_name : defaultHook,
+    };
+  }
+
   const workerHandlers: Record<string, Handler> = {
     "ping": async () => { /* no-op test seam */ },
-    // Stage 2: session-end and pre-compact tasks now run inside the daemon
-    // instead of in a detached child of the hook. The hook just enqueues
-    // and exits in <50ms; the daemon serially drains the full-rescan
-    // pipeline. Leak class eliminated — hook process never imports ONNX /
-    // sqlite / worker_threads.
+    // Stage 2 + 3: session-end / pre-compact run INCREMENTAL by default
+    // (much cheaper than full rescan). A cold-full-rescan task is enqueued
+    // separately at most once per 24h; the cold scheduler (stage 6) defers
+    // it until the system is idle.
     "session-end": async (payload) => {
-      const input = payload as unknown as StopHookInput;
-      if (!input || typeof input.session_id !== "string" || typeof input.cwd !== "string") {
-        throw new Error("session-end task: missing session_id or cwd");
+      const input = normalizePipelineInput(payload, "SessionEnd");
+      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
+      // 24h cold-full-rescan trigger
+      if (Date.now() - readLastFullRescan() > COLD_FULL_RESCAN_INTERVAL_MS) {
+        appendOutboxTask(outPaths, {
+          kind: "cold-full-rescan",
+          payload: input as unknown as Record<string, unknown>,
+        });
       }
-      await runFullRescanPipeline({
-        session_id: input.session_id,
-        transcript_path: typeof input.transcript_path === "string" ? input.transcript_path : "",
-        cwd: input.cwd,
-        hook_event_name: typeof input.hook_event_name === "string" ? input.hook_event_name : "SessionEnd",
-      });
     },
     "pre-compact": async (payload) => {
-      const input = payload as unknown as StopHookInput;
-      if (!input || typeof input.session_id !== "string" || typeof input.cwd !== "string") {
-        throw new Error("pre-compact task: missing session_id or cwd");
+      const input = normalizePipelineInput(payload, "PreCompact");
+      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
+      if (Date.now() - readLastFullRescan() > COLD_FULL_RESCAN_INTERVAL_MS) {
+        appendOutboxTask(outPaths, {
+          kind: "cold-full-rescan",
+          payload: input as unknown as Record<string, unknown>,
+        });
       }
-      await runFullRescanPipeline({
-        session_id: input.session_id,
-        transcript_path: typeof input.transcript_path === "string" ? input.transcript_path : "",
-        cwd: input.cwd,
-        hook_event_name: typeof input.hook_event_name === "string" ? input.hook_event_name : "PreCompact",
-      });
+    },
+    // Stage 3 cold path: full rescan from a clean cursor. Gated by stage 6's
+    // cold scheduler (only runs when system load < 30%). Once it completes
+    // successfully, writes ~/.viki/.last-full-rescan so the next incremental
+    // run won't re-trigger it for 24h.
+    "cold-full-rescan": async (payload) => {
+      const input = normalizePipelineInput(payload, "ColdFullRescan");
+      await runFullRescanPipeline(input);
+      writeLastFullRescan();
     },
   };
   let worker: WorkerHandle | null = null;
