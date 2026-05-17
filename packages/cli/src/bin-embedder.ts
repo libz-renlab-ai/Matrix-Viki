@@ -174,7 +174,13 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   });
 
   // Step 2: load embedder (the expensive part).
-  let embedder: XenovaRuleEmbedder;
+  // Stage 4: hold embedder in a mutable slot so the model-idle timer can
+  // drop the reference and let GC reclaim the ~500 MB. Next /embed creates
+  // a fresh instance (3-4s cold load); the cost is paid only when the
+  // daemon has been idle for MODEL_IDLE_MS.
+  let embedder: XenovaRuleEmbedder | null;
+  let modelLastUsedAt = Date.now();
+  const MODEL_IDLE_MS = 5 * 60 * 1000; // 5 minutes
   try {
     embedder = new XenovaRuleEmbedder({ modelId: model });
     // Force load by doing one warm-up embed; surfaces failures immediately.
@@ -198,6 +204,36 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // can detect "already running" via the state file (status=starting
   // here, status=running written below in step 3 after server.listen).
   startupLock.release();
+
+  /**
+   * Stage 4: ensure the embedder is loaded; create+warmup if it was unloaded
+   * after idle. Single-flight via in-progress promise.
+   */
+  let embedderLoadInFlight: Promise<void> | null = null;
+  async function ensureEmbedder(): Promise<XenovaRuleEmbedder> {
+    if (embedder) {
+      modelLastUsedAt = Date.now();
+      return embedder;
+    }
+    if (embedderLoadInFlight) {
+      await embedderLoadInFlight;
+      modelLastUsedAt = Date.now();
+      return embedder!;
+    }
+    embedderLoadInFlight = (async () => {
+      process.stderr.write("[embedder] reloading model after idle unload\n");
+      const e = new XenovaRuleEmbedder({ modelId: model });
+      await e.embed(["warmup"]);
+      embedder = e;
+    })();
+    try {
+      await embedderLoadInFlight;
+    } finally {
+      embedderLoadInFlight = null;
+    }
+    modelLastUsedAt = Date.now();
+    return embedder!;
+  }
 
   // Step 3: idle / refcount tracking. Keep timestamps in-process; re-read
   // members from state file before deciding to exit so SessionEnd hooks'
@@ -278,7 +314,10 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
             res.end(JSON.stringify({ error: "texts must be string[]" }));
             return;
           }
-          const vectors = await embedder.embed(texts as string[]);
+          const e = await ensureEmbedder();
+          modelLastUsedAt = Date.now();
+          const vectors = await e.embed(texts as string[]);
+          modelLastUsedAt = Date.now();
           res.statusCode = 200;
           res.setHeader("content-type", "application/json");
           res.end(JSON.stringify({ vectors }));
@@ -495,6 +534,26 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     pollIntervalMs: 1_000,
   });
   process.stderr.write(`[embedder] outbox worker started\n`);
+
+  // Stage 4: model idle unload. Every 60s, if the model has been idle > 5
+  // minutes AND no embed is in flight, drop the reference. Next /embed will
+  // recreate it (3-4s cold load). Daemon process itself remains alive — only
+  // the model frees, dropping RSS from ~500 MB to ~50 MB.
+  const modelIdleTimer = setInterval(() => {
+    if (exiting) return;
+    if (!embedder) return;
+    if (inFlight > 0) return;
+    if (Date.now() - modelLastUsedAt < MODEL_IDLE_MS) return;
+    process.stderr.write("[embedder] model idle > 5min, dropping reference\n");
+    embedder = null;
+    // Hint GC. Best-effort — Node may still hold native ONNX session memory
+    // until the next major GC cycle; the next embedder.embed() will create
+    // a fresh instance regardless.
+    if (typeof globalThis.gc === "function") {
+      try { globalThis.gc(); } catch { /* ignore */ }
+    }
+  }, 60_000);
+  modelIdleTimer.unref();
 
   // Step 5: idle-exit watcher. Re-checks every 30s. If wall-clock since last
   // activity > idleExitMs AND no in-flight requests AND members list empty,
