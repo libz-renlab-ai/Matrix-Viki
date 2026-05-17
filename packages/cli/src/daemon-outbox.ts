@@ -62,20 +62,47 @@ function readCursorBytes(paths: OutboxPaths): number {
 }
 
 /**
+ * Maximum age of an unprocessed outbox task. Anything older is silently
+ * skipped on read (cursor advances past it without invoking the handler).
+ *
+ * Rationale: if the daemon was down for days (or stuck on a poison task that
+ * was eventually cleared), the backlog of Stop/SessionEnd tasks from old
+ * sessions has very low value — those transcripts can still be picked up by
+ * the `viki analyze` CLI on demand. Draining them blocks the queue from
+ * processing recent, more-relevant tasks.
+ *
+ * Default: 24 hours. Override via VIKI_OUTBOX_MAX_AGE_MS (0 to disable).
+ */
+const DEFAULT_OUTBOX_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+function resolveOutboxMaxAgeMs(): number {
+  const v = parseInt(process.env["VIKI_OUTBOX_MAX_AGE_MS"] ?? "", 10);
+  if (Number.isFinite(v) && v >= 0) return v;
+  return DEFAULT_OUTBOX_MAX_AGE_MS;
+}
+
+/**
  * Read the next unprocessed task starting from the cursor's byte offset.
  * Returns null if the outbox has no task past the cursor.
  *
- * Malformed lines are skipped (advancing the returned `nextCursor` past
- * them) — the caller is responsible for persisting the new cursor only
- * after the returned task is successfully processed.
+ * Behaviors:
+ * - Malformed lines are skipped (cursor advances past them).
+ * - Tasks older than VIKI_OUTBOX_MAX_AGE_MS (default 24h) are silently
+ *   skipped — the caller advances the cursor as if they were processed.
+ *   This prevents stale backlog from blocking fresh work.
+ *
+ * The caller is responsible for persisting the new cursor only after the
+ * returned task is successfully processed (or after deciding to skip it
+ * via the failure path).
  */
-export function readNextOutboxTask(paths: OutboxPaths): { task: OutboxTask; nextCursor: number } | null {
+export function readNextOutboxTask(paths: OutboxPaths): { task: OutboxTask; nextCursor: number; skipped?: "stale" } | null {
   let buf: Buffer;
   try {
     buf = fs.readFileSync(paths.outbox);
   } catch {
     return null;
   }
+  const maxAgeMs = resolveOutboxMaxAgeMs();
+  const nowMs = Date.now();
   let cursor = readCursorBytes(paths);
   while (cursor < buf.length) {
     const nlIdx = buf.indexOf(0x0A, cursor);
@@ -88,6 +115,14 @@ export function readNextOutboxTask(paths: OutboxPaths): { task: OutboxTask; next
     try {
       const obj = JSON.parse(line) as OutboxTask;
       if (obj && typeof obj === "object" && obj.v === 1 && typeof obj.kind === "string") {
+        if (maxAgeMs > 0 && typeof obj.enqueued_at === "string") {
+          const enqMs = Date.parse(obj.enqueued_at);
+          if (Number.isFinite(enqMs) && nowMs - enqMs > maxAgeMs) {
+            // Stale task — surface to caller so it can advance the cursor
+            // and emit a diagnostic without invoking the handler.
+            return { task: obj, nextCursor: lineEnd, skipped: "stale" };
+          }
+        }
         return { task: obj, nextCursor: lineEnd };
       }
     } catch {

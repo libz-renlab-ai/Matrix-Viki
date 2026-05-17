@@ -83,6 +83,16 @@ export function persistLastInjected(
  * Internally delegates to scanNarrative by re-tagging the input rules
  * (user-input channel is semantically identical to ai-narrative for
  * scan purposes — both do substring matching on a text blob).
+ *
+ * KNOWN GAP (2026-05-17 audit): the LLM extractor never emits
+ * channel="user-input" — `buildExtractionPrompt` doesn't expose the field,
+ * and `assembleEntry` defaults all auto-extracted rules to "tool-action".
+ * Net effect: `user-prompt.flagged` events have been ~0 since launch.
+ * Fix path is extractor-side (add channel to schema, prompt LLM to pick),
+ * not hook-side. Leaving the filter strict here on purpose — relaxing it
+ * to "any channel" would false-positive flag normal Bash/Edit avoidance
+ * rules (`git push --force`, `as any`, etc.) just because the user
+ * typed them in chat.
  */
 export function scanUserInput(
   userText: string,

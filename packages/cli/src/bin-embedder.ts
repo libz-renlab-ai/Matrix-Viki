@@ -296,6 +296,17 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // stop / pre-compact / session-start / updater) here.
   const daemonHome = process.env["VIKI_HOME"] ?? os.homedir();
   const outPaths = outboxPaths(daemonHome);
+  // Helper: bytes still un-consumed in the outbox. Used by /shutdown to
+  // gate beginExit on a drained queue — otherwise SessionEnd's fire-and-
+  // forget /shutdown would force-exit the daemon mid-extraction of a
+  // multi-MB transcript.
+  function outboxPendingBytes(paths: { outbox: string; cursor: string }): number {
+    let outboxBytes = 0;
+    let cursorBytes = 0;
+    try { outboxBytes = fs.statSync(paths.outbox).size; } catch { /* missing → 0 */ }
+    try { cursorBytes = parseInt(fs.readFileSync(paths.cursor, "utf-8"), 10) || 0; } catch { /* missing → 0 */ }
+    return Math.max(0, outboxBytes - cursorBytes);
+  }
   // Stage 6: cold scheduler. A handler whose kind starts with "cold-" only
   // runs when system load is low (1-minute loadavg < 60% of CPU count on
   // POSIX; on Windows os.loadavg() returns [0,0,0] so the gate is a no-op
@@ -494,12 +505,30 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
         if (s) {
           let body: { session_id?: unknown } = {};
           try { body = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { /* ignore */ }
+          // 2026-05-17 fix: only beginExit on the actual decrement-to-zero
+          // transition. The previous logic — `if (members.length === 0)` —
+          // also fired when members was ALREADY 0 (which happens whenever
+          // a session opened before the daemon existed; SessionEnd then
+          // calls /shutdown without a prior /register having succeeded).
+          // The vacuous-empty case was triggering beginExit on every
+          // session close, and the 5s drain timeout would force-exit
+          // mid-task while the outbox still had work pending.
+          const wasNonEmpty = s.members.length > 0;
           if (typeof body.session_id === "string") {
             s.members = s.members.filter((m) => m.session_id !== body.session_id);
             writeEmbedderState(opts.statePath, s);
           }
-          if (s.members.length === 0) {
-            beginExit(s);
+          if (wasNonEmpty && s.members.length === 0) {
+            // Also gate on outbox drained: if pending work remains, let the
+            // worker finish — idle exit will catch the daemon later. This
+            // prevents a SessionEnd from killing the daemon while a 6 MB
+            // transcript is mid-extraction.
+            const pending = outboxPendingBytes(outPaths);
+            if (pending > 0) {
+              process.stderr.write(`[embedder] /shutdown deferred: outbox has ${pending} pending bytes; letting worker drain\n`);
+            } else {
+              beginExit(s);
+            }
           }
         }
         res.statusCode = 204;

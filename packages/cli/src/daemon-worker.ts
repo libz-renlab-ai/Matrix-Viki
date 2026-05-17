@@ -19,6 +19,14 @@ export interface WorkerOpts {
   maxAttempts?: number;
   /** Hook for diagnostics — called whenever a task fails. */
   onFailure?: (task: OutboxTask, err: unknown) => void;
+  /**
+   * Per-task hard timeout in ms. When a handler runs longer than this, the
+   * timeout promise rejects and the failure path runs (DLQ after maxAttempts).
+   * Default 10 minutes — enough for a typical Stop transcript with LLM calls,
+   * short enough that a stuck task doesn't block the queue indefinitely.
+   * Override via VIKI_WORKER_TASK_TIMEOUT_MS (set to 0 to disable).
+   */
+  taskTimeoutMs?: number;
 }
 
 export interface WorkerHandle {
@@ -28,10 +36,19 @@ export interface WorkerHandle {
 
 const DEFAULT_POLL_MS = 1000;
 const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_TASK_TIMEOUT_MS = 10 * 60 * 1000; // 10 min
+
+function resolveTaskTimeoutMs(opts: WorkerOpts): number {
+  if (opts.taskTimeoutMs !== undefined) return opts.taskTimeoutMs;
+  const env = parseInt(process.env["VIKI_WORKER_TASK_TIMEOUT_MS"] ?? "", 10);
+  if (Number.isFinite(env) && env >= 0) return env;
+  return DEFAULT_TASK_TIMEOUT_MS;
+}
 
 export function startWorker(opts: WorkerOpts): WorkerHandle {
   const pollMs = opts.pollIntervalMs ?? DEFAULT_POLL_MS;
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const taskTimeoutMs = resolveTaskTimeoutMs(opts);
   let running = true;
   let notifyResolve: (() => void) | null = null;
   let currentTask: Promise<void> = Promise.resolve();
@@ -62,7 +79,15 @@ export function startWorker(opts: WorkerOpts): WorkerHandle {
   const processOne = async (): Promise<boolean> => {
     const next = readNextOutboxTask(opts.paths);
     if (!next) return false;
-    const { task, nextCursor } = next;
+    const { task, nextCursor, skipped } = next;
+    // Stale outbox tasks (older than VIKI_OUTBOX_MAX_AGE_MS, default 24h)
+    // are dropped without running the handler. Surface a single diagnostic
+    // line so an operator can correlate cursor jumps to stale-skip activity.
+    if (skipped === "stale") {
+      process.stderr.write(`[worker] skip stale task kind=${task.kind} id=${task.id} enqueued=${task.enqueued_at}\n`);
+      advanceOutboxCursor(opts.paths, nextCursor);
+      return true;
+    }
     const handler = opts.handlers[task.kind];
     if (!handler) {
       moveTaskToDlq(opts.paths, task, "no-handler");
@@ -70,7 +95,14 @@ export function startWorker(opts: WorkerOpts): WorkerHandle {
       return true;
     }
     try {
-      await handler(task.payload);
+      // Wrap handler in a hard timeout so a stuck task (LLM hang, SQLite
+      // deadlock, etc.) can't block the queue. The timer is unref'd so it
+      // doesn't keep the event loop alive after handler resolves.
+      if (taskTimeoutMs > 0) {
+        await runWithTimeout(() => handler(task.payload), taskTimeoutMs);
+      } else {
+        await handler(task.payload);
+      }
       advanceOutboxCursor(opts.paths, nextCursor);
     } catch (err) {
       try { opts.onFailure?.(task, err); } catch { /* ignore */ }
@@ -125,4 +157,32 @@ export function startWorker(opts: WorkerOpts): WorkerHandle {
       await currentTask;
     },
   };
+}
+
+/**
+ * Run `fn()` and reject with a `TaskTimeoutError` if it takes longer than
+ * `ms`. The handler keeps running in the background — we can't cancel a
+ * Promise from outside — but the timeout lets the worker DLQ the task and
+ * move on. A subsequent retry (or different daemon) will start fresh.
+ */
+async function runWithTimeout<T>(fn: () => Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new TaskTimeoutError(ms)), ms);
+    if ((timer as { unref?: () => void }).unref) {
+      (timer as { unref: () => void }).unref();
+    }
+  });
+  try {
+    return await Promise.race([fn(), timeout]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
+export class TaskTimeoutError extends Error {
+  constructor(ms: number) {
+    super(`task handler exceeded ${ms}ms timeout`);
+    this.name = "TaskTimeoutError";
+  }
 }
