@@ -70,6 +70,7 @@ import { rotateIfTooLarge } from "./log-rotate.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
 import type { AdvancedHookOptions } from "./hook-shell/index.js";
 import { findVikiRoot } from "./lib/walk-up.js";
+import { runBinEntry } from "./lib/bin-entry-runner.js";
 
 /**
  * 用户可见进度事件的注入入口。
@@ -1169,21 +1170,34 @@ async function main(): Promise<void> {
 // bin-session-end.cjs / bin-pre-compact.cjs and making their real main()
 // see empty stdin. Check argv[1] to distinguish.
 if (path.basename(process.argv[1] ?? "").startsWith("bin-stop")) {
-  main().catch((e) => {
-    try {
-      // B-085: honor VIKI_HOME (matches logError/vikiHomeDir).
-      const logPath = path.join(vikiHomeDir(), ".viki", "stop-errors.log");
-      // B-093: same rotation policy as logError above.
-      rotateIfTooLarge(logPath);
-      appendFileSync(
-        logPath,
-        `[${new Date().toISOString()}] main-crash err=${String(e)}\n`,
-        "utf-8",
-      );
-    } catch { /* silent */ }
-    // Defensive — runAdvancedHook already does process.exit(0), but if main
-    // throws synchronously before reaching the shell we still want exit 0.
-    process.exit(0); // never block session close
+  runBinEntry(main, {
+    // bin-stop's pipeline is the heaviest of the heavy hooks (12+ steps,
+    // possible LLM calls). Allow up to 245s — slightly above the existing
+    // pipelineTimeoutMs of 240s in this bin's runAdvancedHook escape block.
+    // Watchdog catches "shell itself hangs past pipeline timeout" cases.
+    watchdogMs: 245_000,
+    onWatchdog: () => {
+      try {
+        const logPath = path.join(vikiHomeDir(), ".viki", "stop-errors.log");
+        rotateIfTooLarge(logPath);
+        appendFileSync(
+          logPath,
+          `[${new Date().toISOString()}] watchdog forced exit after 245s, pid=${process.pid}\n`,
+          "utf-8",
+        );
+      } catch { /* silent */ }
+    },
+    onError: (e) => {
+      try {
+        const logPath = path.join(vikiHomeDir(), ".viki", "stop-errors.log");
+        rotateIfTooLarge(logPath);
+        appendFileSync(
+          logPath,
+          `[${new Date().toISOString()}] main-crash err=${String(e)}\n`,
+          "utf-8",
+        );
+      } catch { /* silent */ }
+    },
   });
 }
 

@@ -26,7 +26,7 @@
  * 抛错，main 不需要 .catch。
  */
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -38,6 +38,7 @@ import {
   type StopHookInput,
 } from "./bin-stop.js";
 import { postShutdown } from "./embedder-client.js";
+import { runBinEntry } from "./lib/bin-entry-runner.js";
 
 const SESSION_END_ENV_KEY = "VIKI_SESSION_END_PIPELINE";
 
@@ -136,6 +137,13 @@ async function main(): Promise<void> {
       // runFullRescanPipeline which opens its own resources internally.
       // Either way HookShell shouldn't auto-open DBs in this bin.
       manualResources: true,
+      // First line of defense against the leak documented in
+      // viki-session-end-hook-leak.md: HookShell aborts the pipeline if it
+      // hangs past 12s. The runBinEntry watchdog at 15s is the belt to this
+      // suspenders — covers cases where the shell itself hangs (e.g. a
+      // worker_thread keeping the event loop alive past handler resolution,
+      // or exit hooks that themselves block).
+      pipelineTimeoutMs: 12_000,
       detached: {
         isDetachedInvocation: (env, argv) =>
           isDetachedPipelineInvocation(env, argv, SESSION_END_ENV_KEY),
@@ -160,4 +168,32 @@ async function main(): Promise<void> {
   });
 }
 
-void main();
+runBinEntry(main, {
+  // 15s upper bound on the entire process lifetime. The inner pipeline has
+  // its own 12s timeout (pipelineTimeoutMs above) — 3s slack covers shell
+  // cleanup. Anything beyond that is a hang, not slow progress.
+  watchdogMs: 15_000,
+  onWatchdog: () => {
+    try {
+      const home = process.env["VIKI_HOME"] ?? os.homedir();
+      const logPath = path.join(home, ".viki", "SessionEnd-errors.log");
+      appendFileSync(
+        logPath,
+        `[${new Date().toISOString()}] watchdog forced exit after 15s, pid=${process.pid}, detached=${process.env[SESSION_END_ENV_KEY] === "1"}\n`,
+        "utf-8",
+      );
+    } catch { /* never block exit on log failure */ }
+  },
+  onError: (err) => {
+    try {
+      const home = process.env["VIKI_HOME"] ?? os.homedir();
+      const logPath = path.join(home, ".viki", "SessionEnd-errors.log");
+      const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
+      appendFileSync(
+        logPath,
+        `[${new Date().toISOString()}] main-crash pid=${process.pid} err=${msg}\n`,
+        "utf-8",
+      );
+    } catch { /* never block exit on log failure */ }
+  },
+});

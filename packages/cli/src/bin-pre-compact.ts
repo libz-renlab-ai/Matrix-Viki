@@ -42,6 +42,7 @@ import os from "node:os";
 import path from "node:path";
 import { runFullRescanPipeline, type StopHookInput } from "./bin-stop.js";
 import { runAdvancedHook } from "./hook-shell/index.js";
+import { runBinEntry } from "./lib/bin-entry-runner.js";
 
 function isValidStopHookInput(v: unknown): v is StopHookInput {
   return (
@@ -111,14 +112,32 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((e) => {
-  try {
-    const logPath = path.join(os.homedir(), ".viki", "stop-errors.log");
-    appendFileSync(
-      logPath,
-      `[${new Date().toISOString()}] pre-compact-crash err=${String(e)}\n`,
-      "utf-8",
-    );
-  } catch { /* silent */ }
-  process.exit(0);
+runBinEntry(main, {
+  // Same 15s watchdog as bin-session-end. The detached child path here
+  // bypasses HookShell entirely, so pipelineTimeoutMs cannot help — the
+  // watchdog is the only force-exit guarantee for that path.
+  watchdogMs: 15_000,
+  onWatchdog: () => {
+    try {
+      const home = process.env["VIKI_HOME"] ?? os.homedir();
+      const logPath = path.join(home, ".viki", "PreCompact-errors.log");
+      appendFileSync(
+        logPath,
+        `[${new Date().toISOString()}] watchdog forced exit after 15s, pid=${process.pid}, detached=${process.env["VIKI_PRE_COMPACT_PIPELINE"] === "1"}\n`,
+        "utf-8",
+      );
+    } catch { /* never block exit on log failure */ }
+  },
+  onError: (err) => {
+    try {
+      const home = process.env["VIKI_HOME"] ?? os.homedir();
+      const logPath = path.join(home, ".viki", "PreCompact-errors.log");
+      const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
+      appendFileSync(
+        logPath,
+        `[${new Date().toISOString()}] pre-compact-crash pid=${process.pid} err=${msg}\n`,
+        "utf-8",
+      );
+    } catch { /* never block exit on log failure */ }
+  },
 });
