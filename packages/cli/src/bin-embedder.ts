@@ -26,6 +26,9 @@
  * Cross-platform: pure HTTP + filesystem, no Unix-socket / named-pipe code.
  */
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
 import process from "node:process";
 import {
   XenovaRuleEmbedder,
@@ -38,6 +41,8 @@ import {
   type EmbedderState,
 } from "./embedder-state.js";
 import { tryAcquireSpawnLock } from "./embedder-spawn-lock.js";
+import { outboxPaths, appendOutboxTask } from "./daemon-outbox.js";
+import { startWorker, type Handler, type WorkerHandle } from "./daemon-worker.js";
 
 const DEFAULT_IDLE_EXIT_MS = 30 * 60 * 1000; // 30 min — well past typical session
 
@@ -204,6 +209,18 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   // could trigger idle-exit while embedder.embed was still running).
   let inFlight = 0;
 
+  // Stage 1: outbox worker. Drains ~/.viki/outbox.jsonl tasks enqueued by
+  // hook clients via POST /enqueue (or by hooks appending directly when
+  // the daemon is offline). Stage 1 ships with a single test-only "ping"
+  // handler; stage 2 will register the real task kinds (session-end /
+  // stop / pre-compact / session-start / updater) here.
+  const daemonHome = process.env["VIKI_HOME"] ?? os.homedir();
+  const outPaths = outboxPaths(daemonHome);
+  const workerHandlers: Record<string, Handler> = {
+    "ping": async () => { /* no-op test seam */ },
+  };
+  let worker: WorkerHandle | null = null;
+
   const server = http.createServer((req, res) => {
     if (exiting) {
       res.statusCode = 503;
@@ -316,6 +333,61 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
       return;
     }
 
+    if (req.method === "POST" && req.url === "/enqueue") {
+      const chunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => chunks.push(c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+          if (!body || typeof body !== "object" || typeof body.kind !== "string") {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: "kind required" }));
+            return;
+          }
+          const task = appendOutboxTask(outPaths, {
+            kind: body.kind,
+            payload: typeof body.payload === "object" && body.payload !== null
+              ? (body.payload as Record<string, unknown>)
+              : {},
+          });
+          worker?.notify();
+          res.statusCode = 202;
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ id: task.id, enqueued_at: task.enqueued_at }));
+        } catch (err) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+      req.on("error", () => { res.statusCode = 400; res.end(); });
+      return;
+    }
+
+    if (req.method === "GET" && req.url === "/queue-status") {
+      let outboxBytes = 0;
+      let cursorBytes = 0;
+      try { outboxBytes = fs.statSync(outPaths.outbox).size; } catch { /* ignore */ }
+      try { cursorBytes = parseInt(fs.readFileSync(outPaths.cursor, "utf-8"), 10) || 0; } catch { /* ignore */ }
+      res.statusCode = 200;
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({
+        pending_bytes: Math.max(0, outboxBytes - cursorBytes),
+        outbox_size: outboxBytes,
+        cursor: cursorBytes,
+      }));
+      return;
+    }
+
+    if (req.method === "POST" && req.url === "/drain") {
+      // Wake worker without waiting for completion. Useful for diagnostics
+      // and for hook clients to nudge the daemon after appending tasks
+      // directly to the local outbox.
+      worker?.notify();
+      res.statusCode = 202;
+      res.end();
+      return;
+    }
+
     res.statusCode = 404;
     res.end();
   });
@@ -332,13 +404,16 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     // requests to finish (poll inFlight==0 with hard cap so we don't hang
     // indefinitely on a stuck embed). Newer Node also has closeIdleConnections
     // for keep-alive sockets that aren't actively serving.
-    server.close(() => {
+    server.close(async () => {
       try {
         const final = readEmbedderState(opts.statePath);
         if (final && final.pid === process.pid) {
           writeEmbedderState(opts.statePath, { ...final, status: "exiting" });
         }
       } catch { /* best-effort */ }
+      // Drain the outbox worker (waits for current task to finish).
+      // Best-effort — process.exit below is unconditional.
+      try { if (worker) { await worker.stop(); } } catch { /* ignore */ }
       process.exit(0);
     });
     // Best-effort: free idle keep-alive sockets so server.close fires promptly.
@@ -380,6 +455,16 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     members: [],
   });
   process.stderr.write(`[embedder] ready pid=${process.pid} port=${port}\n`);
+
+  // Start the outbox worker AFTER status=running so /enqueue clients can
+  // discover us and POST tasks. Worker polls every 1s if no /enqueue
+  // notify arrives.
+  worker = startWorker({
+    paths: outPaths,
+    handlers: workerHandlers,
+    pollIntervalMs: 1_000,
+  });
+  process.stderr.write(`[embedder] outbox worker started\n`);
 
   // Step 5: idle-exit watcher. Re-checks every 30s. If wall-clock since last
   // activity > idleExitMs AND no in-flight requests AND members list empty,
