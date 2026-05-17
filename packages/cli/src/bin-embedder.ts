@@ -43,6 +43,7 @@ import {
 import { tryAcquireSpawnLock } from "./embedder-spawn-lock.js";
 import { outboxPaths, appendOutboxTask } from "./daemon-outbox.js";
 import { startWorker, type Handler, type WorkerHandle } from "./daemon-worker.js";
+import { runFullRescanPipeline, type StopHookInput } from "./bin-stop.js";
 
 const DEFAULT_IDLE_EXIT_MS = 30 * 60 * 1000; // 30 min — well past typical session
 
@@ -218,6 +219,35 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   const outPaths = outboxPaths(daemonHome);
   const workerHandlers: Record<string, Handler> = {
     "ping": async () => { /* no-op test seam */ },
+    // Stage 2: session-end and pre-compact tasks now run inside the daemon
+    // instead of in a detached child of the hook. The hook just enqueues
+    // and exits in <50ms; the daemon serially drains the full-rescan
+    // pipeline. Leak class eliminated — hook process never imports ONNX /
+    // sqlite / worker_threads.
+    "session-end": async (payload) => {
+      const input = payload as unknown as StopHookInput;
+      if (!input || typeof input.session_id !== "string" || typeof input.cwd !== "string") {
+        throw new Error("session-end task: missing session_id or cwd");
+      }
+      await runFullRescanPipeline({
+        session_id: input.session_id,
+        transcript_path: typeof input.transcript_path === "string" ? input.transcript_path : "",
+        cwd: input.cwd,
+        hook_event_name: typeof input.hook_event_name === "string" ? input.hook_event_name : "SessionEnd",
+      });
+    },
+    "pre-compact": async (payload) => {
+      const input = payload as unknown as StopHookInput;
+      if (!input || typeof input.session_id !== "string" || typeof input.cwd !== "string") {
+        throw new Error("pre-compact task: missing session_id or cwd");
+      }
+      await runFullRescanPipeline({
+        session_id: input.session_id,
+        transcript_path: typeof input.transcript_path === "string" ? input.transcript_path : "",
+        cwd: input.cwd,
+        hook_event_name: typeof input.hook_event_name === "string" ? input.hook_event_name : "PreCompact",
+      });
+    },
   };
   let worker: WorkerHandle | null = null;
 
