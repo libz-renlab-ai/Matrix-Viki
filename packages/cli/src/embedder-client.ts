@@ -10,11 +10,13 @@
  * fall back". 200ms default timeout keeps the hook critical path bounded.
  */
 import http from "node:http";
+import os from "node:os";
 import {
   defaultEmbedderStatePath,
   describeDaemonReadiness,
   type DaemonReadiness,
 } from "./embedder-state.js";
+import { appendOutboxTask, outboxPaths } from "./daemon-outbox.js";
 
 export interface EmbedderClientOptions {
   /** Override state file path (tests). */
@@ -190,6 +192,99 @@ export async function postShutdown(
       resolve(false);
     });
     req.on("error", () => resolve(false));
+    req.write(body);
+    req.end();
+  });
+}
+
+/**
+ * POST /enqueue — used by thin-client hooks (stage 2) to hand a task to
+ * the daemon's outbox worker. Best-effort: if the daemon is unreachable,
+ * append directly to the local outbox.jsonl so the next daemon to start
+ * will drain it.
+ *
+ * Returns:
+ *   - { ok: true, id, reason: "daemon" }  → daemon accepted (HTTP 202)
+ *   - { ok: true, id, reason: "local" }   → wrote to local outbox; the
+ *                                           next daemon will drain
+ *   - { ok: false, reason }                → both paths failed (very rare)
+ */
+export interface EnqueueResult {
+  ok: boolean;
+  id?: string;
+  reason: "daemon" | "local" | "failed";
+}
+
+export async function enqueueToDaemon(
+  task: { kind: string; payload: Record<string, unknown> },
+  opts: EmbedderClientOptions & { home?: string } = {},
+): Promise<EnqueueResult> {
+  const statePath = opts.statePath ?? defaultEmbedderStatePath();
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const home = opts.home ?? process.env["VIKI_HOME"] ?? os.homedir();
+
+  const readiness = describeDaemonReadiness(statePath);
+  if (readiness.ready && readiness.state) {
+    const id = await postEnqueueOnce(readiness.state.port, task, timeoutMs);
+    if (id) return { ok: true, id, reason: "daemon" };
+  }
+
+  // Daemon unreachable — local outbox fallback. The next daemon to start
+  // will drain (its worker reads ~/.viki/outbox.jsonl from byte 0).
+  try {
+    const paths = outboxPaths(home);
+    const t = appendOutboxTask(paths, task);
+    return { ok: true, id: t.id, reason: "local" };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "failed",
+    };
+  }
+}
+
+function postEnqueueOnce(
+  port: number,
+  task: { kind: string; payload: Record<string, unknown> },
+  timeoutMs: number,
+): Promise<string | null> {
+  const body = JSON.stringify(task);
+  return new Promise<string | null>((resolve) => {
+    const req = http.request(
+      {
+        host: "127.0.0.1",
+        port,
+        path: "/enqueue",
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(body).toString(),
+        },
+      },
+      (res) => {
+        if (res.statusCode !== 202) {
+          res.resume();
+          resolve(null);
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+            resolve(typeof parsed.id === "string" ? parsed.id : null);
+          } catch {
+            resolve(null);
+          }
+        });
+        res.on("error", () => resolve(null));
+      },
+    );
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on("error", () => resolve(null));
     req.write(body);
     req.end();
   });
