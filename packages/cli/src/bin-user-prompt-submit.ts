@@ -117,6 +117,19 @@ async function main(): Promise<void> {
         return undefined;
       }
 
+      // Stage 5: short-input gate. Prompts shorter than 20 trimmed chars are
+      // typically "继续", "嗯", "yes", "ok" — they have no semantic content
+      // for rule retrieval. Skip the entire retriever stack (saves ~50-200ms
+      // and one daemon /embed round-trip per such prompt).
+      // VIKI_PROMPT_MIN_LEN=0 disables this gate; default 20.
+      const minLen = parseInt(ctx.env.VIKI_PROMPT_MIN_LEN ?? "20", 10);
+      if (Number.isFinite(minLen) && minLen > 0) {
+        const trimmedLen = ctx.input.prompt.trim().length;
+        if (trimmedLen < minLen) {
+          return undefined;
+        }
+      }
+
       const { input, cwd, home, env, paths, bus } = ctx;
       const prompt = input.prompt;
       const sessionId = input.session_id ?? "";

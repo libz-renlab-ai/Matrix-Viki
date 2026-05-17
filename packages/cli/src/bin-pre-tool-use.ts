@@ -106,6 +106,27 @@ async function main(): Promise<void> {
       }
       const sdkInput = ctx.input.input;
 
+      // Stage 5: tool whitelist. Only "mutating" tools warrant the full
+      // retriever+matcher round-trip (which loads the embedder via daemon
+      // HTTP, queries vector indexes, etc.). Read-only tools (Read / Glob /
+      // Grep / WebFetch / WebSearch / TodoWrite / TodoRead / etc.) fast-allow.
+      // This is the highest-frequency hook in Claude Code; skipping the
+      // retriever on read-only tools cuts CPU and daemon load by ~60-70%.
+      //
+      // Override via env: VIKI_PRETOOL_ALL=1 forces full path for every tool
+      // (ablation / debugging).
+      const MUTATING_TOOLS = new Set<string>([
+        "Bash",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+      ]);
+      const forceAll = ctx.env.VIKI_PRETOOL_ALL === "1";
+      if (!forceAll && !MUTATING_TOOLS.has(sdkInput.tool_name)) {
+        return { permissionDecision: "allow" };
+      }
+
       // Issue #91: fall back to legacy keyword matcher whenever the vector
       // model isn't ready. This includes:
       //   - first install: state file exists with status="downloading"

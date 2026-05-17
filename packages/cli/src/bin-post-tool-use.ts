@@ -40,6 +40,25 @@ async function main(): Promise<void> {
       if (ctx.env.VIKI_DISABLED === "1") {
         return {};
       }
+
+      // Stage 5: tool whitelist. PostToolUse is observability — we only
+      // record events for state-mutating tools to keep the event log
+      // signal-dense. Read-only tools (Read / Glob / Grep / Web*) generate
+      // huge volumes of low-value events that drown out real signals.
+      // VIKI_POSTTOOL_ALL=1 forces full recording for ablation.
+      const MUTATING_TOOLS = new Set<string>([
+        "Bash",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+      ]);
+      const forceAll = ctx.env.VIKI_POSTTOOL_ALL === "1";
+      const tool = (ctx.input as { tool_name?: string }).tool_name;
+      if (!forceAll && (typeof tool !== "string" || !MUTATING_TOOLS.has(tool))) {
+        return {};
+      }
+
       const handler = createPostToolUseHandler({
         eventLog: ctx.eventLog as unknown as SqliteEventLog,
       });
