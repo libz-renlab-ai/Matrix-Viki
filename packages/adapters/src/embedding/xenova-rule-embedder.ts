@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import type { RuleEmbedder } from "@viki/ports";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -127,7 +128,43 @@ export class XenovaRuleEmbedder implements RuleEmbedder {
     if (mirror) {
       env.remoteHost = mirror;
     }
-    console.error(`Loading rule embedder: ${this.modelId}...`);
+
+    // Canonical model cache location (2026-05-17). Set localModelPath to a
+    // stable, user-home-relative path so the daemon can always find files
+    // regardless of cwd / monorepo / npm-global layout.
+    //   Default: ~/.viki/models/   (override via VIKI_MODELS_DIR)
+    //
+    // After this, transformers looks for files at
+    //   <localModelPath>/<modelId>/tokenizer.json
+    //   <localModelPath>/<modelId>/onnx/model_quantized.onnx
+    // ...and the warmup CLI deposits files at exactly this location.
+    const vikiHome = process.env["VIKI_HOME"]
+      ?? (process.env["HOME"] ?? process.env["USERPROFILE"] ?? "")
+        + "/.viki";
+    const canonicalModelsDir = process.env["VIKI_MODELS_DIR"]
+      ?? path.join(vikiHome, "models");
+    try {
+      (env as { localModelPath?: string }).localModelPath = canonicalModelsDir;
+      (env as { cacheDir?: string }).cacheDir = canonicalModelsDir;
+    } catch { /* env shape may differ across transformers versions */ }
+
+    // Offline mode auto-detect: if model files already exist at the canonical
+    // path, set allowRemoteModels=false to skip the huggingface.co HEAD
+    // request that hangs on slow/blocked networks (issue #189 symptom).
+    // VIKI_EMBEDDER_OFFLINE=1 forces this even if cache check is inconclusive.
+    const offlineExplicit = process.env["VIKI_EMBEDDER_OFFLINE"] === "1";
+    let cacheHit = false;
+    try {
+      const tokPath = path.join(canonicalModelsDir, this.modelId, "tokenizer.json");
+      if (fs.existsSync(tokPath)) {
+        cacheHit = true;
+      }
+    } catch { /* best-effort */ }
+    if (offlineExplicit || cacheHit) {
+      (env as { allowRemoteModels?: boolean }).allowRemoteModels = false;
+    }
+
+    console.error(`Loading rule embedder: ${this.modelId}${(offlineExplicit || cacheHit) ? " (offline)" : ""}...`);
     const pipelineOpts: Record<string, unknown> = {};
     if (this.progressCallback) {
       pipelineOpts.progress_callback = this.progressCallback;
