@@ -43,7 +43,28 @@ import {
 import { tryAcquireSpawnLock } from "./embedder-spawn-lock.js";
 import { outboxPaths, appendOutboxTask } from "./daemon-outbox.js";
 import { startWorker, type Handler, type WorkerHandle } from "./daemon-worker.js";
-import { runFullRescanPipeline, runStopPipeline, type StopHookInput } from "./bin-stop.js";
+// IMPORTANT: do NOT static-import runStopPipeline / runFullRescanPipeline from
+// "./bin-stop.js" — that pulls in sharp / jsdom / sqlite-vec transitively, which
+// makes the daemon REQUIRE these native deps to be reachable just to load.
+// New users (esp. monorepo-dev installs) often don't have these reachable from
+// ~/.viki/hooks/, causing daemon to crash on startup. We lazy-load these
+// inside the worker handlers — daemon stays minimal (only needs
+// onnxruntime-node + transformers). Pipeline work only loads when a task
+// actually needs it; if deps are missing the handler DLQs gracefully.
+import type { StopHookInput } from "./bin-stop.js";
+
+type PipelineLoader = () => Promise<{
+  runStopPipeline: (input: StopHookInput, opts?: { fullRescan?: boolean; modeTag?: "full" | "incremental" }) => Promise<void>;
+  runFullRescanPipeline: (input: StopHookInput) => Promise<void>;
+}>;
+
+const loadPipelineLazy: PipelineLoader = async () => {
+  const m = await import("./bin-stop.js");
+  return {
+    runStopPipeline: m.runStopPipeline,
+    runFullRescanPipeline: m.runFullRescanPipeline,
+  };
+};
 
 const DEFAULT_IDLE_EXIT_MS = 30 * 60 * 1000; // 30 min — well past typical session
 
@@ -339,8 +360,8 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
     // it until the system is idle.
     "session-end": async (payload) => {
       const input = normalizePipelineInput(payload, "SessionEnd");
-      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
-      // 24h cold-full-rescan trigger
+      const pl = await loadPipelineLazy();
+      await pl.runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
       if (Date.now() - readLastFullRescan() > COLD_FULL_RESCAN_INTERVAL_MS) {
         appendOutboxTask(outPaths, {
           kind: "cold-full-rescan",
@@ -348,16 +369,15 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
         });
       }
     },
-    // Stage 2 finish: "stop" kind. bin-stop's foreground handler enqueues
-    // this instead of running runStopPipeline inline (or spawning a
-    // detached child). The daemon runs the pipeline serially.
     "stop": async (payload) => {
       const input = normalizePipelineInput(payload, "Stop");
-      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
+      const pl = await loadPipelineLazy();
+      await pl.runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
     },
     "pre-compact": async (payload) => {
       const input = normalizePipelineInput(payload, "PreCompact");
-      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
+      const pl = await loadPipelineLazy();
+      await pl.runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
       if (Date.now() - readLastFullRescan() > COLD_FULL_RESCAN_INTERVAL_MS) {
         appendOutboxTask(outPaths, {
           kind: "cold-full-rescan",
@@ -365,13 +385,10 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
         });
       }
     },
-    // Stage 3 cold path: full rescan from a clean cursor. Gated by stage 6's
-    // cold scheduler (only runs when system load < 30%). Once it completes
-    // successfully, writes ~/.viki/.last-full-rescan so the next incremental
-    // run won't re-trigger it for 24h.
     "cold-full-rescan": async (payload) => {
       const input = normalizePipelineInput(payload, "ColdFullRescan");
-      await runFullRescanPipeline(input);
+      const pl = await loadPipelineLazy();
+      await pl.runFullRescanPipeline(input);
       writeLastFullRescan();
     },
   };

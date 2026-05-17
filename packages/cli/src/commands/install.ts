@@ -12,6 +12,7 @@ import {
 import type { InstallStateStore } from "@viki/ports";
 import { FsInstallStateStore } from "../install-state-fs-store.js";
 import { defaultWarmupStatePath, writeInitialPlaceholder } from "../warmup-state.js";
+import { ensureRuntimeDeps } from "../runtime-deps.js";
 import {
   formatInstallManifest,
   renderInstallManifest,
@@ -195,6 +196,26 @@ export async function runInstall(
     await checkpoint(deps.store, deps.projectId, step.id);
     lines.push(`  ✓ ${detail}`);
     steps.push({ id: step.id, label: step.label, status: "ran", detail });
+  }
+
+  // Ensure daemon runtime deps (onnxruntime-node) are present at ~/.viki/
+  // before warmup or any daemon spawn. Without this, monorepo-dev installs
+  // (and any layout where Node's module resolution can't find onnxruntime
+  // from ~/.viki/hooks/) crash the daemon with "Cannot find module
+  // 'onnxruntime-node'" — the user-visible symptom of issue #315.
+  // Skipped under VIKI_SKIP_RUNTIME_DEPS=1 / NODE_ENV=test (tests stub deps).
+  if (
+    process.env["NODE_ENV"] !== "test" &&
+    process.env["VIKI_SKIP_RUNTIME_DEPS"] !== "1"
+  ) {
+    const homeDir = os.homedir();
+    lines.push(`▶ Ensuring daemon runtime deps in ~/.viki/node_modules/ ...`);
+    try {
+      const r = await ensureRuntimeDeps(homeDir);
+      lines.push(`  ${r.ok ? "✓" : "⚠"} ${r.detail}`);
+    } catch (err) {
+      lines.push(`  ⚠ runtime-deps step exception: ${String(err).slice(0, 120)}`);
+    }
   }
 
   const warmup = await deps.warmup();

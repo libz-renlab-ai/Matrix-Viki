@@ -9,6 +9,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { ensureRuntimeDeps } from "../runtime-deps.js";
 import {
   DualLayerStore,
   SqliteKnowledgeStore,
@@ -373,6 +374,39 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
       return false;
     }
   })();
+  // ---------- ensure-runtime-deps (2026-05-17) ----------
+  // Ensure ~/.viki/node_modules/ has the daemon's required native deps.
+  // Without this step, daemons spawned from ~/.viki/hooks/bin-embedder.cjs
+  // fail at startup with `Cannot find module 'onnxruntime-node'`, since
+  // Node's module resolution starts at the script's location (~/.viki/
+  // hooks/) and walks up — none of ~/.viki/, ~/, / contain node_modules.
+  //
+  // For monorepo-dev installs this step is the ONLY way the daemon at
+  // the staged location can find its deps; for published npm installs
+  // it's a no-op (deps live alongside the bundle).
+  //
+  // Skipped under dry-run / NODE_ENV=test / VIKI_SKIP_RUNTIME_DEPS=1.
+  if (
+    !dryRun &&
+    process.env["NODE_ENV"] !== "test" &&
+    process.env["VIKI_SKIP_RUNTIME_DEPS"] !== "1"
+  ) {
+    try {
+      const r = await ensureRuntimeDeps(paths.home);
+      steps.push({
+        step: "runtime-deps",
+        status: r.ok ? "ok" : "failed",
+        detail: r.detail,
+      });
+    } catch (err) {
+      steps.push({
+        step: "runtime-deps",
+        status: "failed",
+        detail: `异常: ${String(err).slice(0, 120)}`,
+      });
+    }
+  }
+
   if (skipWarmup) {
     steps.push({ step: "warmup", status: "skipped", detail: "skipWarmup / dryRun / test env" });
   } else if (!haveVectorOptionals) {
