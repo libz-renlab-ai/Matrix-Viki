@@ -262,19 +262,20 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
   const daemonHome = process.env["VIKI_HOME"] ?? os.homedir();
   const outPaths = outboxPaths(daemonHome);
   // Stage 6: cold scheduler. A handler whose kind starts with "cold-" only
-  // runs when system load is low (1-minute loadavg < 30% of CPU count on
+  // runs when system load is low (1-minute loadavg < 60% of CPU count on
   // POSIX; on Windows os.loadavg() returns [0,0,0] so the gate is a no-op
   // and cold tasks always run there — acceptable since the cold path is
   // already a low-frequency event).
+  // Threshold tunable via VIKI_COLD_LOAD_PCT (default 60; set to 30 for
+  // stricter idle gating on shared / battery-sensitive machines).
   function isSystemIdle(): boolean {
     try {
       const cpus = os.cpus().length;
       if (cpus === 0) return true;
       const load1 = os.loadavg()[0] ?? 0;
-      // load == 0 on Windows
-      if (load1 === 0) return true;
-      // Heuristic: load < 30% of CPU count
-      return load1 < cpus * 0.3;
+      if (load1 === 0) return true; // Windows: no signal → permit
+      const pct = parseInt(process.env["VIKI_COLD_LOAD_PCT"] ?? "60", 10) || 60;
+      return load1 < cpus * (pct / 100);
     } catch {
       return true; // best-effort — never block on observability errors
     }
