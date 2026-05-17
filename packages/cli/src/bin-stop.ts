@@ -1012,6 +1012,32 @@ async function main(): Promise<void> {
 
       const emit: EmitFn = (event) => ctx.bus.emit(event);
 
+      // Stage 2 finish: thin-client default. Try to enqueue to the daemon;
+      // if that succeeds (or falls back to local outbox successfully), exit
+      // immediately — no inline pipeline, no detached spawn. Opt out via
+      // VIKI_STOP_INLINE=1 or set stop_mode="legacy" in viki config to
+      // restore the pre-stage-2 paths below.
+      const stopInline = ctx.env.VIKI_STOP_INLINE === "1";
+      // Detached child re-entry still runs the legacy pipeline path so
+      // existing async-mode workflows mid-flight don't get stranded.
+      const isLegacyDetachedChild = isDetachedPipelineInvocation(process.env, process.argv);
+      if (!stopInline && !isLegacyDetachedChild) {
+        try {
+          // Lazy import to keep the legacy hot path import-free.
+          const { enqueueToDaemon } = await import("./embedder-client.js");
+          const result = await enqueueToDaemon(
+            { kind: "stop", payload: ctx.input as unknown as Record<string, unknown> },
+            { timeoutMs: 1_500 },
+          );
+          if (result.ok) {
+            return;
+          }
+        } catch (err) {
+          ctx.logError("enqueue-stop", err);
+        }
+        // enqueue failed — fall through to legacy inline path below
+      }
+
       // Genuine detached child: env flag + valid tmp-file argv[2]. Run the
       // pipeline directly (sync mode below converges to same call). Pipeline
       // is unbounded — escape.pipelineTimeoutMs caps the handler at 240s.

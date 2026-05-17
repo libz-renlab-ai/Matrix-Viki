@@ -333,6 +333,13 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
         });
       }
     },
+    // Stage 2 finish: "stop" kind. bin-stop's foreground handler enqueues
+    // this instead of running runStopPipeline inline (or spawning a
+    // detached child). The daemon runs the pipeline serially.
+    "stop": async (payload) => {
+      const input = normalizePipelineInput(payload, "Stop");
+      await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
+    },
     "pre-compact": async (payload) => {
       const input = normalizePipelineInput(payload, "PreCompact");
       await runStopPipeline(input, { fullRescan: false, modeTag: "incremental" });
