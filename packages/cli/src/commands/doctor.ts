@@ -286,6 +286,16 @@ export async function executeDoctor(opts: DoctorOptions = {}): Promise<DoctorRes
     checkInstallTableBundles(opts.installTableEnumerator, opts.bundleExistsFn),
   );
 
+  // Check 1b: daemon bundle staged to ~/.viki/hooks/bin-embedder.cjs.
+  // bin-embedder.cjs is NOT a Claude Code hook channel binary — it's the
+  // long-running embedder daemon spawned on-demand by daemon-first-embedder.ts.
+  // The hook channel check (1a) won't catch its absence; failure mode is
+  // silent (BM25-only retrieval, no outbox draining), which is exactly the
+  // bug the 2026-05-17 install-hook fix addresses upstream. This check is
+  // the post-install guard so a botched upgrade or partial uninstall is
+  // visible to the user immediately.
+  checks.push(checkDaemonBundleStaged(home));
+
   // Check 2: Claude Code installed
   const claudeCheck = checkClaudeCode(opts.claudeProbe);
   checks.push(claudeCheck);
@@ -954,6 +964,35 @@ export function checkSettingsJsonScope(
  * walk the real install table via `enumerateInstallTableBundlePaths()` and
  * `fs.existsSync`.
  */
+/**
+ * Verify ~/.viki/hooks/bin-embedder.cjs is present.
+ *
+ * Distinct from `checkInstallTableBundles` (which checks dist/) and from
+ * the hook-channel checks (which only verify the 7 channel binaries).
+ * The embedder daemon is spawned on-demand by daemon-first-embedder.ts;
+ * resolveEmbedderBin()'s primary candidate is ~/.viki/hooks/, so a missing
+ * file there causes silent degradation to BM25-only retrieval.
+ */
+export function checkDaemonBundleStaged(
+  home: string,
+  existsFn: (p: string) => boolean = (p) => fs.existsSync(p),
+): DoctorCheckResult {
+  const stagedPath = path.join(home, ".viki", "hooks", "bin-embedder.cjs");
+  if (existsFn(stagedPath)) {
+    return {
+      name: "daemon-bundle-staged",
+      status: "pass",
+      detail: stagedPath,
+    };
+  }
+  return {
+    name: "daemon-bundle-staged",
+    status: "fail",
+    detail: `~/.viki/hooks/bin-embedder.cjs 缺失；daemon 无法启动 → 语义检索静默降级到 BM25`,
+    fix: "viki install-hook  （或重装 viki）",
+  };
+}
+
 export function checkInstallTableBundles(
   enumerate: InstallTableEnumerator = enumerateInstallTableBundlePaths,
   existsFn: (p: string) => boolean = (p) => fs.existsSync(p),

@@ -986,16 +986,19 @@ async function doAutoEmbedRules(
   if (dryRun) {
     return { step: "auto-embed", status: "skipped", detail: "dry-run" };
   }
-  if (skipWarmup) {
-    return {
-      step: "auto-embed",
-      status: "skipped",
-      detail: "skipWarmup=true（语义匹配将不可用，需后续跑 viki migrate-v6 --repair-all --fast）",
-    };
-  }
   if (process.env["NODE_ENV"] === "test" || process.env["VIKI_SKIP_AUTO_EMBED"] === "1") {
     return { step: "auto-embed", status: "skipped", detail: "test env or VIKI_SKIP_AUTO_EMBED=1" };
   }
+  // 2026-05-17: skipWarmup no longer skips auto-embed. The two are
+  // independent — warmup = download model files; auto-embed = use the
+  // model to vectorize seed rules. If the model cache already exists
+  // (prior install on same machine, or VIKI_MODELS_DIR pointing at a
+  // shared mount), we can vectorize without downloading. If model is
+  // truly missing AND skipWarmup=true, the embedder load below throws
+  // and we fall into the catch block with a friendly recovery message.
+  // Net effect: the new-user trap "you ran --skip-warmup so your seed
+  // rules have no vectors and semantic match is silently dead until
+  // you remember to run migrate-v6 --repair-all" is gone.
   try {
     const { executeMigrateV6 } = await import("./migrate-v6.js");
     const result = await executeMigrateV6({
@@ -1010,10 +1013,13 @@ async function doAutoEmbedRules(
     );
   } catch (err) {
     const msg = String(err).slice(0, 160);
+    const recovery = skipWarmup
+      ? "warmup 完成后会自动补，或手动 viki migrate-v6 --repair-all --fast"
+      : "可手动 viki migrate-v6 --repair-all --fast 补回";
     return {
       step: "auto-embed",
       status: "skipped",
-      detail: `跳过自动嵌入: ${msg}（可手动 viki migrate-v6 --repair-all --fast 补回）`,
+      detail: `跳过自动嵌入: ${msg}（${recovery}）`,
     };
   }
 }
