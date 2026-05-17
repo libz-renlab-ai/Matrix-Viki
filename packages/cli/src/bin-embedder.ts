@@ -95,6 +95,20 @@ export function tryAcquireLock(statePath: string): boolean {
   const existing = readEmbedderState(statePath);
   if (!existing) return true;
   if (existing.status === "exiting") return true;
+  // Anti-spawn-loop (added 2026-05-17): if the previous daemon failed AND that
+  // failure was recent (<5 min), refuse to claim. Each failed spawn transiently
+  // allocates ~500 MB before the require error throws, so a tight retry loop
+  // (6 daemons observed in production) bleeds memory. The cooldown only blocks
+  // for 5 minutes — long enough to break the loop, short enough to recover
+  // after a transient cause (e.g. monorepo deps installed mid-session).
+  if (existing.status === "failed") {
+    try {
+      const failedAt = Date.parse(existing.started_at);
+      if (Number.isFinite(failedAt) && Date.now() - failedAt < 5 * 60 * 1000) {
+        return false;
+      }
+    } catch { /* parse failure → allow spawn */ }
+  }
   if (!isDaemonPidAlive(existing.pid)) return true;
   return false;
 }
@@ -690,6 +704,29 @@ async function runDaemon(opts: DaemonOpts): Promise<number> {
       beginExit(null);
     });
   }
+
+  // Anti-spawn-loop (added 2026-05-17): on uncaughtException /
+  // unhandledRejection, mark the state file as `failed` BEFORE letting
+  // Node crash. This ensures the next spawn attempt sees `failed` status
+  // (with our pid alive==false post-crash) and applies the 5-min cooldown
+  // instead of spawning another doomed daemon.
+  const markFailedThenCrash = (where: string, err: unknown): void => {
+    try {
+      const final = readEmbedderState(opts.statePath);
+      if (final && final.pid === process.pid) {
+        const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
+        writeEmbedderState(opts.statePath, {
+          ...final,
+          status: "failed",
+          error: `${where}: ${msg}`.slice(0, 500),
+        });
+      }
+    } catch { /* best-effort */ }
+    process.stderr.write(`[embedder] ${where}: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(1);
+  };
+  process.on("uncaughtException", (err) => markFailedThenCrash("uncaughtException", err));
+  process.on("unhandledRejection", (err) => markFailedThenCrash("unhandledRejection", err));
 
   // Keep the process alive until beginExit() calls process.exit.
   return new Promise<number>(() => { /* never resolves; exit via beginExit */ });

@@ -109,6 +109,17 @@ export function tryDetachedSpawn(statePath: string): void {
     if (r.ready) return;
     const s = readEmbedderState(statePath);
     if (s && s.status === "starting") return;
+    // Anti-spawn-loop (added 2026-05-17): if the previous daemon failed and
+    // the failure is recent (<5 min), don't spawn another doomed one. Each
+    // failed spawn transiently allocates ~500 MB before the load error throws.
+    if (s && s.status === "failed") {
+      try {
+        const failedAt = Date.parse(s.started_at);
+        if (Number.isFinite(failedAt) && Date.now() - failedAt < 5 * 60 * 1000) {
+          return;
+        }
+      } catch { /* parse failure → allow */ }
+    }
 
     const binPath = resolveEmbedderBin();
     if (!binPath) return;
