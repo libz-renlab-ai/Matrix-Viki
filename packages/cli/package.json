@@ -18,6 +18,7 @@
     "@viki/adapters": "workspace:*",
     "@viki/core": "workspace:*",
     "@viki/ports": "workspace:*",
+    "@viki/team": "workspace:*",
     "@viki/types": "workspace:*",
     "cli-table3": "^0.6.5",
     "js-tiktoken": "^1.0.12",

@@ -22,7 +22,8 @@
     "./skill-compiler": "./src/compiler/skill-compiler.ts",
     "./embedding/xenova-rule-embedder": "./src/embedding/xenova-rule-embedder.ts",
     "./util/normalize-cwd": "./src/util/normalize-cwd.ts",
-    "./team/fs-team-rule-store": "./src/team/fs-team-rule-store.ts"
+    "./team/fs-team-rule-store": "./src/team/fs-team-rule-store.ts",
+    "./team/team-to-knowledge": "./src/team/team-to-knowledge.ts"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
