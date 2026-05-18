@@ -1615,6 +1615,135 @@ describe("auditOrphanShellHooks (B+C scope, 2026-05-09)", () => {
   });
 });
 
+// ─── 2026-05-18 — user-level install completeness (auto-init + statusLine) ───
+//
+// Symptoms found via sandbox new-user repro:
+//   1. SessionStart auto-init banner promised "新项目检测到, 后台 init 中..." but
+//      proj2/.viki/knowledge.db never appeared — root cause: spawnAutoInit
+//      runs `node <home>/.viki/hooks/bin.js` but bin.js was never staged
+//      (and can't be: ESM bundle has split chunks). Fix: write
+//      ~/.viki/install-source.json with absolute binJsPath at install time;
+//      findMainBin reads it.
+//   2. session-start-errors.log spammed "updater-bin-missing" because
+//      bin-updater.cjs wasn't staged alongside bin-embedder.cjs.
+//   3. statusLine only appeared in the project where viki init ran — never in
+//      other projects because applyUserLevelChannelOps registered hooks but
+//      not statusLine. Fix: also register user-level statusLine via the same
+//      chain-wrap logic project-level uses.
+describe("user-level install — auto-init + statusLine enablement (2026-05-18)", () => {
+  let tmp: ReturnType<typeof mkTmp>;
+  let fakeHome: string;
+  function plantBundle(dir: string, name: string): string {
+    fs.mkdirSync(dir, { recursive: true });
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, "// stub bundle\n", "utf-8");
+    return p;
+  }
+  beforeEach(() => {
+    tmp = mkTmp();
+    fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "viki-userlvl-extras-"));
+  });
+  afterEach(() => {
+    tmp.cleanup();
+    fs.rmSync(fakeHome, { recursive: true, force: true });
+  });
+
+  it("stages bin-updater.cjs to <home>/.viki/hooks/ (fixes 'updater-bin-missing' spam)", () => {
+    const stage = path.join(tmp.cwd, "src-stage");
+    const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry,
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+    // bin-updater.cjs ships in packages/cli/dist/ (cliRoot's real dist), so
+    // applyUserLevelChannelOps stages it from cliRoot just like bin-embedder.
+    // No explicit opt needed; the default lookup resolves it.
+    const staged = path.join(fakeHome, ".viki", "hooks", "bin-updater.cjs");
+    expect(fs.existsSync(staged)).toBe(true);
+  });
+
+  it("stages viki-statusline.cjs to <home>/.viki/hooks/ (needed for user-level statusLine)", () => {
+    const stage = path.join(tmp.cwd, "src-stage");
+    const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry,
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+    const staged = path.join(fakeHome, ".viki", "hooks", "viki-statusline.cjs");
+    expect(fs.existsSync(staged)).toBe(true);
+  });
+
+  it("writes <home>/.viki/install-source.json with absolute binJsPath", () => {
+    const stage = path.join(tmp.cwd, "src-stage");
+    const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
+    const fakeBinJs = plantBundle(stage, "bin.js"); // pretend this is viki dist/bin.js
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry,
+      binJsPath: fakeBinJs, // NEW: explicit override (defaults to cliRoot/../viki/dist/bin.js)
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+    const sourcePath = path.join(fakeHome, ".viki", "install-source.json");
+    expect(fs.existsSync(sourcePath)).toBe(true);
+    const parsed = JSON.parse(fs.readFileSync(sourcePath, "utf-8"));
+    expect(parsed.binJsPath).toBe(fakeBinJs);
+  });
+
+  it("registers user-level statusLine when no existing user statusLine", () => {
+    const stage = path.join(tmp.cwd, "src-stage");
+    const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry,
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+    const userSettings = JSON.parse(
+      fs.readFileSync(path.join(fakeHome, ".claude", "settings.json"), "utf-8"),
+    );
+    expect(userSettings.statusLine).toBeDefined();
+    expect(userSettings.statusLine._vikiTag).toBe("viki-statusline");
+    expect(userSettings.statusLine.command).toContain("viki-statusline.cjs");
+    // Command must point at the STAGED bundle, not the source dist
+    expect(userSettings.statusLine.command).toContain(
+      path.join(fakeHome, ".viki", "hooks", "viki-statusline.cjs").replace(/\\/g, "/"),
+    );
+    // First install, no user cmd to wrap
+    expect(userSettings.statusLine._vikiOriginalCommand).toBeUndefined();
+  });
+
+  it("user-level statusLine chain-wraps an existing user statusLine.command", () => {
+    const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(userSettingsPath), { recursive: true });
+    fs.writeFileSync(
+      userSettingsPath,
+      JSON.stringify({
+        statusLine: { type: "command", command: "my-custom-statusline" },
+      }),
+      "utf-8",
+    );
+    const stage = path.join(tmp.cwd, "src-stage");
+    const hookEntry = plantBundle(stage, "bin-pre-tool-use.cjs");
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry,
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+    const userSettings = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
+    expect(userSettings.statusLine._vikiTag).toBe("viki-statusline");
+    expect(userSettings.statusLine._vikiOriginalCommand).toBe("my-custom-statusline");
+    // Chain command contains both segments
+    expect(userSettings.statusLine.command).toContain("my-custom-statusline");
+    expect(userSettings.statusLine.command).toContain("viki-statusline.cjs");
+  });
+});
+
 describe("install-user-hook deprecation (B+C scope, 2026-05-09)", () => {
   it("installUserHook emits a deprecation warning to stderr", async () => {
     const { installUserHook } = await import("../commands/install-user-hook.js");

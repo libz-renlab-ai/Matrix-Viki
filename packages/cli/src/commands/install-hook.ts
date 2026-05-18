@@ -63,6 +63,19 @@ export interface InstallHookOptions {
   sessionEndEntry?: string;
   /** 显式指定 PreCompact hook 入口绝对路径 */
   preCompactEntry?: string;
+  /**
+   * Absolute path to `packages/viki/dist/bin.js` (the main viki CLI entry).
+   *
+   * Persisted to `<home>/.viki/install-source.json` so `findMainBin` (called
+   * by SessionStart's `spawnAutoInit`) can locate it from any cwd. Required
+   * because `bin.js` is an ESM bundle with split chunks, so unlike the CJS
+   * hook bundles it can't be safely staged to `<home>/.viki/hooks/`.
+   *
+   * Defaults to `<cliRoot>/../viki/dist/bin.js` (works for both source
+   * monorepo and `npm i -g viki` layouts where `cliRoot` points at
+   * the install package root).
+   */
+  binJsPath?: string;
   /** 显式指定 user-level home（默认 os.homedir()）。测试用。 */
   homeDir?: string;
   /**
@@ -141,6 +154,17 @@ export function cliRoot(): string {
 
 function defaultHookEntry(): string {
   return path.join(cliRoot(), "dist", "bin-pre-tool-use.cjs");
+}
+
+/**
+ * Default location of `bin.js` — the ESM viki CLI entry. Lives in the sibling
+ * `viki` package's `dist/` directory in both layouts:
+ *   - source monorepo: `packages/cli/` → `packages/viki/dist/bin.js`
+ *   - `npm i -g viki`: `node_modules/viki/` (cliRoot resolves here too) →
+ *     `node_modules/viki/dist/bin.js` (after path normalization)
+ */
+function defaultBinJsPath(): string {
+  return path.join(cliRoot(), "..", "viki", "dist", "bin.js");
 }
 
 function defaultPostHookEntry(): string {
@@ -546,6 +570,10 @@ export function applyUserLevelChannelOps(
     sessionStartEntry: string;
     sessionEndEntry: string;
     preCompactEntry: string;
+    /** Source path of viki-statusline.cjs; staged + registered as user-level statusLine. */
+    statusLineEntry: string;
+    /** Absolute path to viki dist/bin.js (written to install-source.json for spawnAutoInit). */
+    binJsPath: string;
   }>,
   opts: { channelFilter?: ReadonlyArray<HookChannel> } = {},
 ): void {
@@ -565,6 +593,43 @@ export function applyUserLevelChannelOps(
     ? new Set<HookChannel>(opts.channelFilter)
     : undefined;
 
+  // 2026-05-18 fix: stage extra non-hook bundles. Each appears at runtime as
+  //   <home>/.viki/hooks/<basename>
+  // but is NOT registered in settings.json hooks{}. They're referenced by:
+  //   - bin-embedder.cjs:   embedder daemon (HTTP-spawned by hook bundles via daemon-first-embedder.ts)
+  //   - bin-updater.cjs:    SessionStart's spawnUpdater() — previously silently
+  //                         missing → "updater-bin-missing" log spam every session
+  //   - viki-statusline.cjs: user-level statusLine command (registered below;
+  //                         the staged path is referenced so an nvm/install
+  //                         switch can't break the status bar)
+  // Done BEFORE the settings.json write/lock so the statusLine registration
+  // step below can reference the staged path with confidence it exists.
+  const stagedStatusLinePath = path.join(homeDir, ".viki", "hooks", "viki-statusline.cjs");
+  let statusLineStaged = false;
+  try {
+    const dist = path.join(cliRoot(), "dist");
+    const extras = [
+      "bin-embedder.cjs",
+      "bin-updater.cjs",
+      "viki-statusline.cjs",
+    ];
+    for (const filename of extras) {
+      const src = filename === "viki-statusline.cjs" && entries.statusLineEntry
+        ? entries.statusLineEntry
+        : path.join(dist, filename);
+      if (fs.existsSync(src)) {
+        stageBundleToUserViki(src, homeDir);
+        if (filename === "viki-statusline.cjs") statusLineStaged = true;
+      }
+    }
+  } catch (err) {
+    process.stderr.write(
+      `viki install-hook: failed to stage auxiliary bundle ` +
+        `(${(err as { code?: string; message?: string }).code ?? (err as Error).message ?? err}) — ` +
+        `affected runtime: embedder daemon / auto-updater / statusLine\n`,
+    );
+  }
+
   const { fd, lockPath } = acquireSettingsLock(homeDir);
   try {
     const settings = readSettings(userSettingsPath);
@@ -575,32 +640,111 @@ export function applyUserLevelChannelOps(
       homeDir,
       channelFilter,
     });
+    // 2026-05-18 fix: also register a user-level statusLine. Without this,
+    // statusLine only appeared in the single project where `viki init` ran —
+    // every other CC session showed CC's default (no Viki status). The
+    // staged path makes the registration survive nvm switches / repo moves.
+    // Skip when statusLine is in channelFilter exclusions (installUserHook
+    // shim uses channelFilter=["SessionStart"] and shouldn't touch statusLine).
+    const shouldRegisterStatusLine =
+      statusLineStaged && (!channelFilter || channelFilter.size === 0);
+    if (shouldRegisterStatusLine) {
+      registerVikiStatusLine(settings, stagedStatusLinePath, homeDir);
+    }
     writeSettings(userSettingsPath, settings);
   } finally {
     releaseSettingsLock(fd, lockPath);
   }
 
-  // 2026-05-17 fix: stage non-hook daemon bundles too. bin-embedder.cjs is
-  // the long-running embedder daemon — it's not registered in settings.json
-  // (no Claude Code hook channel triggers it; the hooks spawn it on-demand
-  // via daemon-first-embedder.ts), but its absence at ~/.viki/hooks/ means
-  // resolveEmbedderBin() walks an empty candidate list and the daemon never
-  // starts. Symptom: PreToolUse hooks fall back to BM25-only retrieval; no
-  // outbox tasks ever drain. Previously bin-embedder.cjs only landed at
-  // ~/.viki/hooks/ for monorepo-dev users who manually copied it; npm-global
-  // users found it via APPDATA candidates that don't always exist.
-  try {
-    const dist = path.join(cliRoot(), "dist");
-    const embedderSrc = path.join(dist, "bin-embedder.cjs");
-    if (fs.existsSync(embedderSrc)) {
-      stageBundleToUserViki(embedderSrc, homeDir);
+  // 2026-05-18 fix: install-source.json pointer. spawnAutoInit needs the
+  // absolute path to viki dist/bin.js, but bin.js is an ESM bundle with
+  // split chunks → can't be staged to <home>/.viki/hooks/. Persist the
+  // path so session-start-logic.ts:findMainBin can locate it from any
+  // cwd. Best-effort: a missing or unwritable file just means
+  // findMainBin falls back to __dirname/bin.js (works for monorepo dev,
+  // breaks for user-level install — which is exactly the bug this fixes).
+  if (entries.binJsPath && fs.existsSync(entries.binJsPath)) {
+    try {
+      const sourcePath = path.join(homeDir, ".viki", "install-source.json");
+      fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+      const tmp = `${sourcePath}.tmp-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
+      fs.writeFileSync(
+        tmp,
+        JSON.stringify({ binJsPath: entries.binJsPath }, null, 2) + "\n",
+        "utf-8",
+      );
+      fs.renameSync(tmp, sourcePath);
+    } catch (err) {
+      process.stderr.write(
+        `viki install-hook: failed to write install-source.json ` +
+          `(${(err as { code?: string; message?: string }).code ?? (err as Error).message ?? err}) — ` +
+          `auto-init may fall back to __dirname/bin.js (which fails for user-level installs)\n`,
+      );
     }
-  } catch (err) {
-    process.stderr.write(
-      `viki install-hook: failed to stage bin-embedder.cjs ` +
-        `(${(err as { code?: string; message?: string }).code ?? (err as Error).message ?? err}) — daemon will fall back to BM25-only retrieval\n`,
-    );
   }
+}
+
+/**
+ * 2026-05-18 — register Viki's statusLine into a `ClaudeSettings` object,
+ * chain-wrapping any pre-existing user statusLine so both render.
+ *
+ * Symmetric to the inline block in `installHook` (project-level) but lives
+ * here because the user-level path uses the STAGED bundle path
+ * (`<home>/.viki/hooks/viki-statusline.cjs`) — survives nvm switches and
+ * source-dist relocations — and reads/writes from the same settings file
+ * (no cross-scope fallback needed).
+ *
+ * Idempotent: previously-Viki-tagged entries get re-wrapped with the same
+ * original-command backup preserved.
+ *
+ * @param settings   mutated in place
+ * @param bundleFsPath absolute path the statusLine command will reference (caller
+ *                     is responsible for staging beforehand)
+ * @param homeDir    used only for the unused-warning suppression placeholder
+ */
+function registerVikiStatusLine(
+  settings: ClaudeSettings,
+  bundleFsPath: string,
+  // homeDir kept in signature to match future cross-scope variants
+  _homeDir: string,
+): void {
+  const teamCmd = `node ${shellQuote(toForwardSlash(bundleFsPath))}`;
+  const existing = settings.statusLine;
+  const existingIsTagged = existing?._vikiTag === STATUS_LINE_TAG;
+  const existingIsEmpty = !existing || Object.keys(existing).length === 0;
+
+  let userCmd: string | null = null;
+  let userType = "command";
+
+  if (existingIsTagged) {
+    // Re-install: preserve original-command backup so chain wrap stays idempotent.
+    const orig = existing?._vikiOriginalCommand;
+    const origType = existing?._vikiOriginalType;
+    if (typeof orig === "string" && orig.length > 0) {
+      userCmd = orig;
+      userType = typeof origType === "string" ? origType : "command";
+    }
+  } else if (!existingIsEmpty) {
+    // User had their own statusLine — chain wrap.
+    const cmd = existing?.command;
+    const t = existing?.type;
+    if (typeof cmd === "string" && cmd.length > 0) {
+      userCmd = cmd;
+      userType = typeof t === "string" ? t : "command";
+    }
+  }
+
+  const newStatusLine: NonNullable<ClaudeSettings["statusLine"]> = {
+    type: "command",
+    command: buildStatusLineCommand(userCmd, teamCmd),
+    _vikiTag: STATUS_LINE_TAG,
+  };
+  if (userCmd) {
+    newStatusLine._vikiOriginalCommand = userCmd;
+    newStatusLine._vikiOriginalType = userType;
+    newStatusLine._vikiOriginalScope = "user";
+  }
+  settings.statusLine = newStatusLine;
 }
 
 function readSettings(file: string): ClaudeSettings {
@@ -964,6 +1108,8 @@ export function installHook(opts: InstallHookOptions = {}): {
       sessionStartEntry,
       sessionEndEntry,
       preCompactEntry,
+      statusLineEntry,
+      binJsPath: opts.binJsPath ?? defaultBinJsPath(),
     });
   }
 
