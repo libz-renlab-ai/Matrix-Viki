@@ -1,4 +1,4 @@
-# TeamBrain CHANGELOG
+# Matrix-Viki CHANGELOG
 
 ```
    plan ──► implement ──► review ──► ship
@@ -11,7 +11,37 @@ User-visible behaviour changes go here. Internal refactors that don't change
 observable behaviour (CLI flags, file layouts, hook side-effects, on-disk
 artifacts the user sees) do NOT need an entry.
 
-## Unreleased
+## v0.12.0 (2026-05-18)
+
+### Added
+
+- **Team rule propagation (`viki team` namespace, opt-in).** New `@viki/team`
+  package + 9 CLI sub-commands let teams share AI-coding rules through git
+  without touching the personal-use defaults. Pipeline: `viki team share`
+  runs two safety gates (secret scanner + scope classifier), writes
+  `.viki/team/<author>/<rule_id>.json`; `viki team publish [--push]` commits
+  with `[viki-sync]` prefix; teammate's `git pull` auto-fires
+  `team sync --apply` via a `.githooks/post-merge` hook (installed by
+  `viki team infect`), LWW-merges, writes to KB, tags `original-author:<x>`.
+  Soft-delete via `viki team delete` (tombstone claim, LWW-safe). Bundle
+  path (`viki team export` / `import`) for one-shot transfers. Full design
+  in [`docs/team-propagation.md`](docs/team-propagation.md). **Purely
+  additive**: zero edits to `@viki/types`, `@viki/ports`, `@viki/core`;
+  one new dispatcher line in `packages/cli/src/bin.ts`. Schema-compatible
+  with Matrix-Lucky's `.teamagent/team/` layout.
+
+### Fixed
+
+- `viki init` now reliably enables Viki in every project after a single
+  install: `bin-embedder.cjs` is staged into the install source,
+  `install-source.json` carries a stable pointer so subsequent runs find
+  it, and user-level `statusLine` registration ensures the status bar
+  appears in arbitrary projects (not just the one where `init` ran).
+- `viki doctor` asserts the daemon bundle exists and `viki init` triggers
+  an automatic re-vectorize so freshly-loaded packs are searchable
+  immediately.
+
+## Unreleased (legacy — TeamBrain v0.x, pre-rebrand)
 
 ### Changed
 

@@ -31,7 +31,7 @@ Matrix-Viki 是一个挂在 Claude Code 上的**学习引擎**。它在你日常
 
 你不需要改变工作习惯，规则库自己在背后从你的会话里长出来。
 
-> Matrix-Viki 是从团队产品 [TeamBrain](https://github.com/libz-renlab-ai/TeamBrain) 抽出来的**纯个人**子集 —— 去掉了团队可见性、视频录制、跨机同步、A/B 评测等所有团队向功能，只保留 B1「学习引擎」这一层。完整拆分设计见 [`docs/superpowers/specs/2026-05-14-matrix-viki-split-design.md`](docs/superpowers/specs/2026-05-14-matrix-viki-split-design.md)。
+> Matrix-Viki 是从团队产品 [TeamBrain](https://github.com/libz-renlab-ai/TeamBrain) 抽出来的**个人优先**子集 —— 去掉了视频录制、A/B 评测等重型团队功能，专注 B1「学习引擎」这一层。v0.12.0 起增加了 **opt-in 的团队规则传播**（`viki team` 命名空间，通过 git 同步规则；详见 [`docs/team-propagation.md`](docs/team-propagation.md)），但默认不启用，不影响纯个人使用。完整拆分设计见 [`docs/superpowers/specs/2026-05-14-matrix-viki-split-design.md`](docs/superpowers/specs/2026-05-14-matrix-viki-split-design.md)。
 
 ---
 
