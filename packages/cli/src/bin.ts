@@ -323,6 +323,10 @@ async function main(): Promise<void> {
       process.stdout.write(output);
       return;
     }
+    case "team": {
+      const { runTeamSubcommand } = await import("./commands/team.js");
+      process.exit(await runTeamSubcommand(rest));
+    }
     case "review": {
       const opts = parseReviewArgs(rest);
       process.stdout.write(executeReview(opts));
