@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Auto-installed by `viki team infect`. Runs after every `git pull` / `git merge`.
+# Best-effort — never fail the merge.
+#
+# What it does: re-syncs any new .viki/team/<author>/<rule_id>.json files
+# the merge brought in to the local KB. Without this hook, a teammate's
+# git pull would land new rules on disk but they would not appear in the
+# local SQLite KB until the user manually ran `viki team sync --apply`.
+#
+# Bypass: set VIKI_DISABLE_POST_MERGE=1 in your shell env to skip.
+
+if [ -n "$VIKI_DISABLE_POST_MERGE" ]; then
+  exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0
+
+# Only sync if this checkout is a Viki team project (manifest exists).
+if [ ! -f .viki/manifest.json ]; then
+  exit 0
+fi
+
+# Use `command -v` to detect viki on PATH; fall back to local pnpm if available.
+if command -v viki >/dev/null 2>&1; then
+  viki team sync --apply >/dev/null 2>&1 || true
+elif command -v pnpm >/dev/null 2>&1 && [ -f package.json ]; then
+  pnpm viki team sync --apply >/dev/null 2>&1 || true
+fi
+
+exit 0
