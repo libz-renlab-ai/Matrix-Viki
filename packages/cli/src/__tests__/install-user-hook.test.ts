@@ -113,7 +113,13 @@ describe("installUserHook", () => {
   // path. installUserHook must replace them, and uninstallUserHook must
   // remove them — otherwise users accumulate stale viki hooks across
   // reinstalls and uninstall leaves them dangling.
-  it("install 清理 untagged 但指向 bin-session-start.cjs 的旧条目", () => {
+  //
+  // Issue #6: legacy-strip is gated on a Viki path signature
+  // (`~/.viki/hooks/`, `/node_modules/viki/dist/`, `/packages/cli/dist/`).
+  // Random paths are no longer treated as Viki legacy — that filename-only
+  // heuristic was stripping foreign tools that happened to ship a same-named
+  // bundle (Riven's `bin-session-start.cjs` etc.).
+  it("install 清理 untagged 但路径在 Viki 安装位置下的旧条目", () => {
     const settingsPath = path.join(home, ".claude", "settings.json");
     fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
     fs.writeFileSync(
@@ -121,8 +127,9 @@ describe("installUserHook", () => {
       JSON.stringify({
         hooks: {
           SessionStart: [
-            { hooks: [{ type: "command", command: "node /tmp/old-install/bin-session-start.cjs" }] },
-            { hooks: [{ type: "command", command: "node C:/other/dist/bin-session-start.cjs" }] },
+            // Two legacy Viki entries — both inside recognised Viki paths.
+            { hooks: [{ type: "command", command: "node /tmp/.viki/hooks/bin-session-start.cjs" }] },
+            { hooks: [{ type: "command", command: "node /usr/lib/node_modules/viki/dist/bin-session-start.cjs" }] },
             { hooks: [{ type: "command", command: "echo unrelated" }] },
           ],
         },
@@ -137,7 +144,7 @@ describe("installUserHook", () => {
     expect(settings.hooks.SessionStart[1]._vikiTag).toBe("viki-session-start");
   });
 
-  it("uninstall 清理 untagged 但指向 bin-session-start.cjs 的旧条目", () => {
+  it("uninstall 清理 untagged 但路径在 Viki 安装位置下的旧条目", () => {
     const settingsPath = path.join(home, ".claude", "settings.json");
     fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
     fs.writeFileSync(
@@ -145,8 +152,9 @@ describe("installUserHook", () => {
       JSON.stringify({
         hooks: {
           SessionStart: [
-            { hooks: [{ type: "command", command: "node /tmp/old/bin-session-start.cjs" }] },
-            { _vikiTag: "viki-session-start", hooks: [{ type: "command", command: "node /current/bin-session-start.cjs" }] },
+            // Legacy untagged Viki entry at recognised path.
+            { hooks: [{ type: "command", command: "node /tmp/.viki/hooks/bin-session-start.cjs" }] },
+            { _vikiTag: "viki-session-start", hooks: [{ type: "command", command: "node /current/.viki/hooks/bin-session-start.cjs" }] },
             { hooks: [{ type: "command", command: "echo unrelated" }] },
           ],
         },
@@ -158,6 +166,92 @@ describe("installUserHook", () => {
     const after = JSON.parse(fs.readFileSync(r.settingsPath, "utf-8"));
     expect(after.hooks.SessionStart).toHaveLength(1);
     expect(after.hooks.SessionStart[0].hooks[0].command).toBe("echo unrelated");
+  });
+
+  // Issue #6 regression: foreign tools (Riven, TeamAgent) using same bundle
+  // filename under their own directories must be left alone by both install
+  // and uninstall. Path-signature gate makes the filename heuristic safe.
+  it("(#6) install 不动 foreign-tag SessionStart 条目，即使文件名相同", () => {
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        hooks: {
+          SessionStart: [
+            {
+              _rivenTag: "riven-session-start",
+              hooks: [{
+                type: "command",
+                command: "bash -c '[ -f \"$1\" ] || exit 0; exec node \"$1\"' _ /home/u/.riven/hooks/bin-session-start.cjs",
+              }],
+            },
+          ],
+        },
+      }, null, 2),
+    );
+
+    installUserHook({ homeDir: home, sessionStartEntry });
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    // Riven preserved + Viki appended.
+    expect(settings.hooks.SessionStart).toHaveLength(2);
+    expect(settings.hooks.SessionStart[0]._rivenTag).toBe("riven-session-start");
+    expect(settings.hooks.SessionStart[1]._vikiTag).toBe("viki-session-start");
+  });
+
+  it("(#6) install 不动 untagged 但路径不在 Viki 位置下的条目", () => {
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        hooks: {
+          SessionStart: [
+            // Untagged, foreign path — must survive.
+            { hooks: [{ type: "command", command: "node /opt/somethirdparty/bin-session-start.cjs" }] },
+          ],
+        },
+      }, null, 2),
+    );
+
+    installUserHook({ homeDir: home, sessionStartEntry });
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    expect(settings.hooks.SessionStart).toHaveLength(2);
+    expect(settings.hooks.SessionStart[0].hooks[0].command).toBe(
+      "node /opt/somethirdparty/bin-session-start.cjs",
+    );
+    expect(settings.hooks.SessionStart[1]._vikiTag).toBe("viki-session-start");
+  });
+
+  it("(#6) uninstall 不动 foreign-tag SessionStart 条目", () => {
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        hooks: {
+          SessionStart: [
+            {
+              _rivenTag: "riven-session-start",
+              hooks: [{
+                type: "command",
+                command: "bash -c '[ -f \"$1\" ] || exit 0; exec node \"$1\"' _ /home/u/.riven/hooks/bin-session-start.cjs",
+              }],
+            },
+            {
+              _vikiTag: "viki-session-start",
+              hooks: [{ type: "command", command: "node /home/u/.viki/hooks/bin-session-start.cjs" }],
+            },
+          ],
+        },
+      }, null, 2),
+    );
+
+    const r = uninstallUserHook({ homeDir: home });
+    expect(r.removed).toBe(true);
+    const after = JSON.parse(fs.readFileSync(r.settingsPath, "utf-8"));
+    expect(after.hooks.SessionStart).toHaveLength(1);
+    expect(after.hooks.SessionStart[0]._rivenTag).toBe("riven-session-start");
   });
 
   // B-091: settings.json must reference a stable user-owned location, not

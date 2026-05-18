@@ -80,6 +80,12 @@ describe("installHook", () => {
   // could silently regress project-level dedup since the symmetric user-level
   // test (line ~790) only exercises ~/.claude/settings.json — not
   // <cwd>/.claude/settings.local.json.
+  //
+  // Issue #6: legacy paths must lie inside a recognised Viki install location
+  // (`~/.viki/hooks/`, `/packages/cli/dist/`, `/node_modules/viki/dist/`) for
+  // the heuristic to fire. Random `/old/install/path/...` strings were never
+  // safely-attributable to Viki and used to collide with foreign tools that
+  // shipped same-named bundles.
   it("(B-086 project) untagged-legacy PreToolUse entry replaced cleanly on install", () => {
     const settingsPath = path.join(tmp.cwd, ".claude", "settings.local.json");
     fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
@@ -93,7 +99,8 @@ describe("installHook", () => {
               hooks: [
                 {
                   type: "command",
-                  command: "node /old/install/path/bin-pre-tool-use.cjs",
+                  // Viki-path signature: pre-tag install at ~/.viki/hooks/.
+                  command: "node /old/.viki/hooks/bin-pre-tool-use.cjs",
                 },
               ],
             },
@@ -109,7 +116,120 @@ describe("installHook", () => {
     expect(content.hooks.PreToolUse).toHaveLength(1);
     expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     const cmd: string = content.hooks.PreToolUse[0].hooks[0].command;
-    expect(cmd).not.toContain("/old/install/path/bin-pre-tool-use.cjs");
+    expect(cmd).not.toContain("/old/.viki/hooks/bin-pre-tool-use.cjs");
+  });
+
+  // Issue #6 regression: a foreign tool may use exactly the same bundle
+  // filename (e.g. Riven ships its own `bin-user-prompt-submit.cjs` under
+  // `~/.riven/digital-twin/`). The pre-#6 filename-substring heuristic
+  // misclassified such entries as Viki legacy and stripped them on every
+  // `viki init`. Foreign entries — identified by `_*Tag` other than
+  // `_vikiTag`, OR by a path outside Viki install locations — must be
+  // preserved untouched.
+  it("(#6) foreign-tag entries with same bundle filename are preserved", () => {
+    const settingsPath = path.join(tmp.cwd, ".claude", "settings.local.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        hooks: {
+          UserPromptSubmit: [
+            {
+              // Riven uses exactly this filename — pre-#6 the substring
+              // match against `bin-user-prompt-submit.cjs` falsely flagged
+              // this entry as Viki legacy and dropped it.
+              _rivenTag: "riven-user-prompt-submit",
+              hooks: [
+                {
+                  type: "command",
+                  command:
+                    "bash -c '[ -f \"$1\" ] || exit 0; exec node --no-warnings \"$1\"' _ /home/u/.riven/digital-twin/bin-user-prompt-submit.cjs",
+                  timeout: 5,
+                },
+              ],
+            },
+          ],
+          Stop: [
+            {
+              // _teamagentTag (legacy predecessor) on a sibling channel —
+              // must also survive a viki install. Path under .teamagent/
+              // confirms it's foreign even by path signature.
+              _teamagentTag: "teamagent-stop",
+              hooks: [
+                {
+                  type: "command",
+                  command:
+                    "bash -c '[ -f \"$1\" ] || exit 0; exec node \"$1\"' _ /home/u/.teamagent/hooks/bin-stop.cjs",
+                  timeout: 60,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      "utf-8",
+    );
+
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry: FAKE_HOOK_ENTRY,
+      userPromptEntry: FAKE_HOOK_ENTRY,
+      stopEntry: FAKE_HOOK_ENTRY,
+      userLevel: false,
+    });
+
+    const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+
+    // Foreign UserPromptSubmit entry preserved + Viki entry appended.
+    expect(content.hooks.UserPromptSubmit).toHaveLength(2);
+    expect(content.hooks.UserPromptSubmit[0]._rivenTag).toBe(
+      "riven-user-prompt-submit",
+    );
+    expect(content.hooks.UserPromptSubmit[1]._vikiTag).toBe(
+      "viki-user-prompt-submit",
+    );
+
+    // Foreign Stop entry (teamagent) preserved + Viki Stop appended.
+    expect(content.hooks.Stop).toHaveLength(2);
+    expect(content.hooks.Stop[0]._teamagentTag).toBe("teamagent-stop");
+    expect(content.hooks.Stop[1]._vikiTag).toBe("viki-stop");
+  });
+
+  // Issue #6: untagged foreign entry whose command happens to mention a Viki
+  // bundle filename but lives outside any Viki install location must also
+  // be preserved. Path signature is the discriminator.
+  it("(#6) untagged entries outside Viki paths are preserved even with same filename", () => {
+    const settingsPath = path.join(tmp.cwd, ".claude", "settings.local.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: "Bash",
+              hooks: [
+                {
+                  type: "command",
+                  // Untagged, foreign-path (`/opt/foo/dist/`) — must survive.
+                  command: "node /opt/foo/dist/bin-pre-tool-use.cjs",
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      "utf-8",
+    );
+
+    installHook({ cwd: tmp.cwd, hookEntry: FAKE_HOOK_ENTRY, userLevel: false });
+
+    const content = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    expect(content.hooks.PreToolUse).toHaveLength(2);
+    expect(content.hooks.PreToolUse[0].hooks[0].command).toBe(
+      "node /opt/foo/dist/bin-pre-tool-use.cjs",
+    );
+    expect(content.hooks.PreToolUse[1]._vikiTag).toBe("viki-pre-tool-use");
   });
 });
 
@@ -863,11 +983,15 @@ describe("installHook — PR #181 fix-cycle", () => {
     }
   });
 
-  it("(4) B-086 dedup: untagged legacy PreToolUse entry is replaced cleanly (1 entry remains)", () => {
+  it("(4) B-086 dedup: untagged legacy PreToolUse entry at Viki path is replaced (1 entry remains)", () => {
     // Pre-seed user settings.json with an UNTAGGED entry whose command
     // contains the bundle filename — exactly the "legacy install" case
     // described in B-086. The new applyChannelOps must filter both
     // tagged AND untagged Viki entries before pushing the new one.
+    //
+    // Issue #6: the legacy path must lie inside a recognised Viki install
+    // location (here: `~/.viki/hooks/`). Random paths are no longer eligible
+    // for the heuristic strip — that was the source of foreign-tool collisions.
     const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
     fs.mkdirSync(path.dirname(userSettingsPath), { recursive: true });
     fs.writeFileSync(
@@ -877,11 +1001,11 @@ describe("installHook — PR #181 fix-cycle", () => {
           PreToolUse: [
             {
               matcher: "Bash",
-              // Untagged — but command points at the channel bundle filename.
+              // Untagged — points at a Viki-pattern path (~/.viki/hooks/).
               hooks: [
                 {
                   type: "command",
-                  command: "node /old/path/to/bin-pre-tool-use.cjs",
+                  command: "node /home/u/.viki/hooks/bin-pre-tool-use.cjs",
                 },
               ],
             },
@@ -907,7 +1031,59 @@ describe("installHook — PR #181 fix-cycle", () => {
     expect(content.hooks.PreToolUse[0]._vikiTag).toBe("viki-pre-tool-use");
     // The legacy command path is gone.
     const cmd: string = content.hooks.PreToolUse[0].hooks[0].command;
-    expect(cmd).not.toContain("/old/path/to/bin-pre-tool-use.cjs");
+    expect(cmd).not.toContain("/home/u/.viki/hooks/bin-pre-tool-use.cjs");
+  });
+
+  // Issue #6 regression at user-level scope: foreign tools (Riven) keep
+  // their UserPromptSubmit / Stop entries when `viki init` writes the
+  // user-level `~/.claude/settings.json`. Symmetric to the project-level
+  // regression test, but exercises the `applyUserLevelChannelOps` path
+  // (which goes through the settings lock and `~/.viki/hooks/` staging).
+  it("(#6) user-level: foreign-tag entries on UserPromptSubmit and Stop survive viki init", () => {
+    const userSettingsPath = path.join(fakeHome, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(userSettingsPath), { recursive: true });
+    fs.writeFileSync(
+      userSettingsPath,
+      JSON.stringify({
+        hooks: {
+          UserPromptSubmit: [
+            {
+              _rivenTag: "riven-user-prompt-submit",
+              hooks: [
+                {
+                  type: "command",
+                  command:
+                    "bash -c '[ -f \"$1\" ] || exit 0; exec node --no-warnings \"$1\"' _ /home/u/.riven/digital-twin/bin-user-prompt-submit.cjs",
+                  timeout: 5,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      "utf-8",
+    );
+
+    installHook({
+      cwd: tmp.cwd,
+      hookEntry: FAKE_HOOK_ENTRY,
+      postHookEntry: FAKE_HOOK_ENTRY,
+      userPromptEntry: FAKE_HOOK_ENTRY,
+      stopEntry: FAKE_HOOK_ENTRY,
+      homeDir: fakeHome,
+      userLevel: true,
+    });
+
+    const content = JSON.parse(fs.readFileSync(userSettingsPath, "utf-8"));
+
+    // Riven entry preserved, Viki entry appended.
+    expect(content.hooks.UserPromptSubmit).toHaveLength(2);
+    const tags = content.hooks.UserPromptSubmit.map(
+      (h: { _rivenTag?: string; _vikiTag?: string }) =>
+        h._rivenTag ?? h._vikiTag,
+    );
+    expect(tags).toContain("riven-user-prompt-submit");
+    expect(tags).toContain("viki-user-prompt-submit");
   });
 
   it("(5) concurrent-init advisory lock — lockfile is created during the call and removed after", () => {

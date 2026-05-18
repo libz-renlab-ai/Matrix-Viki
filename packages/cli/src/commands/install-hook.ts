@@ -228,17 +228,28 @@ function stageBundleToUserViki(srcDistPath: string, homeDir: string): string {
 }
 
 /**
- * B-086: judge whether a hook entry belongs to Viki for a given channel.
+ * Issue #6: judge whether a hook entry belongs to Viki for a given channel.
  *
- * Dual signal — mirrors `install-user-hook.ts:isVikiSessionStartEntry`:
- * - Strong: `_vikiTag` is present (any Viki-tagged entry, covers
- *   both old and new tagging schemes).
- * - Heuristic: `entry.hooks[*].command` contains the channel's bundle
- *   filename (e.g. `bin-pre-tool-use.cjs`). These filenames are Viki-
- *   specific and unlikely to collide with foreign hooks.
+ * Three signals (in order of strength):
+ * - **Strong**: `_vikiTag` is present → owned by Viki.
+ * - **Negative**: any `_*Tag` field other than `_vikiTag` (e.g. `_rivenTag`,
+ *   `_teamagentTag`) → owned by a foreign tool, preserve.
+ * - **Heuristic** (for pre-tagging legacy installs): command both
+ *   (a) references the channel's bundle filename AND
+ *   (b) the path is inside a Viki-owned location (`~/.viki/hooks/`,
+ *      `/node_modules/viki/dist/`, `/packages/cli/dist/`).
+ *
+ * Why the path signature: pre-#6, the heuristic was a bare filename
+ * substring match. Foreign tools that happened to also use a file named
+ * e.g. `bin-user-prompt-submit.cjs` (Riven uses exactly that filename
+ * under `~/.riven/digital-twin/`) got incorrectly classified as Viki
+ * legacy and stripped on every `viki init`. The path-signature gate makes
+ * the heuristic specific to Viki's own install locations, so a foreign
+ * tool's same-named file under its own directory is safely preserved.
  *
  * Used in `applyChannelOps` so re-installing on top of an upgraded user
- * who already has untagged-legacy Viki entries doesn't double-fire.
+ * who already has untagged-legacy Viki entries doesn't double-fire,
+ * while never touching foreign tool entries.
  */
 type HookChannel =
   | "PreToolUse"
@@ -260,11 +271,37 @@ const CHANNEL_BUNDLE_FILENAMES: Record<HookChannel, readonly string[]> = {
   PreCompact: ["bin-pre-compact.cjs"],
 };
 
-function isVikiEntry(entry: HookEntry, channel: HookChannel): boolean {
+/**
+ * Match Viki-owned install locations in a hook command string. Covers all
+ * three realistic placements with both `/` and `\` separators since older
+ * settings.json files may not have been normalised through `toForwardSlash`:
+ *   1. `~/.viki/hooks/`              — current B-091 staging
+ *   2. `/node_modules/viki/dist/`     — npm global install
+ *   3. `/packages/cli/dist/`          — monorepo dev mode + EBUSY fallback
+ */
+const VIKI_PATH_SIGNATURE =
+  /[/\\]\.viki[/\\]hooks[/\\]|[/\\]node_modules[/\\]viki[/\\]dist[/\\]|[/\\]packages[/\\]cli[/\\]dist[/\\]/;
+
+/**
+ * Detect any `_*Tag` field other than `_vikiTag` — strong signal that
+ * another tool owns this entry. Matches `_rivenTag`, `_teamagentTag`,
+ * `_someOther2Tag`, etc. (digits allowed).
+ */
+export function hasForeignTag(entry: HookEntry): boolean {
+  return Object.keys(entry).some(
+    (k) => k !== "_vikiTag" && /^_.+Tag$/.test(k),
+  );
+}
+
+export function isVikiEntry(entry: HookEntry, channel: HookChannel): boolean {
   if (entry._vikiTag) return true;
+  if (hasForeignTag(entry)) return false;
   const filenames = CHANNEL_BUNDLE_FILENAMES[channel];
   const cmds = entry.hooks?.map((c) => c.command ?? "") ?? [];
-  return cmds.some((c) => filenames.some((f) => c.includes(f)));
+  return cmds.some(
+    (c) =>
+      filenames.some((f) => c.includes(f)) && VIKI_PATH_SIGNATURE.test(c),
+  );
 }
 
 /**

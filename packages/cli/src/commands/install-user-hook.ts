@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import {
   applyUserLevelChannelOps,
   findMostRecentSettingsBackup,
+  hasForeignTag,
   hasVikiChannelEntry,
+  isVikiEntry,
 } from "./install-hook.js";
 
 /**
@@ -228,6 +230,11 @@ export function uninstallUserHook(
 function isVikiSessionStartEntry(entry: HookEntry): boolean {
   if (entry._vikiTag === SESSION_START_TAG) return true;
   if (entry._vikiTag) return false;
-  const cmds = entry.hooks?.map((c) => c.command ?? "") ?? [];
-  return cmds.some((c) => c.includes("bin-session-start.cjs"));
+  // Issue #6: foreign tools (e.g. Riven) may use the same bundle filename
+  // under their own directory. Delegate to the shared `isVikiEntry` which
+  // requires both filename match AND a Viki path signature, so a Riven
+  // `_rivenTag` entry pointing at `~/.riven/.../bin-session-start.cjs` is
+  // never classified as a Viki legacy entry and stripped.
+  if (hasForeignTag(entry)) return false;
+  return isVikiEntry(entry, "SessionStart");
 }
