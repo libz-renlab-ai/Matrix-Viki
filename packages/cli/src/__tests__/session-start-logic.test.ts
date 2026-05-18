@@ -304,3 +304,64 @@ describe("maybeShowVersionCheckBanner (issue #313 Tier 3)", () => {
     expect(after.reinstall_banner_shown_at).toBe(0);
   });
 });
+
+// ─── 2026-05-18 — findMainBin pointer file ────────────────────────────────
+//
+// Symptom: spawnAutoInit silently ENOENT'd because user-level install staged
+// bin-session-start.cjs to ~/.viki/hooks/ but bin.js (ESM with split chunks)
+// can't be staged alongside it. Fix: install writes ~/.viki/install-source.json
+// with the absolute path to bin.js; findMainBin reads it.
+describe("findMainBin — install-source.json pointer (2026-05-18)", () => {
+  let fakeHome: string;
+  beforeEach(() => {
+    fakeHome = mkdtempSync(join(tmpdir(), "viki-findmainbin-"));
+  });
+  afterEach(() => {
+    rmSync(fakeHome, { recursive: true, force: true });
+  });
+
+  it("returns binJsPath from <home>/.viki/install-source.json when present", async () => {
+    const { findMainBin } = await import("../session-start-logic.js");
+    const fakeBin = join(fakeHome, "fake-bin.js");
+    writeFileSync(fakeBin, "// stub", "utf-8");
+    mkdirSync(join(fakeHome, ".viki"), { recursive: true });
+    writeFileSync(
+      join(fakeHome, ".viki", "install-source.json"),
+      JSON.stringify({ binJsPath: fakeBin }),
+      "utf-8",
+    );
+    expect(findMainBin(fakeHome)).toBe(fakeBin);
+  });
+
+  it("falls back to __dirname/bin.js when install-source.json missing", async () => {
+    const { findMainBin } = await import("../session-start-logic.js");
+    // No install-source.json in fakeHome → fallback path ends with bin.js
+    const out = findMainBin(fakeHome);
+    expect(out.endsWith("bin.js")).toBe(true);
+  });
+
+  it("falls back to __dirname/bin.js when install-source.json is malformed", async () => {
+    const { findMainBin } = await import("../session-start-logic.js");
+    mkdirSync(join(fakeHome, ".viki"), { recursive: true });
+    writeFileSync(
+      join(fakeHome, ".viki", "install-source.json"),
+      "{not json",
+      "utf-8",
+    );
+    const out = findMainBin(fakeHome);
+    expect(out.endsWith("bin.js")).toBe(true);
+  });
+
+  it("falls back when install-source.json's binJsPath does not exist on disk", async () => {
+    const { findMainBin } = await import("../session-start-logic.js");
+    mkdirSync(join(fakeHome, ".viki"), { recursive: true });
+    writeFileSync(
+      join(fakeHome, ".viki", "install-source.json"),
+      JSON.stringify({ binJsPath: "/nonexistent/path/bin.js" }),
+      "utf-8",
+    );
+    const out = findMainBin(fakeHome);
+    expect(out).not.toBe("/nonexistent/path/bin.js");
+    expect(out.endsWith("bin.js")).toBe(true);
+  });
+});

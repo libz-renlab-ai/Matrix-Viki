@@ -98,8 +98,36 @@ export function decideAction(cwd: string, _now?: Date, _debounceHours?: number):
   return "auto-init";
 }
 
-export function findMainBin(): string {
-  // bin-session-start.cjs sits next to bin.js in dist/
+/**
+ * Resolve the absolute path of viki's `bin.js` entry.
+ *
+ * Resolution order:
+ *   1. `<homeDir>/.viki/install-source.json:binJsPath` — written by
+ *      `applyUserLevelChannelOps` at install time. Load-bearing for the
+ *      user-level install path because the staged hook bundles live at
+ *      `~/.viki/hooks/` while `bin.js` (an ESM bundle with split chunks)
+ *      can't be staged alongside them. Without this pointer, `spawnAutoInit`
+ *      silently ENOENT'd in any cwd where Claude Code was opened.
+ *   2. `<__dirname>/bin.js` — fallback for monorepo dev / npm-global layouts
+ *      where bin-session-start.cjs sits next to bin.js in dist/.
+ *
+ * The pointer is preferred even in dev — once written, it's the source of
+ * truth. Malformed JSON or a binJsPath that no longer exists on disk
+ * triggers the fallback.
+ */
+export function findMainBin(homeDir: string = os.homedir()): string {
+  try {
+    const sourcePath = join(homeDir, ".viki", "install-source.json");
+    if (existsSync(sourcePath)) {
+      const raw = fs.readFileSync(sourcePath, "utf-8");
+      const parsed = JSON.parse(raw) as { binJsPath?: unknown };
+      if (typeof parsed.binJsPath === "string" && parsed.binJsPath.length > 0) {
+        if (existsSync(parsed.binJsPath)) {
+          return parsed.binJsPath;
+        }
+      }
+    }
+  } catch { /* fall through to __dirname-based fallback */ }
   return join(__dirname, "bin.js");
 }
 
@@ -118,18 +146,37 @@ export function spawnAutoInit(cwd: string): void {
       "utf-8",
     );
   } catch { /* silent */ }
+
+  // 2026-05-18 fix: capture child stdout+stderr in auto-init.log instead of
+  // discarding via stdio:"ignore". Previously, any failure inside the
+  // detached child (missing bin.js, ENOENT, init crash, network error
+  // downloading vector model) vanished silently — the SessionStart banner
+  // told the user "后台 init 中..." and then nothing ever appeared. Now
+  // failures land in ~/.viki/auto-init.log next to the spawn record.
+  //
+  // The fd is opened in append mode and passed twice (stdout + stderr) so
+  // both streams interleave into one log. Parent closes its handle right
+  // after spawn — the child has inherited its own fd reference.
+  let logFd: number | null = null;
+  try {
+    logFd = fs.openSync(logPath, "a");
+  } catch { /* fall through to "ignore" if we can't open the log */ }
+
   const child = spawn(
     process.execPath,
     [findMainBin(), "init", "--skip-import"],
     {
       detached: true,
-      stdio: "ignore",
+      stdio: logFd === null ? "ignore" : ["ignore", logFd, logFd],
       cwd,
       env: { ...process.env, VIKI_AUTO_INIT: "1" },
       windowsHide: true,
     },
   );
   child.unref();
+  if (logFd !== null) {
+    try { fs.closeSync(logFd); } catch { /* child still holds the fd */ }
+  }
 }
 
 export function logError(kind: string, err: unknown): void {
