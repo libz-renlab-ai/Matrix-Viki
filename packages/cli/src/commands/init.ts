@@ -238,7 +238,7 @@ export async function executeInit(opts: InitOptions = {}): Promise<InitResult> {
 
   const seedStep = opts.skipSeed
     ? { step: { step: "load-seed", status: "skipped" as const, detail: "skipSeed=true" }, addedCount: 0, wouldAddCount: 0 }
-    : doLoadSeed(paths.userGlobalDbPath, dryRun, opts.seedPath);
+    : doLoadSeed(paths.userGlobalDbPath, dryRun, now, opts.seedPath);
   steps.push(seedStep.step);
 
   const importStep = await doImportRules(paths, opts, dryRun, now);
@@ -876,6 +876,7 @@ async function spawnDetachedWarmup(home: string): Promise<{ ok: boolean; detail:
 function doLoadSeed(
   userGlobalDbPath: string,
   dryRun: boolean,
+  now: () => Date,
   explicitSeedPath?: string,
 ): { step: InitStepResult; addedCount: number; wouldAddCount: number } {
   const seedPath = explicitSeedPath ?? resolveSeedPath();
@@ -929,6 +930,16 @@ function doLoadSeed(
       wouldAddCount: entries.length,
     };
   }
+  // Issue #7: seed jsonl files bake `created_at` (and often
+  // `tier_entered_at` / `demerit_last_updated`) to the pack-build date.
+  // Importing as-is makes newly-installed seed rules look 11+ days old to
+  // the calibrator, which bypasses the 7-day demotion guard
+  // (`MIN_DAYS_FOR_DEMOTION` in `calibrator/v2/hysteresis.ts`). Result: a
+  // single false-positive `ai.override.blocked_circumvented` event on day 1
+  // can demote a canonical rule straight to experimental and then archive
+  // it. Refresh the timestamps to "now" on import so the freshness
+  // protection actually applies during the rule's settling-in period.
+  const nowIso = now().toISOString();
   try {
     fs.mkdirSync(path.dirname(userGlobalDbPath), { recursive: true });
     const store = new SqliteKnowledgeStore(openDb(userGlobalDbPath));
@@ -936,7 +947,12 @@ function doLoadSeed(
     for (const e of entries) {
       if (store.getById(e.id)) continue;
       try {
-        store.add(e);
+        store.add({
+          ...e,
+          created_at: nowIso,
+          tier_entered_at: nowIso,
+          demerit_last_updated: nowIso,
+        });
         added++;
       } catch {
         // schema 异常单条跳过，不阻断整批
