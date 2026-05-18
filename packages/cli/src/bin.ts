@@ -1,4 +1,30 @@
 #!/usr/bin/env node
+// Issue #10: silence the `ExperimentalWarning: SQLite is an experimental
+// feature` line that Node 22's `node:sqlite` emits on first import. Viki
+// relies on `node:sqlite` intentionally (the whole rule store is built on
+// it); the warning has no actionable content for end users and looks like
+// an error in `viki stats` / `viki review` output. We only filter this
+// one specific warning so genuine deprecation / unhandled-rejection /
+// other ExperimentalWarning entries still surface.
+{
+  const origEmit = process.emit.bind(process);
+  // @ts-expect-error — overload signature mismatch is fine; we forward all args
+  process.emit = function (event: string, ...args: unknown[]): boolean {
+    if (event === "warning") {
+      const w = args[0] as { name?: string; message?: string } | undefined;
+      if (
+        w &&
+        w.name === "ExperimentalWarning" &&
+        typeof w.message === "string" &&
+        /SQLite is an experimental feature/i.test(w.message)
+      ) {
+        return false;
+      }
+    }
+    return origEmit(event as never, ...(args as never[]));
+  };
+}
+
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
