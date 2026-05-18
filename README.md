@@ -485,10 +485,20 @@ pnpm smoke:hook  # hook 烟雾测试
 
 - ✅ B1 学习闭环（识别 → 提取 → 校验 → 校准 → 编译）
 - ✅ Daemon 架构 + 新用户安装链路稳定（2026-05）
+- ✅ 团队规则传播（opt-in，`viki team` 命名空间，2026-05）
 - 🚧 Stop pipeline 性能优化（并发 / batch prompt）
 - 🚧 PromptHook 启用（让 LLM 抽出 `channel=user-input` 规则）
 - 🚧 真发布 `viki` 到 npm
 - 📋 国内网络一键化（postinstall 自动设 `SHARP_DIST_BASE_URL`）
+
+### Opt-in: 团队规则传播
+
+如果想让规则在团队成员间通过 git 自动同步，参见
+[`docs/team-propagation.md`](./docs/team-propagation.md)。一句话总结：
+`viki team infect` 把项目变成"团队项目"，`viki team share` 把一条规则
+写进 git，队友 `git pull` 时通过 `.githooks/post-merge` 自动落到本地
+KB；带两道安全闸门（secret 扫描 + scope 分类）+ LWW 作者溯源。**不影响
+个人学习管线**——纯叠加，可以一直不用。
 
 ---
 
