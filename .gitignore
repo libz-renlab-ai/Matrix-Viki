@@ -92,3 +92,6 @@ docs/gstack-bin/.last-judge-prompt.txt
 
 # Judge harness evidence dirs (timestamped, regenerated per run; paired with docs/plans/<issue>/judge.md).
 .judge/
+
+# Vercel CLI local link state (project ID + org ID, written by `vercel link`).
+web/.vercel/
