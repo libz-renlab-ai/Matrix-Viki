@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Matrix-Viki · AI 编码的记忆层</title>
+<title>Matrix-Viki · The memory layer for AI coding</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="effects.css" />
 <style>
   :root {
@@ -25,7 +25,7 @@
     --red: #f87171;
     --blue: #60a5fa;
     --purple: #c084fc;
-    --sans: 'Space Grotesk', 'Noto Sans SC', system-ui, sans-serif;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; }
@@ -149,8 +149,8 @@
         <span style="color:var(--ink-mute);opacity:0.5">pitch</span>
       </div>
       <div class="nav-right">
-        <a href="/pitch-en.html" class="nav-link" style="background:rgba(74,222,128,0.04);border-color:var(--green-dim);color:var(--green)" title="Switch to English">EN ↔ 中</a>
-        <a href="/zh.html" class="nav-link">看技术细节 →</a>
+        <a href="/pitch.html" class="nav-link" style="background:rgba(74,222,128,0.04);border-color:var(--green-dim);color:var(--green)" title="切换到中文">中 ↔ EN</a>
+        <a href="/" class="nav-link">See technical details →</a>
       </div>
     </div>
   </nav>
@@ -161,13 +161,13 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-  <script type="text/babel" src="components-pitch/hero.jsx"></script>
-  <script type="text/babel" src="components-pitch/problem.jsx"></script>
-  <script type="text/babel" src="components-pitch/solution.jsx"></script>
-  <script type="text/babel" src="components-pitch/proof.jsx"></script>
-  <script type="text/babel" src="components-pitch/vision.jsx"></script>
-  <script type="text/babel" src="components-pitch/cta.jsx"></script>
-  <script type="text/babel" src="pitch-app.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/hero.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/problem.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/solution.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/proof.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/vision.jsx"></script>
+  <script type="text/babel" src="components-pitch-en/cta.jsx"></script>
+  <script type="text/babel" src="pitch-app-en.jsx"></script>
   <script src="effects.js" defer></script>
 </body>
 </html>

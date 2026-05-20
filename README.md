@@ -22,7 +22,8 @@
 > **🌐 在线展示**（高交互单页站，部署在 Vercel；源码见 [`web/`](web/)）
 > - **英文技术展示**（默认）—— <https://web-five-rho-53.vercel.app/>
 > - **中文技术展示** —— <https://web-five-rho-53.vercel.app/zh.html>
-> - **VC 路演版**（基于真实 artifact，零编造数字）—— <https://web-five-rho-53.vercel.app/pitch.html>
+> - **VC 路演 · 中文**（基于真实 artifact，零编造数字）—— <https://web-five-rho-53.vercel.app/pitch.html>
+> - **VC 路演 · English** —— <https://web-five-rho-53.vercel.app/pitch-en.html>
 
 ---
 

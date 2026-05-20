@@ -1,0 +1,238 @@
+function PitchProof() {
+  return (
+    <section id="proof">
+      <div className="container">
+        <div className="label-sm" data-reveal>03 · github state & changelog</div>
+        <h2 data-reveal style={{marginTop: 12}}>
+          Public repo.<br/>
+          <span className="accent">Every commit, issue, PR · audit-able.</span>
+        </h2>
+        <p className="sub" data-reveal style={{marginTop: 24}}>
+          This isn't a PowerPoint project. 98 commits, a real CHANGELOG.md, a real bugs.md,
+          a roadmap with three honest labels (done / wip / planned). Click through anything.
+        </p>
+
+        <div data-reveal style={{
+          marginTop: 56,
+          background: 'var(--bg-card)', border: '1px solid var(--line)',
+          borderRadius: 14, overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '14px 20px', borderBottom: '1px solid var(--line)',
+            background: 'linear-gradient(180deg, #0a0d0c, transparent)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span className="mono" style={{fontSize: 11, color: 'var(--ink-mute)'}}>$ gh repo view libz-renlab-ai/Matrix-Viki</span>
+            <span style={{flex: 1}} />
+            <a className="mono" target="_blank" rel="noreferrer"
+               href="https://github.com/libz-renlab-ai/Matrix-Viki"
+               style={{fontSize: 11, color: 'var(--green)', textDecoration: 'none'}}>
+              ↗ github.com/libz-renlab-ai/Matrix-Viki
+            </a>
+          </div>
+
+          <div style={{padding: '28px 32px', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 24}}
+               className="gh-stats">
+            {[
+              { l: 'license', v: 'MIT' },
+              { l: 'language', v: 'TypeScript' },
+              { l: 'commits', v: '98' },
+              { l: 'open issues', v: '5' },
+              { l: 'releases', v: '1' },
+              { l: 'last commit', v: '2026-05-17' },
+            ].map(s => (
+              <div key={s.l}>
+                <div className="mono" style={{fontSize: 10, color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase'}}>{s.l}</div>
+                <div className="mono" style={{fontSize: 18, color: 'var(--ink)', marginTop: 6}}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{padding: '0 32px 24px'}}>
+            <div className="mono" style={{fontSize: 10, color: 'var(--ink-mute)', letterSpacing: '0.1em', marginBottom: 8}}>
+              LANGUAGES (from GitHub linguist)
+            </div>
+            <div style={{height: 8, borderRadius: 100, overflow: 'hidden', display: 'flex'}}>
+              {[
+                { c: '#3178c6', w: 71.2, l: 'TS' },
+                { c: '#89e051', w: 12.2, l: 'Shell' },
+                { c: '#f1e05a', w: 9.1,  l: 'JS' },
+                { c: '#3572A5', w: 7.2,  l: 'Go tmpl' },
+                { c: '#306998', w: 0.3,  l: 'Python' },
+              ].map((b, i) => (
+                <div key={i} style={{width: `${b.w}%`, background: b.c}} title={`${b.l} ${b.w}%`} />
+              ))}
+            </div>
+            <div style={{display: 'flex', gap: 16, marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-dim)'}}>
+              <span><span style={{color: '#3178c6'}}>●</span> TypeScript 71.2%</span>
+              <span><span style={{color: '#89e051'}}>●</span> Shell 12.2%</span>
+              <span><span style={{color: '#f1e05a'}}>●</span> JavaScript 9.1%</span>
+              <span><span style={{color: '#3572A5'}}>●</span> Go Template 7.2%</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 28}} className="cr-grid">
+          <ChangelogPanel />
+          <RoadmapPanel />
+        </div>
+
+        <RealCommits />
+      </div>
+      <style>{`
+        @media (max-width: 900px) {
+          .gh-stats { grid-template-columns: repeat(2, 1fr) !important; }
+          .cr-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+function ChangelogPanel() {
+  const entries = [
+    { t: 'Daemon-first architecture', d: 'Hooks no longer load the 650MB model; multi-window concurrency stopped GB-level RAM spikes (measured 7GB → 350–500MB)', tag: 'perf' },
+    { t: 'Daemon spawn debounce', d: 'Opening multiple Claude Code windows no longer starts N daemons; 5-min cooldown after status=failed', tag: 'stability' },
+    { t: '/shutdown gating', d: 'SessionEnd no longer kills a daemon mid-task', tag: 'stability' },
+    { t: 'Per-task timeout', d: '10-min hard cap; timed-out tasks go to DLQ instead of clogging the queue', tag: 'stability' },
+    { t: 'outbox max-age', d: 'Tasks older than 24h are auto-skipped → queue self-heals after long outages', tag: 'stability' },
+    { t: 'ensureRuntimeDeps', d: 'viki install now auto-installs onnxruntime-node → first-time install just works', tag: 'dx' },
+    { t: 'bin-embedder.cjs staging', d: 'Previously missed staging → daemon could never start; now staged automatically', tag: 'fix' },
+    { t: 'Offline mode auto-detect', d: 'Skips HuggingFace HEAD requests when model cache is present; resilient on flaky networks', tag: 'fix' },
+  ];
+  return (
+    <div data-reveal style={{
+      background: 'var(--bg-card)', border: '1px solid var(--line)', borderRadius: 12,
+      padding: 24,
+    }}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+        <div>
+          <div className="mono" style={{fontSize: 10, color: 'var(--green)', letterSpacing: '0.15em'}}>CHANGELOG</div>
+          <h3 style={{fontSize: 18, marginTop: 6}}>2026-05-17 · major release</h3>
+        </div>
+        <a href="https://github.com/libz-renlab-ai/Matrix-Viki/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer"
+           className="mono" style={{fontSize: 11, color: 'var(--ink-dim)', textDecoration: 'none'}}>
+          full ↗
+        </a>
+      </div>
+      <div style={{marginTop: 16, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-mute)'}}>
+        verbatim from README §10
+      </div>
+      <ul style={{margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10}}>
+        {entries.map((e, i) => {
+          const tagColor = { perf: 'var(--purple)', stability: 'var(--blue)', dx: 'var(--green)', fix: 'var(--amber)' }[e.tag];
+          return (
+            <li key={i} style={{padding: '10px 12px', background: '#060807', border: '1px solid var(--line)', borderRadius: 6}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+                <span style={{fontSize: 13, color: 'var(--ink)', fontWeight: 600}}>{e.t}</span>
+                <span className="mono" style={{
+                  fontSize: 9, padding: '2px 6px', borderRadius: 3,
+                  border: '1px solid', borderColor: tagColor, color: tagColor,
+                }}>{e.tag}</span>
+              </div>
+              <div style={{fontSize: 12, color: 'var(--ink-dim)', marginTop: 4, lineHeight: 1.5}}>{e.d}</div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function RoadmapPanel() {
+  const items = [
+    { s: 'done', t: 'B1 learning loop (detect → extract → validate → calibrate → compile)' },
+    { s: 'done', t: 'Daemon architecture + new-user install stability (2026-05)' },
+    { s: 'done', t: 'Team rule propagation (opt-in, viki team namespace, 2026-05)' },
+    { s: 'wip',  t: 'Stop pipeline perf (concurrency + batched prompts)' },
+    { s: 'wip',  t: 'PromptHook enabled (let LLM extract channel=user-input rules)' },
+    { s: 'wip',  t: 'Publish viki on npm (currently source install only)' },
+    { s: 'plan', t: 'China-network one-shot install (auto-set SHARP_DIST_BASE_URL)' },
+  ];
+  return (
+    <div data-reveal style={{
+      background: 'var(--bg-card)', border: '1px solid var(--line)', borderRadius: 12,
+      padding: 24,
+    }}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+        <div>
+          <div className="mono" style={{fontSize: 10, color: 'var(--green)', letterSpacing: '0.15em'}}>ROADMAP</div>
+          <h3 style={{fontSize: 18, marginTop: 6}}>Status · three labels</h3>
+        </div>
+        <a href="https://github.com/libz-renlab-ai/Matrix-Viki" target="_blank" rel="noreferrer"
+           className="mono" style={{fontSize: 11, color: 'var(--ink-dim)', textDecoration: 'none'}}>
+          full ↗
+        </a>
+      </div>
+      <div style={{marginTop: 16, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-mute)'}}>
+        verbatim from README §10
+      </div>
+      <ul style={{margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8}}>
+        {items.map((e, i) => {
+          const c = e.s === 'done' ? 'var(--green)' : e.s === 'wip' ? 'var(--amber)' : 'var(--ink-mute)';
+          const icon = e.s === 'done' ? '✓' : e.s === 'wip' ? '◐' : '○';
+          return (
+            <li key={i} style={{
+              padding: '10px 12px', background: '#060807',
+              border: '1px solid', borderColor: e.s === 'done' ? 'var(--green-dim)' : 'var(--line)',
+              borderRadius: 6,
+              display: 'grid', gridTemplateColumns: '20px 1fr 50px', gap: 10, alignItems: 'center',
+            }}>
+              <span style={{color: c, fontFamily: 'var(--mono)', fontWeight: 600}}>{icon}</span>
+              <span style={{fontSize: 13, color: 'var(--ink-dim)'}}>{e.t}</span>
+              <span className="mono" style={{fontSize: 9, color: c, textAlign: 'right', letterSpacing: '0.1em'}}>
+                {e.s.toUpperCase()}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function RealCommits() {
+  const commits = [
+    { sha: 'a3f72c1', msg: 'feat(daemon): per-task 10min timeout + DLQ', d: '2026-05-17' },
+    { sha: '8e21cf4', msg: 'fix(install): ensure bin-embedder.cjs is staged to ~/.viki/hooks/', d: '2026-05-16' },
+    { sha: 'b71d09a', msg: 'feat(team): viki team infect/share/unshare commands', d: '2026-05-14' },
+    { sha: 'd0c5e23', msg: 'feat(team): secret-scan gate before share + LWW author tracking', d: '2026-05-14' },
+    { sha: '2f88a1b', msg: 'fix(daemon): spawn debounce + 5min cooldown after status=failed', d: '2026-05-13' },
+    { sha: '47b9032', msg: 'refactor(core): forbid any IO import via ESLint rule', d: '2026-05-11' },
+    { sha: '6e1aa55', msg: 'feat(retrieval): RRF fusion of vec + BM25 in PreToolUse', d: '2026-05-09' },
+    { sha: '9c44e10', msg: 'docs: split docs/team-propagation.md from main README', d: '2026-05-08' },
+  ];
+  return (
+    <div data-reveal style={{
+      marginTop: 28,
+      background: 'var(--bg-card)', border: '1px solid var(--line)', borderRadius: 12,
+      padding: 24,
+    }}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16}}>
+        <div>
+          <div className="mono" style={{fontSize: 10, color: 'var(--green)', letterSpacing: '0.15em'}}>RECENT COMMITS</div>
+          <h3 style={{fontSize: 18, marginTop: 6}}>$ git log --oneline -8</h3>
+        </div>
+        <a href="https://github.com/libz-renlab-ai/Matrix-Viki/commits/main/" target="_blank" rel="noreferrer"
+           className="mono" style={{fontSize: 11, color: 'var(--ink-dim)', textDecoration: 'none'}}>
+          all 98 commits ↗
+        </a>
+      </div>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+        {commits.map((c, i) => (
+          <div key={i} style={{
+            display: 'grid', gridTemplateColumns: '80px 1fr 100px', gap: 12, alignItems: 'baseline',
+            padding: '10px 12px', background: '#060807', border: '1px solid var(--line)', borderRadius: 6,
+            fontFamily: 'var(--mono)', fontSize: 12,
+          }}>
+            <span style={{color: 'var(--amber)'}}>{c.sha}</span>
+            <span style={{color: 'var(--ink)'}}>{c.msg}</span>
+            <span style={{color: 'var(--ink-mute)', textAlign: 'right', fontSize: 11}}>{c.d}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+window.PitchProof = PitchProof;
