@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Matrix-Viki · Personal AI Rule Assistant</title>
+<title>Matrix-Viki · 个人 AI 规则助手</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --bg: #07090a;
@@ -25,7 +25,7 @@
     --red: #f87171;
     --blue: #60a5fa;
     --purple: #c084fc;
-    --sans: 'Space Grotesk', system-ui, sans-serif;
+    --sans: 'Space Grotesk', 'Noto Sans SC', system-ui, sans-serif;
     --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   }
   * { box-sizing: border-box; }
@@ -99,7 +99,6 @@
   .navlinks a {
     text-decoration: none; transition: color 0.2s;
     padding-bottom: 2px; border-bottom: 1px solid transparent;
-    white-space: nowrap;
   }
   .navlinks a:hover { color: var(--green); border-bottom-color: var(--green-dim); }
   .nav-status {
@@ -348,18 +347,18 @@
         <span class="dim" style="opacity:0.5">v0.12.0</span>
       </div>
       <div class="navlinks">
-        <a href="#loop">Loop</a>
-        <a href="#demo">Live demo</a>
-        <a href="#hooks">7 Hooks</a>
-        <a href="#tiers">Maturity</a>
-        <a href="#retrieval">Retrieval</a>
-        <a href="#arch">Architecture</a>
+        <a href="#loop">闭环</a>
+        <a href="#demo">实时演示</a>
+        <a href="#hooks">7 个 Hook</a>
+        <a href="#tiers">成熟度</a>
+        <a href="#retrieval">检索</a>
+        <a href="#arch">架构</a>
       </div>
       <div style="display:flex; align-items:center; gap:16px;">
-        <a href="/zh.html" class="lang-toggle" title="切换到中文">
-          <span class="lang-cur">EN</span>
+        <a href="/" class="lang-toggle" title="Switch to English">
+          <span class="lang-cur">中</span>
           <span class="lang-arrow">↔</span>
-          <span class="lang-other">中</span>
+          <span class="lang-other">EN</span>
         </a>
         <div class="nav-status">daemon · running</div>
       </div>
@@ -395,15 +394,15 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
   <script type="text/babel" src="tweaks-panel.jsx"></script>
-  <script type="text/babel" src="components-en/hero.jsx"></script>
-  <script type="text/babel" src="components-en/problem.jsx"></script>
-  <script type="text/babel" src="components-en/loop.jsx"></script>
-  <script type="text/babel" src="components-en/demo.jsx"></script>
-  <script type="text/babel" src="components-en/hooks.jsx"></script>
-  <script type="text/babel" src="components-en/tiers.jsx"></script>
-  <script type="text/babel" src="components-en/retrieval.jsx"></script>
-  <script type="text/babel" src="components-en/arch.jsx"></script>
-  <script type="text/babel" src="components-en/footer.jsx"></script>
-  <script type="text/babel" src="app-en.jsx"></script>
+  <script type="text/babel" src="components/hero.jsx"></script>
+  <script type="text/babel" src="components/problem.jsx"></script>
+  <script type="text/babel" src="components/loop.jsx"></script>
+  <script type="text/babel" src="components/demo.jsx"></script>
+  <script type="text/babel" src="components/hooks.jsx"></script>
+  <script type="text/babel" src="components/tiers.jsx"></script>
+  <script type="text/babel" src="components/retrieval.jsx"></script>
+  <script type="text/babel" src="components/arch.jsx"></script>
+  <script type="text/babel" src="components/footer.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
 </body>
 </html>
