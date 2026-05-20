@@ -28,6 +28,7 @@ function App() {
       <Hooks />
       <Tiers />
       <Retrieval />
+      <Team />
       <Arch />
       <SiteFooter />
 

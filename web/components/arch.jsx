@@ -19,7 +19,7 @@ function Arch() {
   return (
     <section id="arch">
       <div className="container">
-        <div className="sec-label"><span>07 · 架构</span></div>
+        <div className="sec-label"><span>08 · 架构</span></div>
         <h2>Functional Core ·<br/>Imperative Shell.</h2>
         <p className="sub" style={{marginBottom: 48}}>
           依赖方向单向，反向禁止。核心学习逻辑是纯函数，可脱机重放、可单测、可替换 LLM 后端而不动核心。
