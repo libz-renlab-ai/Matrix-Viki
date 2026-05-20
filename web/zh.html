@@ -359,6 +359,10 @@
         <a href="#arch">架构</a>
       </div>
       <div style="display:flex; align-items:center; gap:16px;">
+        <a href="/pitch.html" class="nav-link-pitch" title="VC 路演页">
+          <span>路演版</span>
+          <span style="opacity:0.6">↗</span>
+        </a>
         <a href="/" class="lang-toggle" title="Switch to English">
           <span class="lang-cur">中</span>
           <span class="lang-arrow">↔</span>
@@ -369,6 +373,23 @@
     </div>
   </nav>
   <style>
+    .nav-link-pitch {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--green);
+      border: 1px solid var(--green-dim);
+      border-radius: 100px;
+      text-decoration: none;
+      transition: all 0.15s;
+      background: rgba(74,222,128,0.04);
+      letter-spacing: 0.05em;
+    }
+    .nav-link-pitch:hover {
+      border-color: var(--green);
+      background: rgba(74,222,128,0.1);
+      box-shadow: 0 0 12px rgba(74,222,128,0.2);
+    }
     .lang-toggle {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 5px 10px;
