@@ -1,0 +1,241 @@
+/* === Sci-fi enhancements — load AFTER the base styles in <head> === */
+
+/* Scroll reveal: fade-in-up */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(.2,.7,.2,1), transform 0.9s cubic-bezier(.2,.7,.2,1);
+  will-change: opacity, transform;
+}
+[data-reveal].revealed { opacity: 1; transform: translateY(0); }
+[data-reveal-delay="1"].revealed { transition-delay: 0.08s; }
+[data-reveal-delay="2"].revealed { transition-delay: 0.16s; }
+[data-reveal-delay="3"].revealed { transition-delay: 0.24s; }
+[data-reveal-delay="4"].revealed { transition-delay: 0.32s; }
+
+/* Stagger children: applies to direct children when parent reveals */
+[data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1);
+}
+[data-reveal-stagger].revealed > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.05s; }
+[data-reveal-stagger].revealed > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.13s; }
+[data-reveal-stagger].revealed > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.21s; }
+[data-reveal-stagger].revealed > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.29s; }
+[data-reveal-stagger].revealed > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.37s; }
+[data-reveal-stagger].revealed > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.45s; }
+[data-reveal-stagger].revealed > *:nth-child(n+7) { opacity: 1; transform: none; transition-delay: 0.5s; }
+
+/* Glow pulse for active/important elements */
+@keyframes neon-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--green-dim), 0 0 20px -8px var(--green); }
+  50% { box-shadow: 0 0 0 1px var(--green), 0 0 32px -4px var(--green); }
+}
+.neon-pulse { animation: neon-pulse 3s ease-in-out infinite; }
+
+/* Glitch text — hero title overlay variant */
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.glitch-text:hover::before,
+.glitch-text.glitching::before {
+  opacity: 0.7;
+  color: #ef4444;
+  transform: translate(-2px, 0);
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+  animation: glitch-shift 0.4s steps(2) infinite;
+}
+.glitch-text:hover::after,
+.glitch-text.glitching::after {
+  opacity: 0.7;
+  color: var(--blue);
+  transform: translate(2px, 0);
+  clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+  animation: glitch-shift 0.4s steps(2) infinite reverse;
+}
+@keyframes glitch-shift {
+  0% { transform: translate(-2px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  100% { transform: translate(-1px, 1px); }
+}
+
+/* Subtle horizontal scan line drifting down across the viewport */
+.scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 3px,
+    rgba(74,222,128,0.013) 3px,
+    rgba(74,222,128,0.013) 4px
+  );
+  mix-blend-mode: screen;
+}
+.scanlines::after {
+  content: '';
+  position: fixed;
+  left: 0; right: 0; height: 200px; top: -200px;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(180deg, transparent, rgba(74,222,128,0.04), transparent);
+  animation: scan-drift 8s linear infinite;
+}
+@keyframes scan-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(100vh + 200px)); }
+}
+
+/* Card 3D tilt — lightweight, JS-driven via mousemove */
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(.2,.7,.2,1), box-shadow 0.4s;
+  will-change: transform;
+}
+.tilt-card .tilt-glow {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    600px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(74,222,128,0.10),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: inherit;
+}
+.tilt-card:hover .tilt-glow { opacity: 1; }
+
+/* Glow ring around active panels */
+.has-glow-ring {
+  position: relative;
+}
+.has-glow-ring::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from 0deg, transparent, var(--green) 20%, transparent 30%, transparent 60%, var(--blue) 80%, transparent 90%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glow-rotate 6s linear infinite;
+  opacity: 0.6;
+  pointer-events: none;
+}
+@keyframes glow-rotate {
+  100% { --r: 360deg; transform: rotate(360deg); }
+}
+
+/* Counter — large animated number, monospace with neon glow */
+.neon-num {
+  font-family: var(--mono);
+  font-size: 56px;
+  font-weight: 500;
+  color: var(--green);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 0 0 24px rgba(74,222,128,0.35), 0 0 60px rgba(74,222,128,0.15);
+  font-variant-numeric: tabular-nums;
+}
+.neon-num-sm { font-size: 36px; }
+
+/* Kill feed terminal */
+.kill-feed {
+  background: linear-gradient(180deg, #060807, #040605);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.kill-feed::before {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 1px, rgba(74,222,128,0.02) 1px 2px);
+}
+@keyframes feed-in {
+  0% { opacity: 0; transform: translateY(-12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.feed-row {
+  animation: feed-in 0.5s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes flash-pulse {
+  0% { background: rgba(239,68,68,0.18); }
+  100% { background: transparent; }
+}
+.feed-row.flash { animation: feed-in 0.5s cubic-bezier(.2,.7,.2,1), flash-pulse 1.4s ease-out; }
+
+/* Heatmap cell */
+.heat-cell {
+  transition: all 0.3s cubic-bezier(.2,.7,.2,1);
+  cursor: default;
+}
+.heat-cell:hover {
+  transform: scale(1.4);
+  z-index: 10;
+}
+
+/* Floating noise overlay (super subtle) */
+.noise {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+}
+
+/* Marquee tag row */
+.ticker {
+  display: flex; gap: 32px;
+  animation: ticker-slide 36s linear infinite;
+  width: max-content;
+}
+@keyframes ticker-slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-mask {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+/* Subtle border-shimmer for "intercepted" highlights */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.18), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Section enter — wraps full section in revealed animation */
+section[data-reveal] h2,
+section[data-reveal] .sub,
+section[data-reveal] .sec-label {
+  /* Ensure inner text inherits the reveal but with its own subtle delay */
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal], [data-reveal-stagger] > * {
+    opacity: 1 !important; transform: none !important; transition: none !important;
+  }
+  .ticker, .scanlines::after, .shimmer { animation: none !important; }
+  .neon-pulse { animation: none !important; }
+}

@@ -4,7 +4,7 @@ function Retrieval() {
   return (
     <section id="retrieval">
       <div className="container">
-        <div className="sec-label"><span>06 · 检索与匹配</span></div>
+        <div className="sec-label" data-reveal><span>07 · 检索与匹配</span></div>
         <h2>语义 + 字面 ·<br/>RRF 融合排序。</h2>
         <p className="sub" style={{marginBottom: 40}}>
           用户用中文记的规则，AI 用英文 prompt 触发——光靠字面匹配漏一半。

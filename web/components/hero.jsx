@@ -1,5 +1,12 @@
 function Hero() {
   const [phase, setPhase] = useState(0);
+  const t1 = useRef(null), t2 = useRef(null), tagline = useRef(null);
+
+  useEffect(() => {
+    if (t1.current && window.scrambleText) window.scrambleText(t1.current, '已知错误', { duration: 900 });
+    if (t2.current && window.scrambleText) setTimeout(() => t2.current && window.scrambleText(t2.current, '不会发生第二次。', { duration: 1200 }), 600);
+    if (tagline.current && window.scrambleText) setTimeout(() => tagline.current && window.scrambleText(tagline.current, 'personal learning engine · v0.12.0', { duration: 1000 }), 200);
+  }, []);
   // Auto cycle through a tiny live terminal: correction → extract → match → block
   const lines = [
     { p: '$', t: 'npm install moment', cls: 'term-user' },
@@ -23,10 +30,10 @@ function Hero() {
       <div className="container">
         <div style={{display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 64, alignItems: 'center'}} className="hero-grid">
           <div>
-            <span className="eyebrow">个人 AI 规则助手 · personal learning engine</span>
-            <h1>
-              已知错误<br/>
-              <span style={{color: 'var(--green)'}}>不会发生第二次。</span>
+            <span className="eyebrow" ref={tagline}>personal learning engine · v0.12.0</span>
+            <h1 className="glitch-text" data-text="已知错误">
+              <span ref={t1}>已知错误</span><br/>
+              <span style={{color: 'var(--green)'}} ref={t2}>不会发生第二次。</span>
             </h1>
             <p className="sub" style={{marginTop: 28}}>
               Matrix-Viki 挂在 Claude Code 上，把每一次"你纠正 AI"的瞬间蒸馏成结构化规则。
@@ -39,17 +46,17 @@ function Hero() {
               </a>
             </div>
 
-            <div style={{display: 'flex', gap: 40, marginTop: 56}}>
+            <div style={{display: 'flex', gap: 40, marginTop: 56}} data-reveal data-reveal-stagger>
               <div>
-                <div className="stat-num">7</div>
+                <div className="neon-num neon-num-sm">7</div>
                 <div className="stat-label">Hook 接管点</div>
               </div>
               <div>
-                <div className="stat-num">6</div>
+                <div className="neon-num neon-num-sm">6</div>
                 <div className="stat-label">规则成熟度档</div>
               </div>
               <div>
-                <div className="stat-num">350MB</div>
+                <div className="neon-num neon-num-sm">350<span style={{fontSize:'0.45em',opacity:0.6}}>MB</span></div>
                 <div className="stat-label">daemon 全机内存</div>
               </div>
             </div>

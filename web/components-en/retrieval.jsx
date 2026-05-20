@@ -4,7 +4,7 @@ function Retrieval() {
   return (
     <section id="retrieval">
       <div className="container">
-        <div className="sec-label"><span>06 · retrieval & matching</span></div>
+        <div className="sec-label" data-reveal><span>07 · retrieval & matching</span></div>
         <h2>Semantic + lexical ·<br/>fused with RRF.</h2>
         <p className="sub" style={{marginBottom: 40}}>
           You write a rule in one language; the AI triggers it with another phrasing —

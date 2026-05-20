@@ -68,7 +68,7 @@ function Hooks() {
   return (
     <section id="hooks">
       <div className="container">
-        <div className="sec-label"><span>04 · 接入 Claude Code</span></div>
+        <div className="sec-label" data-reveal><span>05 · 接入 Claude Code</span></div>
         <h2>7 个 Hook · 一条信号管线。</h2>
         <p className="sub" style={{marginBottom: 48}}>
           Viki 不改变你的工作习惯——它挂在 Claude Code 的 7 个 hook 上工作。点开看每一步在做什么。

@@ -68,7 +68,7 @@ function Hooks() {
   return (
     <section id="hooks">
       <div className="container">
-        <div className="sec-label"><span>04 · plugged into claude code</span></div>
+        <div className="sec-label" data-reveal><span>05 · plugged into claude code</span></div>
         <h2>7 hooks · one signal pipeline.</h2>
         <p className="sub" style={{marginBottom: 48}}>
           Viki doesn't change how you work — it lives on Claude Code's 7 hooks. Click any to see what happens at that step.

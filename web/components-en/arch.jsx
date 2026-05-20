@@ -19,7 +19,7 @@ function Arch() {
   return (
     <section id="arch">
       <div className="container">
-        <div className="sec-label"><span>08 · architecture</span></div>
+        <div className="sec-label" data-reveal><span>09 · architecture</span></div>
         <h2>Functional core ·<br/>imperative shell.</h2>
         <p className="sub" style={{marginBottom: 48}}>
           Dependencies flow one way — reverse is forbidden. Core learning logic is pure functions:

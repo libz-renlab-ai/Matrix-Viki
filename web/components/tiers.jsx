@@ -56,7 +56,7 @@ function Tiers() {
   return (
     <section id="tiers">
       <div className="container">
-        <div className="sec-label"><span>05 · 成熟度</span></div>
+        <div className="sec-label" data-reveal><span>06 · 成熟度</span></div>
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'start'}} className="tiers-grid">
           <div>
             <h2>规则不是<br/>一锤定音的。</h2>

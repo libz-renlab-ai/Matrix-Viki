@@ -56,7 +56,7 @@ function Tiers() {
   return (
     <section id="tiers">
       <div className="container">
-        <div className="sec-label"><span>05 · maturity</span></div>
+        <div className="sec-label" data-reveal><span>06 · maturity</span></div>
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'start'}} className="tiers-grid">
           <div>
             <h2>Rules aren't<br/>set in stone.</h2>

@@ -1,5 +1,12 @@
 function Hero() {
   const [phase, setPhase] = useState(0);
+  const t1 = useRef(null), t2 = useRef(null), tagline = useRef(null);
+
+  useEffect(() => {
+    if (t1.current && window.scrambleText) window.scrambleText(t1.current, 'Known mistakes', { duration: 900 });
+    if (t2.current && window.scrambleText) setTimeout(() => t2.current && window.scrambleText(t2.current, "don't happen twice.", { duration: 1200 }), 600);
+    if (tagline.current && window.scrambleText) setTimeout(() => tagline.current && window.scrambleText(tagline.current, 'personal learning engine · v0.12.0', { duration: 1000 }), 200);
+  }, []);
   const lines = [
     { p: '$', t: 'npm install moment', cls: 'term-user' },
     { p: '↳', t: '🚫 Viki intercepted · matched seed-pack-universal-moment (conf 0.85)', cls: 'term-deny', d: 700 },
@@ -22,10 +29,10 @@ function Hero() {
       <div className="container">
         <div style={{display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 64, alignItems: 'center'}} className="hero-grid">
           <div>
-            <span className="eyebrow">personal learning engine · for Claude Code</span>
+            <span className="eyebrow" ref={tagline}>personal learning engine · v0.12.0</span>
             <h1 style={{fontSize: 'clamp(40px, 6vw, 88px)'}}>
-              <span style={{display: 'block', whiteSpace: 'nowrap'}}>Known mistakes</span>
-              <span style={{color: 'var(--green)', display: 'block', whiteSpace: 'nowrap'}}>don't happen twice.</span>
+              <span style={{display: 'block', whiteSpace: 'nowrap'}} ref={t1}>Known mistakes</span>
+              <span style={{color: 'var(--green)', display: 'block', whiteSpace: 'nowrap'}} ref={t2}>don't happen twice.</span>
             </h1>
             <p className="sub" style={{marginTop: 28}}>
               Matrix-Viki hooks into Claude Code and distills every "you corrected the AI" moment into a structured rule.
@@ -38,17 +45,17 @@ function Hero() {
               </a>
             </div>
 
-            <div style={{display: 'flex', gap: 40, marginTop: 56}}>
+            <div style={{display: 'flex', gap: 40, marginTop: 56}} data-reveal data-reveal-stagger>
               <div>
-                <div className="stat-num">7</div>
+                <div className="neon-num neon-num-sm">7</div>
                 <div className="stat-label">Hook touchpoints</div>
               </div>
               <div>
-                <div className="stat-num">6</div>
+                <div className="neon-num neon-num-sm">6</div>
                 <div className="stat-label">Maturity tiers</div>
               </div>
               <div>
-                <div className="stat-num">350MB</div>
+                <div className="neon-num neon-num-sm">350<span style={{fontSize:'0.45em',opacity:0.6}}>MB</span></div>
                 <div className="stat-label">Daemon total RAM</div>
               </div>
             </div>

@@ -25,6 +25,7 @@ function App() {
       <Problem />
       <Loop />
       <Demo autoplay={t.autoplayDemo} />
+      <Impact />
       <Hooks />
       <Tiers />
       <Retrieval />

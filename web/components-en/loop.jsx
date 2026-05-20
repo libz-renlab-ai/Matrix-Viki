@@ -115,7 +115,31 @@ function Loop() {
               </defs>
 
               <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--line)" strokeWidth="1" strokeDasharray="2 4" />
+              <circle cx={cx} cy={cy} r={R - 14} fill="none" stroke="var(--green-dim)" strokeWidth="0.5" strokeDasharray="1 6" opacity="0.5">
+                <animateTransform attributeName="transform" type="rotate" from={`0 ${cx} ${cy}`} to={`360 ${cx} ${cy}`} dur="40s" repeatCount="indefinite" />
+              </circle>
+              <circle cx={cx} cy={cy} r={R + 18} fill="none" stroke="var(--line-strong)" strokeWidth="0.5" strokeDasharray="0.5 12" opacity="0.4">
+                <animateTransform attributeName="transform" type="rotate" from={`360 ${cx} ${cy}`} to={`0 ${cx} ${cy}`} dur="60s" repeatCount="indefinite" />
+              </circle>
               <circle cx={cx} cy={cy} r={80} fill="url(#centerGlow)" />
+
+              <path id="orbit-path-en" d={`M ${cx + R} ${cy} A ${R} ${R} 0 1 1 ${cx - R} ${cy} A ${R} ${R} 0 1 1 ${cx + R} ${cy}`}
+                fill="none" stroke="none" />
+              {[
+                { r: 2.5, dur: '7s', delay: '0s', color: 'var(--green)' },
+                { r: 1.8, dur: '11s', delay: '-3s', color: 'var(--green)' },
+                { r: 1.3, dur: '9s', delay: '-5s', color: 'var(--blue)' },
+                { r: 2, dur: '13s', delay: '-2s', color: 'var(--green)' },
+                { r: 1.2, dur: '15s', delay: '-7s', color: 'var(--purple)' },
+              ].map((p, i) => (
+                <circle key={i} r={p.r} fill={p.color}
+                  style={{filter: 'drop-shadow(0 0 4px currentColor)', color: p.color}}>
+                  <animateMotion dur={p.dur} repeatCount="indefinite" begin={p.delay} rotate="auto">
+                    <mpath href="#orbit-path-en" />
+                  </animateMotion>
+                  <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin={p.delay} />
+                </circle>
+              ))}
 
               {stages.map((_, i) => {
                 const a1 = (i / stages.length) * Math.PI * 2 - Math.PI / 2;

@@ -17,7 +17,7 @@ function Team() {
     <section id="team">
       <div className="container">
         <div style={{display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 4}}>
-          <div className="sec-label" style={{flex: 1, margin: 0}}><span>07 · team rule propagation</span></div>
+          <div className="sec-label" data-reveal style={{flex: 1, margin: 0}}><span>08 · team rule propagation</span></div>
           <span className="mono" style={{
             fontSize: 11, padding: '4px 10px',
             border: '1px solid var(--amber)', color: 'var(--amber)',
